@@ -1,18 +1,19 @@
 import os
 import json
-import argparse
 import paramiko
 import requests
 import urllib3
+import yaml
 from requests.auth import HTTPBasicAuth
+from dotenv import load_dotenv
 
-# Suppress insecure request warnings for self-signed certs
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def extract_dlq_logs(tailscale_user, tailscale_host, output_file, ssh_key_path=None):
-    """
-    Task A: DLQ Log Extraction via Tailscale SSH
-    """
+def load_config(config_path='/app/config.yaml'):
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
+
+def extract_dlq_logs(tailscale_user, tailscale_host, output_file):
     print(f"[*] Extracting DLQ logs via SSH from {tailscale_user}@{tailscale_host}...")
     
     ssh = paramiko.SSHClient()
@@ -20,16 +21,7 @@ def extract_dlq_logs(tailscale_user, tailscale_host, output_file, ssh_key_path=N
     
     row_count = 0
     try:
-        connect_kwargs = {
-            "hostname": tailscale_host,
-            "username": tailscale_user
-        }
-        if ssh_key_path and os.path.exists(ssh_key_path):
-            connect_kwargs["key_filename"] = ssh_key_path
-            
-        ssh.connect(**connect_kwargs)
-        
-        # Extract Logstash DLQ contents. Assuming they are text based JSON/lines for this task.
+        ssh.connect(hostname=tailscale_host, username=tailscale_user)
         command = "sudo cat /nsm/logstash/dead_letter_queue/main/*"
         stdin, stdout, stderr = ssh.exec_command(command)
         
@@ -42,7 +34,7 @@ def extract_dlq_logs(tailscale_user, tailscale_host, output_file, ssh_key_path=N
         if err:
             print(f"[!] SSH Stderr: {err}")
             
-        print(f"[*] Task A complete. Extracted {row_count} lines to {output_file}.")
+        print(f"[*] Extracted {row_count} DLQ logs to {output_file}.")
         return row_count
         
     except Exception as e:
@@ -51,19 +43,13 @@ def extract_dlq_logs(tailscale_user, tailscale_host, output_file, ssh_key_path=N
     finally:
         ssh.close()
 
-def extract_unmapped_logs(es_ip, es_user, es_pass, output_file):
-    """
-    Task B: Unparseable Logs via Elasticsearch API (Scroll)
-    Translates the Bash script logic to native Python.
-    """
+def extract_unmapped_logs(es_ip, es_user, es_pass, batch_size, lookback_time, output_file):
     print(f"[*] Extracting unmapped logs from Elasticsearch at {es_ip}...")
     
     base_url = f"https://{es_ip}:9200"
     auth = HTTPBasicAuth(es_user, es_pass)
     headers = {"Content-Type": "application/json"}
     
-    batch_size = 5000
-    lookback_time = "now-24h"
     lucene_query = "_exists_:message AND NOT _exists_:event.category AND NOT event.dataset:(elastic_agent* OR windows.perfmon* OR system.cpu*)"
     
     search_payload = {
@@ -123,7 +109,7 @@ def extract_unmapped_logs(es_ip, es_user, es_pass, output_file):
                 json={"scroll_id": scroll_id}
             )
             
-        print(f"[*] Task B complete. Extracted {row_count} unmapped logs to {output_file}.")
+        print(f"[*] Extracted {row_count} unmapped logs to {output_file}.")
         return row_count
 
     except Exception as e:
@@ -131,23 +117,35 @@ def extract_unmapped_logs(es_ip, es_user, es_pass, output_file):
         return row_count
 
 def main():
-    parser = argparse.ArgumentParser(description="Security Onion Log Extractor")
-    parser.add_argument('--ts-user', default=os.environ.get('TS_USER', 'admin'), help='Tailscale SSH User')
-    parser.add_argument('--ts-host', default=os.environ.get('TS_HOST', 'so-manager'), help='Tailscale Hostname/IP')
-    parser.add_argument('--es-ip', default=os.environ.get('ES_IP', '192.168.1.100'), help='Elasticsearch IP')
-    parser.add_argument('--es-user', default=os.environ.get('ES_USER', 'admin@domain.com'), help='Elasticsearch User')
-    parser.add_argument('--es-pass', default=os.environ.get('ES_PASS', 'YourPasswordHere'), help='Elasticsearch Password')
-    parser.add_argument('--out-dir', default='data/', help='Output directory for extracted logs')
+    load_dotenv()
+    config = load_config()
     
-    args = parser.parse_args()
+    output_dir = config.get('directories', {}).get('output_dir', 'data/processed')
+    os.makedirs(output_dir, exist_ok=True)
     
-    os.makedirs(args.out_dir, exist_ok=True)
+    batch_size = config.get('extractor', {}).get('batch_size', 5000)
+    lookback_time = config.get('extractor', {}).get('lookback_time', 'now-24h')
     
-    dlq_out_file = os.path.join(args.out_dir, 'so_dlq_logs.jsonl')
-    unmapped_out_file = os.path.join(args.out_dir, 'unmapped_fallback_logs.jsonl')
+    so_ip = os.environ.get('SO_IP')
+    so_user = os.environ.get('SO_USER')
+    so_pass = os.environ.get('SO_PASS')
+    ts_node = os.environ.get('TAILSCALE_NODE')
+    ts_user = os.environ.get('TS_USER', 'admin')
     
-    dlq_count = extract_dlq_logs(args.ts_user, args.ts_host, dlq_out_file)
-    es_count = extract_unmapped_logs(args.es_ip, args.es_user, args.es_pass, unmapped_out_file)
+    dlq_out_file = os.path.join(output_dir, 'so_dlq_logs.jsonl')
+    unmapped_out_file = os.path.join(output_dir, 'unmapped_fallback_logs.jsonl')
+    
+    dlq_count = 0
+    if ts_node:
+        dlq_count = extract_dlq_logs(ts_user, ts_node, dlq_out_file)
+    else:
+        print("[!] TAILSCALE_NODE not set in .env. Skipping DLQ extraction.")
+        
+    es_count = 0
+    if so_ip and so_user and so_pass:
+        es_count = extract_unmapped_logs(so_ip, so_user, so_pass, batch_size, lookback_time, unmapped_out_file)
+    else:
+        print("[!] SO_IP, SO_USER, or SO_PASS not set in .env. Skipping ES extraction.")
     
     print("\n--- Summary ---")
     print(f"Total DLQ logs extracted: {dlq_count}")
