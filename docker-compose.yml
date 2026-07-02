@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  component_1:
+    build:
+      context: ./component_1_dataset_gen
+      dockerfile: Dockerfile
+    image: component_1_dataset_gen
+    container_name: dataset_generator
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./component_1_dataset_gen/data:/app/data
+    env_file:
+      - .env
+
+  component_2:
+    build:
+      context: ./component_2_so_extractor
+      dockerfile: Dockerfile
+    image: component_2_so_extractor
+    container_name: so_extractor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./component_1_dataset_gen/data:/app/data
+    env_file:
+      - .env

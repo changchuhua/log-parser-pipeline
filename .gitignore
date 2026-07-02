@@ -1,0 +1,20 @@
+# Credentials & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
+secrets.json
+credentials.json
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Large dependency directories (highly recommended)
+node_modules/
+venv/
+.venv/
+__pycache__/
+target/
