@@ -1,1 +1,1 @@
-# Make directory a module
+from .parser import LogBatcher

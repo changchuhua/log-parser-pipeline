@@ -10,7 +10,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./component_1_dataset_gen/data:/app/data
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
     env_file:
       - .env
 
@@ -23,6 +24,33 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./component_1_dataset_gen/data:/app/data
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    env_file:
+      - .env
+
+  component_3:
+    build:
+      context: ./component_3_unified_parser
+      dockerfile: Dockerfile
+    image: component_3_unified_parser
+    container_name: unified_parser
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    env_file:
+      - .env
+
+  component_4:
+    build:
+      context: ./component_4_evaluator
+      dockerfile: Dockerfile
+    image: component_4_evaluator
+    container_name: evaluator
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
     env_file:
       - .env

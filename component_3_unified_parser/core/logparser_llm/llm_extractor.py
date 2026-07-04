@@ -1,7 +1,10 @@
 import numpy as np
+import logging
 from sklearn.metrics.pairwise import cosine_similarity
 from core.llm_client import OllamaClient
 import yaml
+
+logger = logging.getLogger(__name__)
 
 class LLMExtractor:
     def __init__(self, tree_router, config_path='/app/config.yaml'):
@@ -18,7 +21,7 @@ class LLMExtractor:
             emb = self.llm_client.get_embedding(log_message)
             emb_array = np.array(emb).reshape(1, -1)
         except Exception as e:
-            print(f"[!] Embedding error: {e}")
+            logger.error(f"Embedding error: {e}")
             return log_message # fallback to literal if error
             
         # Dynamic K-Shot (ICL)
@@ -54,5 +57,5 @@ class LLMExtractor:
             self.seed_pool.append({'log': log_message, 'template': template, 'embedding': emb_array[0]})
             return template
         except Exception as e:
-            print(f"[!] LLM Generation error: {e}")
+            logger.error(f"LLM Generation error: {e}")
             return log_message

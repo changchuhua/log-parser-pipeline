@@ -1,25 +1,27 @@
-def jaccard_similarity(tokens1, tokens2):
-    set1 = set(tokens1)
-    set2 = set(tokens2)
-    if not set1 and not set2: return 1.0
-    return len(set1.intersection(set2)) / len(set1.union(set2))
+class Cluster:
+    def __init__(self, logs):
+        self.logs = logs
 
-class LogClusterer:
-    def __init__(self, threshold=0.8):
-        self.threshold = threshold
-        
-    def initial_partition(self, logs):
-        clusters = []
-        for log in logs:
-            placed = False
-            for cluster in clusters:
-                ref_log = cluster[0]
-                if len(log['tokens']) == len(ref_log['tokens']):
-                    sim = jaccard_similarity(log['tokens'], ref_log['tokens'])
-                    if sim >= self.threshold:
-                        cluster.append(log)
-                        placed = True
-                        break
-            if not placed:
-                clusters.append([log])
-        return clusters
+    def get_partitions(self):
+        raise NotImplementedError()
+
+class LengthCluster(Cluster):
+    def get_partitions(self):
+        partitions = {}
+        for log in self.logs:
+            msg = log.get('message', '')
+            tokens = msg.split()
+            length = len(tokens)
+            if length not in partitions:
+                partitions[length] = []
+            partitions[length].append(log)
+        return list(partitions.values())
+
+def get_clusterer(cluster_type, logs, threshold=0.8):
+    if cluster_type == "LengthCluster":
+        return LengthCluster(logs)
+    elif cluster_type == "SimilarityCluster":
+        from .additional_cluster import SimilarityCluster
+        return SimilarityCluster(logs, threshold)
+    else:
+        raise ValueError(f"Unknown cluster type: {cluster_type}")

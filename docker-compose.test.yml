@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  mock_ollama:
+    build:
+      context: ./tests/mock_ollama
+      dockerfile: Dockerfile
+    image: mock_ollama
+    container_name: mock_ollama
+    ports:
+      - "11434:11434"
+
+  component_1:
+    build:
+      context: ./component_1_dataset_gen
+      dockerfile: Dockerfile
+    image: component_1_dataset_gen
+    container_name: dataset_generator_test
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    command: python transform_to_ecs.py --loghub data/raw/dummy_loghub.csv
+
+  component_3:
+    build:
+      context: ./component_3_unified_parser
+      dockerfile: Dockerfile
+    image: component_3_unified_parser
+    container_name: unified_parser_test
+    depends_on:
+      - mock_ollama
+    environment:
+      - OLLAMA_API_BASE=http://mock_ollama:11434/v1
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    command: python main_parser.py --method logparser-llm
+
+  component_4:
+    build:
+      context: ./component_4_evaluator
+      dockerfile: Dockerfile
+    image: component_4_evaluator
+    container_name: evaluator_test
+    depends_on:
+      - component_3
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    command: python evaluate_metrics.py

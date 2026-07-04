@@ -1,12 +1,15 @@
 import yaml
 import json
 import csv
+import logging
 from core.llm_client import OllamaClient
 from core.logbatcher.cluster import LogClusterer
 from core.logbatcher.parsing_cache import ParsingCache
 from core.logbatcher.sample import DiversitySampler
 from core.logbatcher.parsing_base import ZeroShotPrompter
 from core.logbatcher.postprocess import PostProcessor
+
+logger = logging.getLogger(__name__)
 
 def load_config(config_path='/app/config.yaml'):
     with open(config_path, 'r') as f:
@@ -28,7 +31,7 @@ class LogBatcherMethod:
         self.postprocessor = PostProcessor()
         
     def run(self, input_files, output_csv):
-        print("[*] Starting LogBatcher Pipeline...")
+        logger.info("Starting LogBatcher Pipeline...")
         
         logs = []
         line_id = 1
@@ -48,9 +51,9 @@ class LogBatcherMethod:
                     except:
                         pass
                         
-        print(f"[*] Loaded {len(logs)} logs. Initial clustering...")
+        logger.info(f"Loaded {len(logs)} logs. Initial clustering...")
         clusters = self.clusterer.initial_partition(logs)
-        print(f"[*] Created {len(clusters)} initial partitions.")
+        logger.info(f"Created {len(clusters)} initial partitions.")
         
         parsed_results = []
         
@@ -86,10 +89,10 @@ class LogBatcherMethod:
                     if len(current_cluster) > 1:
                         queue.append(current_cluster[1:])
                         
-        print(f"[*] Parsing complete. Writing to {output_csv}...")
+        logger.info(f"Parsing complete. Writing to {output_csv}...")
         with open(output_csv, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['LineId', 'Content', 'EventTemplate'])
             for row in parsed_results:
                 writer.writerow(row)
-        print("[*] LogBatcher Output Saved.")
+        logger.info("LogBatcher Output Saved.")

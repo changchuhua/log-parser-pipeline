@@ -2,7 +2,17 @@ import pandas as pd
 import json
 import os
 import argparse
+import logging
+import sys
 from pathlib import Path
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("dataset_generator")
 
 def process_loghub(input_file, output_file):
     """
@@ -30,7 +40,7 @@ def process_loghub(input_file, output_file):
                 }
             }
             f.write(json.dumps(ecs_log) + '\n')
-    print(f"[*] Processed LogHub data and saved to {output_file}")
+    logger.info(f"Processed LogHub data and saved to {output_file}")
 
 
 def process_botsv3(input_file, output_file):
@@ -53,7 +63,7 @@ def process_botsv3(input_file, output_file):
                 }
             }
             f.write(json.dumps(ecs_log) + '\n')
-    print(f"[*] Processed BOTSv3 data and saved to {output_file}")
+    logger.info(f"Processed BOTSv3 data and saved to {output_file}")
 
 
 def main():
@@ -79,8 +89,8 @@ def main():
         processed = True
         
     if not processed:
-        print("No valid input files provided. Please pass --loghub or --botsv3 with valid paths.")
-        print("Example: python transform_to_ecs.py --loghub data/loghub.csv --botsv3 data/botsv3.csv")
+        logger.error("No valid input files provided. Please pass --loghub or --botsv3 with valid paths.")
+        logger.error("Example: python transform_to_ecs.py --loghub data/loghub.csv --botsv3 data/botsv3.csv")
 
 if __name__ == "__main__":
     main()

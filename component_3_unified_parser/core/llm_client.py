@@ -1,12 +1,19 @@
 import requests
 import yaml
+import logging
+import os
+
+logger = logging.getLogger(__name__)
 
 class OllamaClient:
     def __init__(self, config_path='/app/config.yaml'):
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
+        try:
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+        except Exception:
+            config = {}
             
-        self.base_url = config.get('llm', {}).get('base_url', 'http://host.docker.internal:11434/v1')
+        self.base_url = os.environ.get('OLLAMA_API_BASE') or config.get('llm', {}).get('base_url', 'http://host.docker.internal:11434/v1')
         self.model_name = config.get('llm', {}).get('model_name', 'llama3')
         self.embedding_model = config.get('logparser_llm', {}).get('embedding_model', 'nomic-embed-text')
         
@@ -16,10 +23,21 @@ class OllamaClient:
             "model": self.embedding_model,
             "input": text
         }
-        resp = requests.post(url, json=payload)
-        resp.raise_for_status()
-        data = resp.json()
-        return data['data'][0]['embedding']
+        for attempt in range(2):
+            try:
+                resp = requests.post(url, json=payload, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
+                if 'data' in data and len(data['data']) > 0:
+                    return data['data'][0]['embedding']
+                elif 'embedding' in data:
+                    return data['embedding']
+                else:
+                    raise KeyError("No embedding key found in response")
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Embedding request attempt {attempt + 1} failed: {e}")
+                if attempt == 1:
+                    raise e
         
     def generate_completion(self, prompt, temperature=0.0):
         url = f"{self.base_url}/chat/completions"
@@ -30,7 +48,18 @@ class OllamaClient:
             ],
             "temperature": temperature
         }
-        resp = requests.post(url, json=payload)
-        resp.raise_for_status()
-        data = resp.json()
-        return data['choices'][0]['message']['content']
+        for attempt in range(2):
+            try:
+                resp = requests.post(url, json=payload, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
+                if 'choices' in data and len(data['choices']) > 0:
+                    return data['choices'][0]['message']['content']
+                elif 'message' in data and 'content' in data['message']:
+                    return data['message']['content']
+                else:
+                    raise KeyError("No message content found in response")
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Completion request attempt {attempt + 1} failed: {e}")
+                if attempt == 1:
+                    raise e

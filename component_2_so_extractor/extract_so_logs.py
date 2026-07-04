@@ -4,17 +4,27 @@ import paramiko
 import requests
 import urllib3
 import yaml
+import logging
+import sys
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("so_extractor")
 
 def load_config(config_path='/app/config.yaml'):
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
 def extract_dlq_logs(tailscale_user, tailscale_host, output_file):
-    print(f"[*] Extracting DLQ logs via SSH from {tailscale_user}@{tailscale_host}...")
+    logger.info(f"Extracting DLQ logs via SSH from {tailscale_user}@{tailscale_host}...")
     
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -32,19 +42,19 @@ def extract_dlq_logs(tailscale_user, tailscale_host, output_file):
                 
         err = stderr.read().decode().strip()
         if err:
-            print(f"[!] SSH Stderr: {err}")
+            logger.warning(f"SSH Stderr: {err}")
             
-        print(f"[*] Extracted {row_count} DLQ logs to {output_file}.")
+        logger.info(f"Extracted {row_count} DLQ logs to {output_file}.")
         return row_count
         
     except Exception as e:
-        print(f"[!] Error extracting DLQ logs: {e}")
+        logger.error(f"Error extracting DLQ logs: {e}")
         return 0
     finally:
         ssh.close()
 
 def extract_unmapped_logs(es_ip, es_user, es_pass, batch_size, lookback_time, output_file):
-    print(f"[*] Extracting unmapped logs from Elasticsearch at {es_ip}...")
+    logger.info(f"Extracting unmapped logs from Elasticsearch at {es_ip}...")
     
     base_url = f"https://{es_ip}:9200"
     auth = HTTPBasicAuth(es_user, es_pass)
@@ -109,11 +119,11 @@ def extract_unmapped_logs(es_ip, es_user, es_pass, batch_size, lookback_time, ou
                 json={"scroll_id": scroll_id}
             )
             
-        print(f"[*] Extracted {row_count} unmapped logs to {output_file}.")
+        logger.info(f"Extracted {row_count} unmapped logs to {output_file}.")
         return row_count
-
+        
     except Exception as e:
-        print(f"[!] Error querying Elasticsearch: {e}")
+        logger.error(f"Error querying Elasticsearch: {e}")
         return row_count
 
 def main():
@@ -139,17 +149,15 @@ def main():
     if ts_node:
         dlq_count = extract_dlq_logs(ts_user, ts_node, dlq_out_file)
     else:
-        print("[!] TAILSCALE_NODE not set in .env. Skipping DLQ extraction.")
+        logger.warning("TAILSCALE_NODE not set in .env. Skipping DLQ extraction.")
         
     es_count = 0
     if so_ip and so_user and so_pass:
         es_count = extract_unmapped_logs(so_ip, so_user, so_pass, batch_size, lookback_time, unmapped_out_file)
     else:
-        print("[!] SO_IP, SO_USER, or SO_PASS not set in .env. Skipping ES extraction.")
+        logger.warning("SO_IP, SO_USER, or SO_PASS not set in .env. Skipping ES extraction.")
     
-    print("\n--- Summary ---")
-    print(f"Total DLQ logs extracted: {dlq_count}")
-    print(f"Total Unmapped ES logs extracted: {es_count}")
+    logger.info("Summary - DLQ logs extracted: %d, Unmapped ES logs extracted: %d", dlq_count, es_count)
 
 if __name__ == "__main__":
     main()
