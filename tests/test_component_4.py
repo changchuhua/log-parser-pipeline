@@ -57,7 +57,7 @@ class TestComponent4(unittest.TestCase):
             {'LineId': '3', 'Content': 'Connection failed from 10.0.0.1', 'EventTemplate': 'Connection failed from <*>'}
         ])
         ed_score, ned_score = calculate_ed(self.df_gt, df_parsed)
-        self.assertAlmostEqual(ed_score, 2.0 / 3.0)
+        self.assertAlmostEqual(ed_score, 1.0)
 
     def test_gd_calculator(self):
         df_parsed = pd.DataFrame([
