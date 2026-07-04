@@ -1,3 +1,9 @@
+"""Grouping Accuracy (GA) metric calculator.
+
+Evaluates how accurately the log parser partitions log messages into clusters
+representing templates compared to ground truth groupings.
+"""
+
 import sys
 import pandas as pd
 from collections import defaultdict
@@ -5,6 +11,19 @@ from scipy.special import comb
 from tqdm import tqdm
 
 def evaluate(df_groundtruth, df_parsedlog, filter_templates=None):
+    """Aligns DataFrames and calculates grouping accuracies.
+
+    Filters out any null ground truth templates and computes Grouping Accuracy
+    and F-Grouping Accuracy.
+
+    Args:
+        df_groundtruth (pd.DataFrame): Ground truth DataFrame.
+        df_parsedlog (pd.DataFrame): Parsed outputs DataFrame.
+        filter_templates (set, optional): Optional set of templates to restrict evaluation to.
+
+    Returns:
+        tuple: (GA, FGA) floats representing accuracy and F1 grouping accuracy.
+    """
     null_logids = df_groundtruth[~df_groundtruth['EventTemplate'].isnull()].index
     df_groundtruth = df_groundtruth.loc[null_logids]
     df_parsedlog = df_parsedlog.loc[null_logids]
@@ -12,6 +31,16 @@ def evaluate(df_groundtruth, df_parsedlog, filter_templates=None):
     return GA, FGA
 
 def get_accuracy(series_groundtruth, series_parsedlog, filter_templates=None):
+    """Calculates GA and FGA accuracy values from ground truth and parsed templates.
+
+    Args:
+        series_groundtruth (pd.Series): Ground truth EventTemplate column values.
+        series_parsedlog (pd.Series): Parsed EventTemplate column values.
+        filter_templates (set, optional): Optional template filters.
+
+    Returns:
+        tuple: (GA, FGA) floats representing standard Grouping Accuracy and F1 Grouping Accuracy.
+    """
     series_groundtruth_valuecounts = series_groundtruth.value_counts()
     series_parsedlog_valuecounts = series_parsedlog.value_counts()
     df_combined = pd.concat([series_groundtruth, series_parsedlog], axis=1, keys=['groundtruth', 'parsedlog'])

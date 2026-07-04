@@ -1,7 +1,24 @@
+"""Levenshtein Edit Distance (ED) metric calculator.
+
+Calculates character-level differences and normalized similarities between ground
+truth templates and parsed templates using Levenshtein distance.
+"""
+
 from tqdm import tqdm
 import Levenshtein
 
 def calculate_edit_distance(groundtruth, parsedresult):
+    """Calculates average Edit Distance (ED) and Normalized Edit Distance (NED).
+
+    Utilizes caching to optimize performance on identical comparisons.
+
+    Args:
+        groundtruth (pd.DataFrame): Ground truth DataFrame containing EventTemplate.
+        parsedresult (pd.DataFrame): Parsed results DataFrame containing EventTemplate.
+
+    Returns:
+        tuple: (accuracy_ED, accuracy_NED) floats.
+    """
     edit_distance_result, normalized_ed_result, cache_dict = [], [] , {}
     iterable = zip(groundtruth['EventTemplate'].values, parsedresult['EventTemplate'].values)
     length_logs = len(groundtruth['EventTemplate'].values)

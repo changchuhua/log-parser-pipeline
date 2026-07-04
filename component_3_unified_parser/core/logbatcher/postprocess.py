@@ -1,7 +1,20 @@
+"""Post-processing and regex matching engine for LogBatcher.
+
+Implements clean_template parsing of LLM output and the Match & Prune loop.
+"""
+
 import re
 from .matching import template_to_regex
 
 def clean_template(llm_output):
+    """Cleans up raw markdown or backticks from LLM output.
+
+    Args:
+        llm_output (str): Raw template string from LLM.
+
+    Returns:
+        str: Sanitized template.
+    """
     if not llm_output:
         return ""
     template = llm_output.strip()
@@ -13,6 +26,19 @@ def clean_template(llm_output):
     return template
 
 def match_and_prune(template, partition, cache):
+    """Matches partition logs using a compiled regex from the template.
+
+    Updates cache frequencies with matched values, returning matched records and
+    pruned residuals.
+
+    Args:
+        template (str): Candidate parsing template.
+        partition (list): List of logs in the current cluster partition.
+        cache (ParsingCache): Template frequency-cache instance.
+
+    Returns:
+        tuple: (matched_logs list, pruned_logs list).
+    """
     cleaned_tmpl = clean_template(template)
     matched_logs = []
     pruned_logs = []

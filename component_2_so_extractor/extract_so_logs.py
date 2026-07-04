@@ -1,3 +1,9 @@
+"""Security Onion log extractor module.
+
+This module sequentially extracts Dead Letter Queue (DLQ) logs via SSH over Tailscale
+and unmapped event logs directly from Elasticsearch using scrolling queries.
+"""
+
 import os
 import json
 import paramiko
@@ -20,10 +26,28 @@ logging.basicConfig(
 logger = logging.getLogger("so_extractor")
 
 def load_config(config_path='/app/config.yaml'):
+    """Loads centralized pipeline behavioral configuration from a YAML file.
+
+    Args:
+        config_path (str): File path to the YAML configuration. Defaults to '/app/config.yaml'.
+
+    Returns:
+        dict: Parsed configuration dictionary.
+    """
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
 def extract_dlq_logs(tailscale_user, tailscale_host, output_file):
+    """Establishes an SSH connection and streams Security Onion Logstash DLQ logs.
+
+    Args:
+        tailscale_user (str): SSH login user name.
+        tailscale_host (str): Tailscale target node host or IP.
+        output_file (str): Local path to write DLQ logs.
+
+    Returns:
+        int: Number of logs successfully extracted.
+    """
     logger.info(f"Extracting DLQ logs via SSH from {tailscale_user}@{tailscale_host}...")
     
     ssh = paramiko.SSHClient()
@@ -54,6 +78,22 @@ def extract_dlq_logs(tailscale_user, tailscale_host, output_file):
         ssh.close()
 
 def extract_unmapped_logs(es_ip, es_user, es_pass, batch_size, lookback_time, output_file):
+    """Extracts unmapped logs from Elasticsearch using a scroll-loop search.
+
+    Queries Elasticsearch for documents having a message field but no event
+    category, excluding performance/system metrics.
+
+    Args:
+        es_ip (str): IP address of the Elasticsearch instance.
+        es_user (str): Elasticsearch API basic auth user.
+        es_pass (str): Elasticsearch API basic auth password.
+        batch_size (int): Max size per search chunk.
+        lookback_time (str): Time range filter (e.g. 'now-24h').
+        output_file (str): Path to write search hits.
+
+    Returns:
+        int: Total number of records successfully written.
+    """
     logger.info(f"Extracting unmapped logs from Elasticsearch at {es_ip}...")
     
     base_url = f"https://{es_ip}:9200"
@@ -127,6 +167,7 @@ def extract_unmapped_logs(es_ip, es_user, es_pass, batch_size, lookback_time, ou
         return row_count
 
 def main():
+    """Main executor that loads environment variables and runs DLQ/unmapped log extraction."""
     load_dotenv()
     config = load_config()
     

@@ -1,3 +1,9 @@
+"""LogBatcher pipeline orchestrator.
+
+Implements zero-shot diverse parsing routing using partition clusterers,
+diversity samplers (DPP), and post-process match and prune logic.
+"""
+
 import yaml
 from core.llm_client import OllamaClient
 from .cluster import get_clusterer
@@ -8,7 +14,14 @@ from .parsing_base import ParsingBase
 from .postprocess import match_and_prune
 
 class LogBatcher:
+    """Zero-shot diverse log parser using mathematical sampling and caching."""
+
     def __init__(self, config_path='/app/config.yaml'):
+        """Initializes the LogBatcher parser.
+
+        Args:
+            config_path (str): YAML file config path. Defaults to '/app/config.yaml'.
+        """
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
 
@@ -26,6 +39,14 @@ class LogBatcher:
         self.parsing_base = ParsingBase(self.llm_client)
 
     def parse(self, log_list):
+        """Parses a list of logs using clustering, DPP sampling, and Match & Prune.
+
+        Args:
+            log_list (list): List of dicts representing logs (must contain 'id' and 'message').
+
+        Returns:
+            list: List of parsed log dictionaries containing mapped templates.
+        """
         clusterer = get_clusterer(self.cluster_type, log_list, self.similarity_threshold)
         partitions = clusterer.get_partitions()
 

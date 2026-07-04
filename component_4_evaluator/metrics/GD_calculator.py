@@ -1,7 +1,25 @@
+"""Granularity Distance metric calculators.
+
+Provides Group Granularity Distance (GGD) and Parsing Granularity Distance (PGD)
+calculators to evaluate alignment discrepancies between parsed templates and oracle templates.
+"""
+
 import pandas as pd
 import numpy as np
 
 def calculate_ggd(df_gt, df_parsed):
+    """Calculates the Group Granularity Distance (GGD).
+
+    GGD measures the ratio discrepancy between the number of generated templates
+    and ground truth oracle templates.
+
+    Args:
+        df_gt (pd.DataFrame): Ground truth DataFrame.
+        df_parsed (pd.DataFrame): Parsed results DataFrame.
+
+    Returns:
+        float: Computed GGD score.
+    """
     merged = pd.merge(df_gt, df_parsed, on='LineId', suffixes=('_gt', '_parsed'))
     if merged.empty:
         return 0.0
@@ -15,6 +33,18 @@ def calculate_ggd(df_gt, df_parsed):
     return abs(N_generated - N_oracle) / N_oracle
 
 def calculate_pgd(df_gt, df_parsed):
+    """Calculates the Parsing Granularity Distance (PGD).
+
+    PGD maps each generated template to its most frequent matching ground truth
+    template and averages the token-length differences.
+
+    Args:
+        df_gt (pd.DataFrame): Ground truth DataFrame.
+        df_parsed (pd.DataFrame): Parsed results DataFrame.
+
+    Returns:
+        float: Average token-length differences (PGD).
+    """
     merged = pd.merge(df_gt, df_parsed, on='LineId', suffixes=('_gt', '_parsed'))
     if merged.empty:
         return 0.0

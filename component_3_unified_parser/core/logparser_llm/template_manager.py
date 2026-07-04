@@ -1,6 +1,23 @@
+"""Template calibration and merge manager for LogParser-LLM.
+
+Aggregates similar parsed templates by checking token structural Jaccard similarity
+and recalibrating the PrefixTree routing structures.
+"""
+
 import yaml
 
 def string_structural_similarity(t1_tokens, t2_tokens):
+    """Calculates token-level structural similarity of two template lists.
+
+    Considers both variable token mappings and literal matches.
+
+    Args:
+        t1_tokens (list): Split tokens of first template.
+        t2_tokens (list): Split tokens of second template.
+
+    Returns:
+        float: Similarity ratio between 0.0 and 1.0.
+    """
     if len(t1_tokens) != len(t2_tokens):
         return 0.0
     
@@ -17,13 +34,22 @@ def string_structural_similarity(t1_tokens, t2_tokens):
     return matches / len(t1_tokens)
 
 class TemplateManager:
+    """Manages merging and calibration of PrefixTree templates."""
+
     def __init__(self, tree_router, config_path='/app/config.yaml'):
+        """Initializes TemplateManager.
+
+        Args:
+            tree_router (PrefixTree): Targets tree router references.
+            config_path (str): YAML configuration path. Defaults to '/app/config.yaml'.
+        """
         self.tree_router = tree_router
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
         self.merge_similarity_threshold = config.get('logparser_llm', {}).get('merge_similarity_threshold', 0.95)
         
     def calibrate(self):
+        """Merges overlapping clusters in PrefixTree and recalibrates root node children."""
         clusters = self.tree_router.clusters
         merged_clusters = []
         skip_indices = set()

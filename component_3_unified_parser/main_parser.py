@@ -1,3 +1,9 @@
+"""Unified Parser router entrypoint.
+
+This module routes standardized ECS logs to the selected parsing methodology
+(LogParser-LLM, LogBatcher, or LibreLog).
+"""
+
 import os
 import glob
 import json
@@ -19,10 +25,27 @@ logging.basicConfig(
 logger = logging.getLogger("unified_parser")
 
 def load_config(config_path='/app/config.yaml'):
+    """Loads centralization configuration parameters.
+
+    Args:
+        config_path (str): YAML file path. Defaults to '/app/config.yaml'.
+
+    Returns:
+        dict: central YAML configuration.
+    """
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
 def run_logparser_llm(input_files, output_dir):
+    """Executes the LogParser-LLM parsing pipeline.
+
+    Utilizes prefix trees for log routing and queries LLM context
+    for unrouted templates, keeping an adaptive template manager.
+
+    Args:
+        input_files (list): List of input JSONL file paths.
+        output_dir (str): Output directory to write results.
+    """
     tree_router = PrefixTree()
     llm_extractor = LLMExtractor(tree_router)
     template_manager = TemplateManager(tree_router)
@@ -66,6 +89,7 @@ def run_logparser_llm(input_files, output_dir):
         template_manager.calibrate()
 
 def main():
+    """Main routing controller that reads CLI arguments and invokes the chosen parser."""
     parser = argparse.ArgumentParser(description="Unified Parser")
     parser.add_argument('--method', type=str, required=True, choices=['logparser-llm', 'logbatcher', 'librelog'])
     args = parser.parse_args()

@@ -1,3 +1,9 @@
+"""LibreLog pipeline orchestrator.
+
+Implements regex preprocessing, semantic clustering, dynamic example memory lookup,
+and LLM-based template parsing with self-reflection.
+"""
+
 import yaml
 from core.llm_client import OllamaClient
 from .regex_manager import RegexManager
@@ -6,7 +12,14 @@ from .memory import LogMemory
 from .llama_parser import LlamaParser
 
 class LibreLogParser:
+    """LibreLog hybrid template parsing system using regex, memory lookup, and LLMs."""
+
     def __init__(self, config_path='/app/config.yaml'):
+        """Initializes the LibreLogParser.
+
+        Args:
+            config_path (str): YAML file config path. Defaults to '/app/config.yaml'.
+        """
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
 
@@ -24,6 +37,17 @@ class LibreLogParser:
         self.llama_parser = LlamaParser(self.llm_client, enable_reflection=self.enable_reflection)
 
     def parse_single_log(self, raw_log):
+        """Filters, cleans, and parses a single log line to extract its template.
+
+        Masks variables using static regex rules, checks the internal memory
+        cache, and runs a few-shot LLM reflection prompt if unmapped.
+
+        Args:
+            raw_log (str): Raw log message content.
+
+        Returns:
+            str: Evaluated static template.
+        """
         masked_log = self.regex_manager.mask(raw_log)
 
         group_key = self.grouping_manager.get_group_key(masked_log)
@@ -41,6 +65,14 @@ class LibreLogParser:
         return final_template
 
     def parse(self, logs_to_parse):
+        """Parses list of logs using LibreLog's pipeline logic.
+
+        Args:
+            logs_to_parse (list): List of log dictionaries containing message and ID.
+
+        Returns:
+            list: List of parsed log dictionaries with predicted templates.
+        """
         results = []
         for log in logs_to_parse:
             raw_log = log.get('message', '')

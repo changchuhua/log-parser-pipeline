@@ -1,3 +1,9 @@
+"""In-Context Learning (ICL) Template Extractor for LogParser-LLM.
+
+Computes log embeddings, extracts similar examples dynamically from a seed pool,
+and queries the Ollama client to extract templates with semantic categories.
+"""
+
 import numpy as np
 import logging
 from sklearn.metrics.pairwise import cosine_similarity
@@ -7,7 +13,15 @@ import yaml
 logger = logging.getLogger(__name__)
 
 class LLMExtractor:
+    """Handles parsing logs using dynamic few-shot templates querying the LLM."""
+
     def __init__(self, tree_router, config_path='/app/config.yaml'):
+        """Initializes LLMExtractor.
+
+        Args:
+            tree_router (PrefixTree): In-memory PrefixTree router references.
+            config_path (str): YAML configuration path. Defaults to '/app/config.yaml'.
+        """
         self.tree_router = tree_router
         self.llm_client = OllamaClient(config_path)
         with open(config_path, 'r') as f:
@@ -16,6 +30,16 @@ class LLMExtractor:
         self.seed_pool = [] # list of dicts: {'log': str, 'template': str, 'embedding': np.array}
         
     def get_template(self, log_message):
+        """Calculates embeddings and queries Ollama to extract the template.
+
+        Uses dynamic K-shot prompt generation based on cosine similarity of log embeddings.
+
+        Args:
+            log_message (str): Raw log message content.
+
+        Returns:
+            str: Evaluated static template.
+        """
         # Calculate embedding
         try:
             emb = self.llm_client.get_embedding(log_message)

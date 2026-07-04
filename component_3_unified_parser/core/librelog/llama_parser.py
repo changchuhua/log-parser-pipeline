@@ -1,10 +1,24 @@
+"""Few-shot LLM parsing module with self-reflection.
+
+Formats prompts with retrieved memory examples and performs multi-turn query loops
+to generalized dynamic variables.
+"""
+
 import logging
 from core.llm_client import OllamaClient
 
 logger = logging.getLogger(__name__)
 
 class LlamaParser:
+    """Invokes chat completions to parse logs and refine results via self-reflection."""
+
     def __init__(self, llm_client=None, enable_reflection=True):
+        """Initializes LlamaParser.
+
+        Args:
+            llm_client (OllamaClient, optional): Client instance.
+            enable_reflection (bool): If True, queries LLM again to generalize variables.
+        """
         if llm_client is None:
             self.llm_client = OllamaClient()
         else:
@@ -12,6 +26,15 @@ class LlamaParser:
         self.enable_reflection = enable_reflection
 
     def parse_log(self, log_text, examples):
+        """Builds prompt, queries model, and cleans template.
+
+        Args:
+            log_text (str): Log message.
+            examples (list): Top k similar log examples.
+
+        Returns:
+            str: Refined template.
+        """
         prompt = "You are a log parser.\n\n"
         if examples:
             prompt += "Provided Examples:\n"
@@ -41,6 +64,14 @@ class LlamaParser:
             return log_text
 
     def clean_template(self, template):
+        """Removes code blocks and markdown wrapping from the template output.
+
+        Args:
+            template (str): Raw template string.
+
+        Returns:
+            str: Sanitized template.
+        """
         if not template:
             return ""
         t = template.strip()

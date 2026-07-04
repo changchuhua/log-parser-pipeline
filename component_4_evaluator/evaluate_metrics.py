@@ -1,3 +1,10 @@
+"""Evaluation Orchestrator for calculating log parsing accuracy.
+
+This script loads raw ground truth logs and parsed parser outputs (CSV or JSONL),
+aligns them by LineId, corrects formatting anomalies, executes standard and
+custom mathematical metric calculators, and logs a summary table.
+"""
+
 import os
 import glob
 import json
@@ -23,10 +30,28 @@ logging.basicConfig(
 logger = logging.getLogger("evaluator")
 
 def load_config(config_path='/app/config.yaml'):
+    """Loads centralization configuration parameters.
+
+    Args:
+        config_path (str): YAML file path. Defaults to '/app/config.yaml'.
+
+    Returns:
+        dict: YAML configuration dictionary.
+    """
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
 def load_ground_truth(raw_dir):
+    """Searches and compiles all raw CSV ground truth datasets.
+
+    Extracts LineId, Content, and EventTemplate properties.
+
+    Args:
+        raw_dir (str): Directory containing ground truth CSV files.
+
+    Returns:
+        pd.DataFrame: Aligned ground truth DataFrame.
+    """
     csv_files = glob.glob(os.path.join(raw_dir, '*.csv'))
     gt_records = []
     
@@ -51,6 +76,7 @@ def load_ground_truth(raw_dir):
     return pd.DataFrame(gt_records)
 
 def main():
+    """Main orchestrator that aligns outputs and executes metric calculations."""
     config = load_config()
     raw_dir = 'data/raw'
     parsed_dir = 'data/parsed'
@@ -147,7 +173,6 @@ def main():
         
     logger.info(f"Evaluation report saved to {report_file}")
     
-    # Still print the formatted console table summary for human readability as requested
     table_str = "\n" + "="*96 + "\n"
     table_str += f"{'Parser':<20} | {'GA':<10} | {'PA':<10} | {'ED':<10} | {'GGD':<10} | {'PGD':<10} | {'PMSS':<10}\n"
     table_str += "="*96 + "\n"
