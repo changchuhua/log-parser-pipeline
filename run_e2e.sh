@@ -5,10 +5,10 @@ set -e
 mkdir -p data/raw data/processed data/parsed
 
 # Write dummy LogHub-2.0 CSV using echo to prevent raw cat operations
-echo "Date,Time,Content,Level,Component,LineId" > data/raw/dummy_loghub.csv
-echo "2026-01-01,12:00:00,User admin logged in,INFO,Auth,1" >> data/raw/dummy_loghub.csv
-echo "2026-01-01,12:00:01,User guest logged in,INFO,Auth,2" >> data/raw/dummy_loghub.csv
-echo "2026-01-01,12:00:02,User guest logged in,INFO,Auth,3" >> data/raw/dummy_loghub.csv
+echo "Date,Time,Content,Level,Component,LineId,EventTemplate" > data/raw/dummy_loghub.csv
+echo "2026-01-01,12:00:00,User admin logged in,INFO,Auth,1,User <*> logged in" >> data/raw/dummy_loghub.csv
+echo "2026-01-01,12:00:01,User guest logged in,INFO,Auth,2,User <*> logged in" >> data/raw/dummy_loghub.csv
+echo "2026-01-01,12:00:02,User guest logged in,INFO,Auth,3,User <*> logged in" >> data/raw/dummy_loghub.csv
 
 echo "[*] Created dummy LogHub data."
 

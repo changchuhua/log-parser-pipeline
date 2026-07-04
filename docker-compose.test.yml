@@ -7,8 +7,6 @@ services:
       dockerfile: Dockerfile
     image: mock_ollama
     container_name: mock_ollama
-    ports:
-      - "11434:11434"
 
   component_1:
     build:
@@ -19,7 +17,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro
-    command: python transform_to_ecs.py --loghub data/raw/dummy_loghub.csv
+    command: python transform_to_ecs.py --loghub data/raw/dummy_loghub.csv --out-dir data/processed
 
   component_3:
     build:
