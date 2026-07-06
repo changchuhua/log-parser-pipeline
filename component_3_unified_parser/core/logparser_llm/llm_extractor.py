@@ -24,8 +24,11 @@ class LLMExtractor:
         """
         self.tree_router = tree_router
         self.llm_client = OllamaClient(config_path)
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
+        try:
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+        except Exception:
+            config = {}
         self.k_shots = config.get('logparser_llm', {}).get('k_shots', 3)
         self.seed_pool = [] # list of dicts: {'log': str, 'template': str, 'embedding': np.array}
         

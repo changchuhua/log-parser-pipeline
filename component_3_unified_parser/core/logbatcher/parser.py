@@ -22,8 +22,11 @@ class LogBatcher:
         Args:
             config_path (str): YAML file config path. Defaults to '/app/config.yaml'.
         """
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
+        try:
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+        except Exception:
+            config = {}
 
         lb_config = config.get('logbatcher', {})
         self.batch_size = lb_config.get('batch_size', 10)

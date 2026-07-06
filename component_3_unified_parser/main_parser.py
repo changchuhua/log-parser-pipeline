@@ -11,6 +11,12 @@ import argparse
 import yaml
 import logging
 import sys
+import time
+import os
+
+# Align search path for import resolution of core.* modules
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from tqdm import tqdm
 from core.logparser_llm.tree_router import PrefixTree
 from core.logparser_llm.llm_extractor import LLMExtractor
@@ -36,7 +42,7 @@ def load_config(config_path='/app/config.yaml'):
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
-def run_logparser_llm(input_files, output_dir):
+def run_logparser_llm(input_files, output_dir, persist=False, cache_dir='data/cache'):
     """Executes the LogParser-LLM parsing pipeline.
 
     Utilizes prefix trees for log routing and queries LLM context
@@ -45,8 +51,24 @@ def run_logparser_llm(input_files, output_dir):
     Args:
         input_files (list): List of input JSONL file paths.
         output_dir (str): Output directory to write results.
+        persist (bool): Enable loading/saving parser templates from/to cache.
+        cache_dir (str): Path to cache directory.
     """
     tree_router = PrefixTree()
+    
+    if persist:
+        os.makedirs(cache_dir, exist_ok=True)
+        cache_file = os.path.join(cache_dir, 'logparser_llm_cache.json')
+        if os.path.exists(cache_file):
+            try:
+                with open(cache_file, 'r', encoding='utf-8') as cf:
+                    cached_templates = json.load(cf)
+                    for tmpl in cached_templates:
+                        tree_router.insert(tmpl)
+                logger.info(f"Loaded {len(cached_templates)} templates from cache.")
+            except Exception as e:
+                logger.error(f"Error loading cache: {e}")
+
     llm_extractor = LLMExtractor(tree_router)
     template_manager = TemplateManager(tree_router)
     
@@ -55,8 +77,10 @@ def run_logparser_llm(input_files, output_dir):
     for in_file in input_files:
         base_name = os.path.basename(in_file)
         out_file = os.path.join(output_dir, f"parsed_{base_name}")
+        parser_name = f"parsed_{base_name.replace('.jsonl', '')}"
         logger.info(f"Processing {in_file} with logparser-llm...")
         
+        file_start = time.perf_counter()
         with open(in_file, 'r', encoding='utf-8') as f_in:
             lines = f_in.readlines()
             
@@ -87,17 +111,38 @@ def run_logparser_llm(input_files, output_dir):
                     logger.error(f"Error parsing line in {in_file}: {e}")
                     
         template_manager.calibrate()
+        file_elapsed = time.perf_counter() - file_start
+        logger.info(f"LogParser-LLM finished parsing {base_name} in {file_elapsed:.4f} seconds.")
+        
+        profile_file = os.path.join(output_dir, f"{parser_name}_profile.json")
+        try:
+            with open(profile_file, 'w', encoding='utf-8') as pf:
+                json.dump({"time_taken_seconds": file_elapsed}, pf)
+        except Exception as e:
+            logger.error(f"Error saving profile: {e}")
+
+    if persist:
+        try:
+            cache_file = os.path.join(cache_dir, 'logparser_llm_cache.json')
+            with open(cache_file, 'w', encoding='utf-8') as cf:
+                json.dump(tree_router.clusters, cf, indent=4)
+            logger.info(f"Saved {len(tree_router.clusters)} templates to cache.")
+        except Exception as e:
+            logger.error(f"Error saving cache: {e}")
 
 def main():
     """Main routing controller that reads CLI arguments and invokes the chosen parser."""
     parser = argparse.ArgumentParser(description="Unified Parser")
     parser.add_argument('--method', type=str, required=True, choices=['logparser-llm', 'logbatcher', 'librelog'])
+    parser.add_argument('--persist', action='store_true', help='Enable loading/saving parser templates from/to cache')
     args = parser.parse_args()
     
     config = load_config()
     input_dir = config.get('directories', {}).get('output_dir', 'data/processed')
     parsed_dir = 'data/parsed'
     os.makedirs(parsed_dir, exist_ok=True)
+    
+    cache_dir = config.get('directories', {}).get('cache_dir', 'data/cache')
     
     input_files = glob.glob(os.path.join(input_dir, '*.jsonl'))
     
@@ -106,7 +151,7 @@ def main():
         return
         
     if args.method == 'logparser-llm':
-        run_logparser_llm(input_files, parsed_dir)
+        run_logparser_llm(input_files, parsed_dir, persist=args.persist, cache_dir=cache_dir)
     elif args.method == 'logbatcher':
         import csv
         output_csv = os.path.join(parsed_dir, 'logbatcher_output.csv')
@@ -136,7 +181,38 @@ def main():
             
         logger.info(f"Instantiating LogBatcher and parsing {len(logs_to_parse)} logs...")
         parser_instance = LogBatcher()
+        
+        if args.persist:
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_file = os.path.join(cache_dir, 'logbatcher_cache.json')
+            if os.path.exists(cache_file):
+                try:
+                    with open(cache_file, 'r', encoding='utf-8') as cf:
+                        parser_instance.cache.cache = json.load(cf)
+                    logger.info(f"Loaded {len(parser_instance.cache.cache)} cache entries for LogBatcher.")
+                except Exception as e:
+                    logger.error(f"Error loading LogBatcher cache: {e}")
+                    
+        start_time = time.perf_counter()
         parsed_results = parser_instance.parse(logs_to_parse)
+        elapsed = time.perf_counter() - start_time
+        logger.info(f"LogBatcher finished parsing in {elapsed:.4f} seconds.")
+        
+        profile_file = os.path.join(parsed_dir, 'logbatcher_profile.json')
+        try:
+            with open(profile_file, 'w', encoding='utf-8') as pf:
+                json.dump({"time_taken_seconds": elapsed}, pf)
+        except Exception as e:
+            logger.error(f"Error saving LogBatcher profile: {e}")
+        
+        if args.persist:
+            try:
+                cache_file = os.path.join(cache_dir, 'logbatcher_cache.json')
+                with open(cache_file, 'w', encoding='utf-8') as cf:
+                    json.dump(parser_instance.cache.cache, cf, indent=4)
+                logger.info(f"Saved {len(parser_instance.cache.cache)} cache entries to cache.")
+            except Exception as e:
+                logger.error(f"Error saving LogBatcher cache: {e}")
         
         logger.info(f"Saving LogBatcher output to {output_csv}...")
         with open(output_csv, 'w', newline='', encoding='utf-8') as csvfile:
@@ -174,7 +250,55 @@ def main():
             
         logger.info(f"Instantiating LibreLogParser and parsing {len(logs_to_parse)} logs...")
         parser_instance = LibreLogParser()
+        
+        if args.persist:
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_file = os.path.join(cache_dir, 'librelog_cache.json')
+            if os.path.exists(cache_file):
+                try:
+                    with open(cache_file, 'r', encoding='utf-8') as cf:
+                        cached_mem = json.load(cf)
+                        memory_list = []
+                        for entry in cached_mem:
+                            gk_list = entry['group_key']
+                            gk_tuple = (gk_list[0], tuple(gk_list[1]))
+                            memory_list.append({
+                                'raw_log': entry['raw_log'],
+                                'template': entry['template'],
+                                'group_key': gk_tuple
+                            })
+                        parser_instance.memory.memory = memory_list
+                    logger.info(f"Loaded {len(parser_instance.memory.memory)} memory entries for LibreLog.")
+                except Exception as e:
+                    logger.error(f"Error loading LibreLog cache: {e}")
+                    
+        start_time = time.perf_counter()
         parsed_results = parser_instance.parse(logs_to_parse)
+        elapsed = time.perf_counter() - start_time
+        logger.info(f"LibreLog finished parsing in {elapsed:.4f} seconds.")
+        
+        profile_file = os.path.join(parsed_dir, 'librelog_profile.json')
+        try:
+            with open(profile_file, 'w', encoding='utf-8') as pf:
+                json.dump({"time_taken_seconds": elapsed}, pf)
+        except Exception as e:
+            logger.error(f"Error saving LibreLog profile: {e}")
+        
+        if args.persist:
+            try:
+                cache_file = os.path.join(cache_dir, 'librelog_cache.json')
+                serializable_mem = []
+                for entry in parser_instance.memory.memory:
+                    serializable_mem.append({
+                        'raw_log': entry['raw_log'],
+                        'template': entry['template'],
+                        'group_key': [entry['group_key'][0], list(entry['group_key'][1])]
+                    })
+                with open(cache_file, 'w', encoding='utf-8') as cf:
+                    json.dump(serializable_mem, cf, indent=4)
+                logger.info(f"Saved {len(parser_instance.memory.memory)} memory entries to cache.")
+            except Exception as e:
+                logger.error(f"Error saving LibreLog cache: {e}")
         
         logger.info(f"Saving LibreLog output to {output_csv}...")
         with open(output_csv, 'w', newline='', encoding='utf-8') as csvfile:

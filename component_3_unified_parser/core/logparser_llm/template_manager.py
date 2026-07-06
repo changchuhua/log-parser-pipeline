@@ -44,8 +44,11 @@ class TemplateManager:
             config_path (str): YAML configuration path. Defaults to '/app/config.yaml'.
         """
         self.tree_router = tree_router
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
+        try:
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+        except Exception:
+            config = {}
         self.merge_similarity_threshold = config.get('logparser_llm', {}).get('merge_similarity_threshold', 0.95)
         
     def calibrate(self):

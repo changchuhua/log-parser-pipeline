@@ -44,8 +44,11 @@ class PrefixTree:
         Args:
             config_path (str): Central configuration path. Defaults to '/app/config.yaml'.
         """
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
+        try:
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+        except Exception:
+            config = {}
         self.loose_match_threshold = config.get('logparser_llm', {}).get('loose_match_threshold', 0.8)
         self.root = Node(None)
         self.clusters = []  # List of templates

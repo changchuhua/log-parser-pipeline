@@ -162,6 +162,18 @@ def main():
                 metrics['GGD'] = 0.0
                 metrics['PGD'] = 0.0
                 
+            # Load profile elapsed time if exists
+            time_score = 0.0
+            profile_file = os.path.join(parsed_dir, f"{parser_name}_profile.json")
+            if os.path.exists(profile_file):
+                try:
+                    with open(profile_file, 'r', encoding='utf-8') as pf_file:
+                        prof_data = json.load(pf_file)
+                        time_score = prof_data.get('time_taken_seconds', 0.0)
+                except Exception as e:
+                    logger.error(f"Error loading profile for {parser_name}: {e}")
+            metrics['Time(s)'] = time_score
+            
             report[parser_name] = metrics
             
         except Exception as e:
@@ -173,12 +185,12 @@ def main():
         
     logger.info(f"Evaluation report saved to {report_file}")
     
-    table_str = "\n" + "="*96 + "\n"
-    table_str += f"{'Parser':<20} | {'GA':<10} | {'PA':<10} | {'ED':<10} | {'GGD':<10} | {'PGD':<10} | {'PMSS':<10}\n"
-    table_str += "="*96 + "\n"
+    table_str = "\n" + "="*109 + "\n"
+    table_str += f"{'Parser':<20} | {'GA':<10} | {'PA':<10} | {'ED':<10} | {'GGD':<10} | {'PGD':<10} | {'PMSS':<10} | {'Time(s)':<10}\n"
+    table_str += "="*109 + "\n"
     for parser, met in report.items():
-        table_str += f"{parser:<20} | {met['GA']:<10.4f} | {met['PA']:<10.4f} | {met['ED']:<10.4f} | {met['GGD']:<10.4f} | {met['PGD']:<10.4f} | {met['PMSS']:<10.4f}\n"
-    table_str += "="*96
+        table_str += f"{parser:<20} | {met['GA']:<10.4f} | {met['PA']:<10.4f} | {met['ED']:<10.4f} | {met['GGD']:<10.4f} | {met['PGD']:<10.4f} | {met['PMSS']:<10.4f} | {met['Time(s)']:<10.4f}\n"
+    table_str += "="*109
     logger.info(table_str)
 
 if __name__ == "__main__":

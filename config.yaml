@@ -1,6 +1,7 @@
 directories:
   input_dir: data/raw
   output_dir: data/processed
+  cache_dir: data/cache
 extractor:
   batch_size: 5000
   lookback_time: now-24h
