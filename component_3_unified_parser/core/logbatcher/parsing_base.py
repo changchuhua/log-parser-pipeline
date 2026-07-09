@@ -33,9 +33,15 @@ class ParsingBase:
             str: Predicted static template if successful, else None.
         """
         prompt = (
-            "Here is a batch of diverse logs from the same system. They share the same static template "
-            "but contain different dynamic variables. Identify the static template they share by replacing "
-            "the varying parameters with the placeholder <*>. Output ONLY the final template string.\n\n"
+            "You are an expert log parser. Your task is to identify the static template shared by a batch of logs.\n"
+            "Analyze the logs, identify the dynamic variables, and replace them with the placeholder <*>.\n"
+            "CRITICAL: Do NOT include any markdown code blocks, introductory text, conversational preamble, or explanation. Output ONLY the raw template string itself.\n\n"
+            "Example logs:\n"
+            "Log 1: Connection from 192.168.1.5 closed by port 22\n"
+            "Log 2: Connection from 10.0.0.12 closed by port 22\n"
+            "Example Output:\n"
+            "Connection from <*> closed by port 22\n\n"
+            "Now parse the following logs:\n"
         )
         for i, log in enumerate(batch_logs):
             prompt += f"Log {i+1}: {log.get('message', '')}\n"

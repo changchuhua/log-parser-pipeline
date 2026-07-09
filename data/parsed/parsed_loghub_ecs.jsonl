@@ -1,3 +1,0 @@
-{"@timestamp": "2026-01-01 12:00:00", "message": "User admin logged in", "log": {"level": "INFO", "logger": "Auth"}, "event": {"id": "1"}, "parsed_template": "User <*> logged in"}
-{"@timestamp": "2026-01-01 12:00:01", "message": "User guest logged in", "log": {"level": "INFO", "logger": "Auth"}, "event": {"id": "2"}, "parsed_template": "User <*> logged in"}
-{"@timestamp": "2026-01-01 12:00:02", "message": "User guest logged in", "log": {"level": "INFO", "logger": "Auth"}, "event": {"id": "3"}, "parsed_template": "User <*> logged in"}

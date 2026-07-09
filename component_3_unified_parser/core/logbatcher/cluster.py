@@ -24,22 +24,25 @@ class Cluster:
         raise NotImplementedError()
 
 class LengthCluster(Cluster):
-    """Log clustering based on token length."""
+    """Log clustering based on token length and dataset source."""
 
     def get_partitions(self):
-        """Groups log messages by their split token length.
+        """Groups log messages by their dataset source and split token length.
 
         Returns:
-            list: List of log lists, partitioned by token count.
+            list: List of log lists, partitioned by dataset and token count.
         """
         partitions = {}
         for log in self.logs:
             msg = log.get('message', '')
             tokens = msg.split()
             length = len(tokens)
-            if length not in partitions:
-                partitions[length] = []
-            partitions[length].append(log)
+            event_id = log.get('event', {}).get('id', '')
+            dataset = event_id.split('_')[0] if event_id else 'unknown'
+            key = (dataset, length)
+            if key not in partitions:
+                partitions[key] = []
+            partitions[key].append(log)
         return list(partitions.values())
 
 def get_clusterer(cluster_type, logs, threshold=0.8):

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline Evaluation Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8 border-b border-gray-800 pb-4">
+            <h1 class="text-3xl font-bold tracking-tight text-white">Log Parser Evaluation Dashboard</h1>
+            <p class="text-gray-400 mt-1">Interactive parsing accuracy and efficiency comparison reports.</p>
+        </header>
+
+        <!-- Dynamic Summary Cards -->
+        <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"></div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Radar Chart Card -->
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <h3 class="text-lg font-semibold mb-4 text-white">Accuracy Profile (Radar)</h3>
+                <div class="relative h-96">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Bar Chart Card -->
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <h3 class="text-lg font-semibold mb-4 text-white">Sensitivity Corrections Comparison</h3>
+                <div class="relative h-96">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const reportData = {"summary": {}, "visualizations": {"radar_chart": {}, "scatter_plot": {}, "grouped_bar_chart_sensitivity": {}, "correlation_heatmap": {}, "line_graph_cache_scalability": {}}};
+        const parser = Object.keys(reportData.summary)[0];
+        const summary = reportData.summary[parser];
+        
+        // Build cards
+        const cardContainer = document.getElementById('summary-cards');
+        const metrics = [
+            { name: 'Group Accuracy (GA)', val: (summary.GA * 100).toFixed(1) + '%' },
+            { name: 'Parsing Accuracy (PA)', val: (summary.PA * 100).toFixed(1) + '%' },
+            { name: 'Few-shot Template (FTA)', val: (summary.FTA * 100).toFixed(1) + '%' },
+            { name: 'LLM Invocations', val: summary.LLM_Calls.toLocaleString() }
+        ];
+        metrics.forEach(m => {
+            cardContainer.innerHTML += `
+                <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <div class="text-sm font-medium text-gray-400 truncate">${m.name}</div>
+                    <div class="mt-2 text-3xl font-semibold text-white">${m.val}</div>
+                </div>
+            `;
+        });
+
+        // Render Radar
+        new Chart(document.getElementById('radarChart'), {
+            type: 'radar',
+            data: {
+                labels: ['GA', 'PA', 'FGA', 'FTA', 'PMSS'],
+                datasets: [{
+                    label: parser.toUpperCase(),
+                    data: [summary.GA, summary.PA, summary.FGA, summary.FTA, summary.PMSS],
+                    backgroundColor: 'rgba(99, 110, 250, 0.2)',
+                    borderColor: 'rgba(99, 110, 250, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        pointLabels: { color: '#9CA3AF', font: { size: 12 } },
+                        ticks: { backdropColor: 'transparent', color: '#9CA3AF' },
+                        suggestedMin: 0,
+                        suggestedMax: 1
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#FFF' } }
+                }
+            }
+        });
+
+        // Render Bar Chart
+        const sens = reportData.visualizations.grouped_bar_chart_sensitivity[parser];
+        const levels = Object.keys(sens);
+        const paData = levels.map(l => sens[l].PA);
+        const ftaData = levels.map(l => sens[l].FTA);
+
+        new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: {
+                labels: levels.map(l => l.toUpperCase()),
+                datasets: [
+                    {
+                        label: 'Parsing Accuracy (PA)',
+                        data: paData,
+                        backgroundColor: '#636EFA',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Few-shot Template (FTA)',
+                        data: ftaData,
+                        backgroundColor: '#EF553B',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#9CA3AF' } },
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9CA3AF' }, suggestedMin: 0, suggestedMax: 1 }
+                },
+                plugins: {
+                    legend: { labels: { color: '#FFF' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

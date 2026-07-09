@@ -7,13 +7,13 @@ services:
       dockerfile: Dockerfile
     image: component_1_dataset_gen
     container_name: dataset_generator
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro
     env_file:
       - .env
+    networks:
+      - search-net
 
   component_2:
     build:
@@ -21,13 +21,13 @@ services:
       dockerfile: Dockerfile
     image: component_2_so_extractor
     container_name: so_extractor
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro
     env_file:
       - .env
+    networks:
+      - search-net
 
   component_3:
     build:
@@ -35,13 +35,15 @@ services:
       dockerfile: Dockerfile
     image: component_3_unified_parser
     container_name: unified_parser
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro
     env_file:
       - .env
+    environment:
+      - LLM_DEBUG
+    networks:
+      - search-net
 
   component_4:
     build:
@@ -54,3 +56,10 @@ services:
       - ./config.yaml:/app/config.yaml:ro
     env_file:
       - .env
+    networks:
+      - search-net
+
+networks:
+  search-net:
+    name: search-net
+    external: true

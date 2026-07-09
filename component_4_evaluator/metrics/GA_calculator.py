@@ -56,7 +56,7 @@ def get_accuracy(series_groundtruth, series_parsedlog, filter_templates=None):
                 filter_identify_templates.add(parsed_eventId)
         if series_parsedlog_logId_valuecounts.size == 1:
             parsed_eventId = series_parsedlog_logId_valuecounts.index[0]
-            if len(group) == series_parsedlog[series_parsedlog == parsed_eventId].size:
+            if len(group) == series_parsedlog_valuecounts[parsed_eventId]:
                 if (filter_templates is None) or (ground_truthId in filter_templates):
                     accurate_events += len(group)
                     accurate_templates += 1

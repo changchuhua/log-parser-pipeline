@@ -18,3 +18,8 @@ venv/
 .venv/
 __pycache__/
 target/
+data/raw/
+data/archive/
+data/processed/
+data/parsed/
+report/

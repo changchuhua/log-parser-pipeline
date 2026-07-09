@@ -68,7 +68,8 @@ class LLMExtractor:
             "Computing Resources (<RES>), Object Amount (<AMT>), Status Code (<STA>), and Other Parameters (<OTH>). "
             "Substitute dynamic variables with their respective category tokens. "
             "Everything outside the tokens should remain exactly unchanged. Do not fix typos. "
-            "If a variable is a compound string, replace the entire compound with a single token.\n\n"
+            "If a variable is a compound string, replace the entire compound with a single token.\n"
+            "CRITICAL: Do NOT include any markdown code blocks, introductory text, conversational preamble, or explanation. Output ONLY the raw template string itself.\n\n"
         )
         
         if demonstrations:

@@ -1,0 +1,7 @@
+[
+    {
+        "template": "[client <*>] File does not exist: <*>",
+        "ref_log": "[client 193.124.133.216] File does not exist: /var/www/html/xmlsrv",
+        "frequency": 1
+    }
+]

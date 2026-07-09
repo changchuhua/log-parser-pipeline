@@ -7,14 +7,13 @@ extractor:
   lookback_time: now-24h
 llm:
   model_name: llama3
-  base_url: http://host.docker.internal:11434/v1
 logparser_llm:
   k_shots: 3
   loose_match_threshold: 0.8
   merge_similarity_threshold: 0.95
   embedding_model: "nomic-embed-text"
 logbatcher:
-  batch_size: 10
+  batch_size: 5
   sampler: "DPPSampler"
   cluster: "LengthCluster"
   embedding_model: "nomic-embed-text"
@@ -23,3 +22,6 @@ librelog:
   max_memory_size: 1000
   k_shots: 3
   enable_reflection: true
+evaluator:
+  nrows: 5000
+

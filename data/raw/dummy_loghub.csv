@@ -1,4 +1,0 @@
-Date,Time,Content,Level,Component,LineId,EventTemplate
-2026-01-01,12:00:00,User admin logged in,INFO,Auth,1,User <*> logged in
-2026-01-01,12:00:01,User guest logged in,INFO,Auth,2,User <*> logged in
-2026-01-01,12:00:02,User guest logged in,INFO,Auth,3,User <*> logged in

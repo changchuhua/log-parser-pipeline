@@ -35,13 +35,16 @@ class LlamaParser:
         Returns:
             str: Refined template.
         """
-        prompt = "You are a log parser.\n\n"
+        prompt = (
+            "You are an expert log parser. Your task is to extract the static template of the log message by replacing dynamic variables with <*>.\n"
+            "CRITICAL: Do NOT include any markdown code blocks, introductory text, conversational preamble, or explanation. Output ONLY the raw template string itself.\n\n"
+        )
         if examples:
             prompt += "Provided Examples:\n"
             for i, ex in enumerate(examples):
                 prompt += f"Log: {ex['raw_log']}\nTemplate: {ex['template']}\n\n"
                 
-        prompt += f"Compare the following log to the provided examples and extract its static template by replacing varying dynamic parameters with <*>. Log: {log_text}\nTemplate:"
+        prompt += f"Compare the following log to the provided examples and extract its static template. Log: {log_text}\nTemplate:"
 
         try:
             generated_template = self.llm_client.generate_completion(prompt).strip()
@@ -51,7 +54,8 @@ class LlamaParser:
                 reflection_prompt = (
                     f"You previously parsed this log: '{log_text}' into this template: '{generated_template}'. "
                     "Review your template carefully. Did you leave any dynamic variables, IDs, or specific numbers unmasked? "
-                    "If so, replace them with <*>. Output ONLY the highly generalized, refined template."
+                    "If so, replace them with <*>. "
+                    "CRITICAL: Do NOT include any markdown code blocks, introductory text, conversational preamble, or explanation. Output ONLY the highly generalized, refined raw template string itself."
                 )
                 refined_template = self.llm_client.generate_completion(reflection_prompt).strip()
                 refined_template = self.clean_template(refined_template)

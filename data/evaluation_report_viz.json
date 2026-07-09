@@ -1,0 +1,10 @@
+{
+    "summary": {},
+    "visualizations": {
+        "radar_chart": {},
+        "scatter_plot": {},
+        "grouped_bar_chart_sensitivity": {},
+        "correlation_heatmap": {},
+        "line_graph_cache_scalability": {}
+    }
+}

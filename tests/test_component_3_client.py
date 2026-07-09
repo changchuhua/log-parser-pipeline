@@ -48,3 +48,31 @@ class TestComponent3Client(unittest.TestCase):
         
         # Verify it retried 2 times
         self.assertEqual(mock_post.call_count, 2)
+
+    @patch.dict('os.environ', {'OLLAMA_MODEL': 'gemma'})
+    def test_model_resolution_env_alias(self):
+        client = OllamaClient(config_path='non_existent_config.yaml')
+        self.assertEqual(client.model_name, 'gemma4:26b')
+
+    @patch.dict('os.environ', {'OLLAMA_MODEL': 'custom-model:latest'})
+    def test_model_resolution_env_custom(self):
+        client = OllamaClient(config_path='non_existent_config.yaml')
+        self.assertEqual(client.model_name, 'custom-model:latest')
+
+    @patch('requests.post')
+    def test_get_embedding_caching(self, mock_post):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "embedding": [0.1, 0.2, 0.3]
+        }
+        mock_post.return_value = mock_resp
+
+        # Request same embedding twice
+        r1 = self.client.get_embedding("same text")
+        r2 = self.client.get_embedding("same text")
+
+        self.assertEqual(r1, [0.1, 0.2, 0.3])
+        self.assertEqual(r2, [0.1, 0.2, 0.3])
+        
+        # Verify requests.post was only invoked once (second request hit the cache)
+        mock_post.assert_called_once()

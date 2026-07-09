@@ -59,11 +59,13 @@ class DPPSampler(Sampler):
         super().__init__(batch_size)
         self.llm_client = llm_client
 
-    def sample(self, logs):
+    def sample(self, logs, time_limit=None, start_time=None):
         """Performs greedy DPP selection on log embeddings.
 
         Args:
             logs (list): List of logs.
+            time_limit (float, optional): Maximum execution duration in seconds.
+            start_time (float, optional): Parser execution start timestamp.
 
         Returns:
             list: DPP-selected log subset.
@@ -71,8 +73,22 @@ class DPPSampler(Sampler):
         if len(logs) <= self.batch_size:
             return logs
 
+        import time
+
+        # Pre-sample a candidate pool of up to 100 logs to prevent memory exhaustion (OOM)
+        # and long computation times on huge partitions.
+        max_candidates = 100
+        if len(logs) > max_candidates:
+            candidate_pool = random.sample(logs, max_candidates)
+        else:
+            candidate_pool = logs
+
         embeddings = []
-        for log in logs:
+        for idx, log in enumerate(candidate_pool):
+            if time_limit and start_time and (time.perf_counter() - start_time) > time_limit:
+                logger.warning("Sampler time budget exceeded during embedding extraction. Aborting sampler.")
+                break
+
             msg = log.get('message', '')
             try:
                 emb = self.llm_client.get_embedding(msg)
@@ -80,6 +96,9 @@ class DPPSampler(Sampler):
             except Exception as e:
                 logger.error(f"Failed to get embedding: {e}")
                 embeddings.append(np.random.rand(768).tolist())
+
+        if not embeddings:
+            return random.sample(logs, min(len(logs), self.batch_size))
 
         emb_matrix = np.array(embeddings)
         kernel_matrix = cosine_similarity(emb_matrix)
@@ -107,7 +126,7 @@ class DPPSampler(Sampler):
             else:
                 break
 
-        return [logs[i] for i in selected]
+        return [candidate_pool[i] for i in selected]
 
 def get_sampler(sampler_type, llm_client, batch_size=10):
     """Factory function returning the configured Sampler instance.

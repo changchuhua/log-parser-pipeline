@@ -22,8 +22,17 @@ def calculate_pmss(df_parsed):
         float: Computed Silhouette score between -1.0 and 1.0.
     """
     templates = df_parsed['EventTemplate'].astype(str).tolist()
+    
+    # Safety sampling cap: If N is huge, PMSS O(N^2) space complexity causes OOM.
+    # We sample up to 10,000 logs randomly (reproducible with fixed seed) to fit memory.
+    if len(templates) > 10000:
+        import random
+        rng = random.Random(42)
+        templates = rng.sample(templates, 10000)
+
     if len(templates) <= 1:
         return 0.0
+
         
     unique_templates, inverse_indices = np.unique(templates, return_inverse=True)
     m = len(unique_templates)

@@ -1,10 +1,6 @@
-"""Post-processing and regex matching engine for LogBatcher.
-
-Implements clean_template parsing of LLM output and the Match & Prune loop.
-"""
-
 import re
-from .matching import template_to_regex
+import signal
+from .matching import template_to_regex, RegexTimeoutException, regex_timeout_handler
 
 def clean_template(llm_output):
     """Cleans up raw markdown or backticks from LLM output.
@@ -48,12 +44,24 @@ def match_and_prune(template, partition, cache):
     except Exception as e:
         return [], partition
 
-    for log in partition:
-        msg = log.get('message', '')
-        if pattern.match(msg):
-            matched_logs.append(log)
-        else:
-            pruned_logs.append(log)
+    old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)
+    try:
+        for log in partition:
+            msg = log.get('message', '')
+            try:
+                signal.alarm(1)
+                is_match = bool(pattern.match(msg))
+            except (RegexTimeoutException, Exception):
+                is_match = False
+            finally:
+                signal.alarm(0)
+
+            if is_match:
+                matched_logs.append(log)
+            else:
+                pruned_logs.append(log)
+    finally:
+        signal.signal(signal.SIGALRM, old_handler)
 
     if matched_logs:
         cache.add(cleaned_tmpl, matched_logs[0]['message'])

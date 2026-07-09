@@ -10,6 +10,8 @@ import os
 import argparse
 import logging
 import sys
+import glob
+import random
 from pathlib import Path
 
 # Configure logging
@@ -20,38 +22,73 @@ logging.basicConfig(
 )
 logger = logging.getLogger("dataset_generator")
 
-def process_loghub(input_file, output_file):
+def process_loghub(input_path, output_file):
     """Processes raw LogHub-2.0 CSV logs and converts them to ECS JSONL.
 
-    Maps columns Date+Time to @timestamp, Content to message, Level to log.level,
-    Component to log.logger, and LineId to event.id.
+    Accepts either a single CSV file or a directory containing CSV files.
+    Standardizes them, shuffles them per-dataset, prepends the dataset name to LineId,
+    and interleaves them in a round-robin sequence.
 
     Args:
-        input_file (str): Path to the raw LogHub CSV file.
+        input_path (str): Path to a raw LogHub CSV file or a directory containing them.
         output_file (str): Path to write the standardized ECS JSONL file.
     """
-    df = pd.read_csv(input_file)
-    
-    with open(output_file, 'w') as f:
-        for _, row in df.iterrows():
-            date = str(row.get('Date', ''))
-            time = str(row.get('Time', ''))
-            # Combine Date and Time
-            timestamp = f"{date} {time}".strip()
+    csv_files = []
+    if os.path.isdir(input_path):
+        csv_files = sorted(glob.glob(os.path.join(input_path, '*.csv')))
+    else:
+        csv_files = [input_path]
+
+    sources_data = []
+    for f in csv_files:
+        try:
+            # Limit rows read per file to prevent memory exhaustion (OOM) on massive files
+            df = pd.read_csv(f, nrows=100000)
+            dataset_name = os.path.basename(f).replace('_sample.csv', '').replace('_full.log_structured.csv', '').replace('.csv', '')
             
-            ecs_log = {
-                "@timestamp": timestamp,
-                "message": str(row.get('Content', '')),
-                "log": {
-                    "level": str(row.get('Level', '')),
-                    "logger": str(row.get('Component', ''))
-                },
-                "event": {
-                    "id": str(row.get('LineId', ''))
+            records = []
+            for idx, row in df.iterrows():
+                date = str(row.get('Date', ''))
+                time_val = str(row.get('Time', ''))
+                timestamp = f"{date} {time_val}".strip()
+                
+                raw_line_id = str(row.get('LineId', '')) if 'LineId' in row else str(idx + 1)
+                prefixed_id = f"{dataset_name}_{raw_line_id}"
+                
+                ecs_log = {
+                    "@timestamp": timestamp,
+                    "message": str(row.get('Content', '')),
+                    "log": {
+                        "level": str(row.get('Level', '')),
+                        "logger": str(row.get('Component', ''))
+                    },
+                    "event": {
+                        "id": prefixed_id
+                    }
                 }
-            }
-            f.write(json.dumps(ecs_log) + '\n')
-    logger.info(f"Processed LogHub data and saved to {output_file}")
+                records.append(ecs_log)
+                
+            # Randomize logs for this specific dataset
+            random.shuffle(records)
+            sources_data.append(records)
+            logger.info(f"Loaded {len(records)} logs from {os.path.basename(f)} (prefixed with {dataset_name})")
+        except Exception as e:
+            logger.error(f"Error loading LogHub raw file {f}: {e}")
+
+    # Interleave round-robin
+    interleaved = []
+    if sources_data:
+        max_len = max(len(s) for s in sources_data)
+        for i in range(max_len):
+            for s in sources_data:
+                if i < len(s):
+                    interleaved.append(s[i])
+
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for record in interleaved:
+            out_f.write(json.dumps(record) + '\n')
+            
+    logger.info(f"Processed {len(csv_files)} LogHub files, randomized and interleaved {len(interleaved)} total logs saved to {output_file}")
 
 
 def process_botsv3(input_file, output_file):
