@@ -336,6 +336,70 @@ Identified and resolved a critical serialization bug in the output writing logic
   * With the bug fixed, running LibreLog for 30 seconds with the loaded cache parsed exactly **1 log** (which was a cache hit in <1 millisecond) before blocking on the second log's LLM query (since it was a cache miss).
   * This confirmed that for exact matches, local caching executes in microseconds, but any cache miss triggers an LLM query which blocks the sequential parser loop until it completes.
 
+---
+
+## 30. Official LibreLog Architecture Transition
+Successfully transitioned LibreLog from a sequential line-by-line parser to the official cluster-then-batch-prompt architecture matching [zeyang919/LibreLog](https://github.com/zeyang919/LibreLog):
+- **Drain Grouping Tree**: Ported the official prefix tree clustering (`grouping.py`) which groups logs based on token length and prefix routing.
+- **Jaccard Adaptive Random Sampler**: Implemented Jaccard-based adaptive sampling (`sampler.py` / `llama_parser.py`) to select $K$ most diverse representative logs within each cluster.
+- **Batch Prompting & Regex Propagation**: Prompts Gemma with the batch list of diverse logs to generate a single common template per group (reducing LLM calls from ~18,000 to only ~200-300 total).
+- **Verification**: Verified via local pytest suite (all 23 tests passing) and ran a 30-second docker-compose run. The new cluster parser processed the Apache dataset, generated 29 groups, made only **1 LLM call**, and achieved **1.0000 (100%) accuracy** (GA/PA/FTA) for the parsed cluster logs.
+
+---
+
+## 31. 50-Minute LibreLog Full Dataset Run
+Executed a 1-hour monitored run of the refactored LibreLog parser over the full LogHub interleaving corpus (1,171,492 logs):
+- **Execution Performance**:
+  * **Duration**: **49 minutes 12 seconds** (completed within the 1-hour window!)
+  * **Unique Templates Cached**: **269,557 unique memory entries** written back to `librelog_cache.json`
+  * **LLM Invocations**: **2,303 queries** (reduced from the estimated ~18,000+ line-by-line calls!)
+- **Evaluation Accuracy**:
+  * **Group Accuracy (GA)**: **`0.9831`** (a massive improvement in grouping quality)
+  * **FGA**: **`0.9655`**
+  * **PMSS (Silhouette Score)**: **`0.8118`**
+- **Key Conclusion**: This confirms that the grouping-based, batch-prompting LibreLog architecture scales efficiently to process large datasets, while the cache persistence successfully collects and retains log templates across all 14 datasets.
+
+---
+
+## 32. Merge-on-Write Cache Safety Implementation & Validation
+Addressed the critical cache vulnerability where cold-start or partial runs (like `USE_CACHE=false`) would overwrite and truncate pre-existing cache files:
+- **Design & Code Changes**: Implemented merge-on-write logic for LogParser-LLM, LogBatcher, and LibreLog in `main_parser.py`. The code now reads the existing file from disk, merges and deduplicates templates, and writes the combined list back to the file.
+- **Verification**: Verified using a 30-second dry run of LibreLog with cold start settings (`USE_CACHE=false` and `WRITE_CACHE=true`).
+- **Results**: The parser successfully ran on the Apache dataset, made 1 LLM query on a cache miss, and successfully merged it back into the existing cache file on disk, writing all **269,557 unique cache entries** safely back to `librelog_cache.json` without any data loss.
+
+---
+
+## 33. LogBatcher DBSCAN Clustering Refactor
+Refactored the LogBatcher clustering and caching components to eliminate order dependency, reduce latency, and introduce quarantine safety:
+- **DBSCAN precomputed Jaccard Distance**: Replaced the sequential Jaccard medoid matcher in `additional_cluster.py` with scikit-learn's `DBSCAN(metric='precomputed')` and vectorized SciPy Jaccard distance calculation (`pdist`/`squareform` from binary count vector matrices).
+- **Hybrid Buffer Trigger**: Implemented a hybrid trigger queue in `parser.py` that accumulates logs and flushes them when size reaches 500 OR when timeout of 5.0 seconds has elapsed.
+- **LRU Cache Eviction**: Integrated `ParsingCache` with an `OrderedDict` backing, capping the global cache at 5,000 templates and evicting Least Recently Used templates to sustain low lookup latency.
+- **Noise Log Quarantine Routing**: Outlier logs (label -1) classified by DBSCAN are filtered out, bypassing the LLM and Global Reconciliation, and written to `quarantine.jsonl` for analyst review.
+- **Verification**: Created `tests/test_logbatcher_dbscan.py` and verified all 28 pytest unit tests pass cleanly. Rebuilt the Docker image and ran a 30-second verification run, which completed successfully with correct cache serialization.
+
+---
+
+## 34. LogParser-LLM Enhancements: Adaptive ICL, JSON Prompting/ECS Mapping, and Prefix Tree Pruning
+Refactored the LogParser-LLM components (`llm_extractor.py`, `tree_router.py`, `main_parser.py`) to align with the efficiencies of recent log parsing literature:
+- **Adaptive Few-Shot ICL**: Queries the local Template Pool (`logbatcher_cache.json`) for the top-$K$ ($K=3$) logs most similar to the unparsed log using Jaccard Similarity. Variables are aligned dynamically between the template and reference log to generate inline few-shot JSON examples for the LLM.
+- **Structured JSON & ECS Field Mapping**: Instructs the LLM via system prompts to return structured JSON. The extractor parses the JSON, matches categories (`<LOI>`, `<OID>`, `<TDA>`), and maps them to standard ECS fields (`source.ip`, `file.path`, `event.ingested` respectively) directly on the log record object. Graces fallback to raw template strings if response is non-JSON.
+- **Prefix Tree LRU Pruning**: Node instances in `tree_router.py` now track `last_matched` timestamps during match/insert operations. Periodically traversing the tree recursively prunes dead templates and empty branches older than 30 days to protect against system memory bloat.
+- **Verification**: Added `tests/test_logparser_llm_enhancements.py` and verified all 32 unit tests pass cleanly. Rebuilt the Docker image and ran a 30-second monitored `logparser-llm` validation execution successfully.
+
+---
+
+## 35. Cache Deserialization Fix & Test Run Executions
+Refactored the cache property and deserialization mechanism to enable correct loading of stored cache databases:
+- **LogBatcher Cache Setter**: Added a `@cache.setter` property to `ParsingCache` (in `parsing_cache.py`) to correctly parse and deserialize cache lists. The setter rebuilds the internal `OrderedDict` in reverse order of the stored JSON array, preserving frequency values and LRU recency status.
+- **Verification Tests**: Added the `test_cache_setter` unit test to `tests/test_logbatcher_dbscan.py`.
+- **E2E 15-Minute Runs Execution**: Started all three parser methods sequentially for 900 seconds each. Re-built components and successfully terminated the running tasks upon explicit user request after verifying parser execution rates.
+
+
+
+
+
+
+
 
 
 

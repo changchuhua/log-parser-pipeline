@@ -5,6 +5,8 @@ set -euo pipefail
 cleanup() {
     echo "Cleaning up GPU VRAM (unloading model)..."
     curl -s -X POST http://localhost:11434/api/generate -d '{"model": "gemma4:26b", "keep_alive": 0}' > /dev/null || true
+    echo "Cleaning up any stale unified_parser containers..."
+    docker rm -f unified_parser >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -33,8 +35,8 @@ docker-compose run --rm component_1 python transform_to_ecs.py --loghub data/raw
 # 5. Start unified_parser container in the background
 echo "Starting unified_parser with monitoring..."
 METHOD=${1:-logbatcher}
-LIMIT=${2:-900}
-docker-compose run --name unified_parser --rm component_3 python main_parser.py --method "$METHOD" --time-limit "$LIMIT" &
+LIMIT=${2:-0}
+docker-compose run --name unified_parser -e USE_CACHE -e WRITE_CACHE --rm component_3 python main_parser.py --method "$METHOD" --time-limit "$LIMIT" &
 PARSER_PID=$!
 
 # Wait for unified_parser container to spin up

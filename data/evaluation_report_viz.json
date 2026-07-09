@@ -1,10 +1,68 @@
 {
-    "summary": {},
+    "summary": {
+        "librelog": {
+            "FGA": 0.9769230769230769,
+            "PA": 0.07834101382488479,
+            "PMSS": 0.8202764976958525,
+            "FTA": 0.06870229007633588,
+            "GA": 0.9907834101382489,
+            "Time_s": 457.94402761899937,
+            "LLM_Calls": 878,
+            "Tokens": 315678
+        }
+    },
     "visualizations": {
-        "radar_chart": {},
-        "scatter_plot": {},
-        "grouped_bar_chart_sensitivity": {},
-        "correlation_heatmap": {},
-        "line_graph_cache_scalability": {}
+        "radar_chart": {
+            "librelog": {
+                "FGA": 0.9769230769230769,
+                "PA": 0.07834101382488479,
+                "PMSS": 0.8202764976958525,
+                "FTA": 0.06870229007633588
+            }
+        },
+        "scatter_plot": {
+            "librelog": {
+                "effectiveness": {
+                    "PMSS": 0.8202764976958525,
+                    "FGA": 0.9769230769230769
+                },
+                "efficiency": {
+                    "Time_s": 457.94402761899937,
+                    "Tokens": 315678
+                }
+            }
+        },
+        "grouped_bar_chart_sensitivity": {
+            "librelog": {
+                "raw": {
+                    "PA": 0.07834101382488479,
+                    "FTA": 0.06870229007633588
+                },
+                "spaced": {
+                    "PA": 0.07834101382488479,
+                    "FTA": 0.06870229007633588
+                },
+                "lowercase": {
+                    "PA": 0.07834101382488479,
+                    "FTA": 0.06870229007633588
+                },
+                "regex_clean": {
+                    "PA": 0.08064516129032258,
+                    "FTA": 0.07633587786259542
+                }
+            }
+        },
+        "correlation_heatmap": {
+            "librelog": {
+                "PMSS": 0.8202764976958525,
+                "FGA": 0.9769230769230769,
+                "FTA": 0.06870229007633588
+            }
+        },
+        "line_graph_cache_scalability": {
+            "librelog": {
+                "history": []
+            }
+        }
     }
 }

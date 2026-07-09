@@ -386,9 +386,13 @@ def main():
             sensitivity = {}
             for lvl in ['raw', 'spaced', 'lowercase', 'regex_clean']:
                 logger.info(f"Evaluating sensitivity correction level: '{lvl}'...")
-                gt_lvl, parsed_lvl = apply_sensitivity_correction(df_gt_aligned_raw, df_parsed_aligned_raw, lvl)
-                pa_lvl = calculate_pa(gt_lvl, parsed_lvl)
-                fta_lvl = calculate_fta(gt_lvl, parsed_lvl)
+                if not df_parsed_aligned_raw.empty:
+                    gt_lvl, parsed_lvl = apply_sensitivity_correction(df_gt_aligned_raw, df_parsed_aligned_raw, lvl)
+                    pa_lvl = calculate_pa(gt_lvl, parsed_lvl)
+                    fta_lvl = calculate_fta(gt_lvl, parsed_lvl)
+                else:
+                    pa_lvl = 0.0
+                    fta_lvl = 0.0
                 sensitivity[lvl] = {
                     'PA': float(pa_lvl),
                     'FTA': float(fta_lvl)

@@ -187,7 +187,7 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
                     if template:
                         cache_hits += 1
                     else:
-                        template = llm_extractor.get_template(log_message)
+                        template = llm_extractor.get_template(log_message, record)
                         llm_invocations += 1
                     
                 record['parsed_template'] = template
@@ -201,11 +201,13 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
 
                 if (line_idx + 1) % 1000 == 0:
                     template_manager.calibrate()
+                    tree_router.prune_inactive_templates()
                     
             except Exception as e:
                 logger.error(f"Error parsing line in {in_file}: {e}")
                 
         template_manager.calibrate()
+        tree_router.prune_inactive_templates()
         
         # Write outputs back in the original input order (only writing what was parsed)
         with open(out_file, 'w', encoding='utf-8') as f_out:
@@ -246,9 +248,24 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
     if write_cache:
         try:
             cache_file = os.path.join(cache_dir, 'logparser_llm_cache.json')
+            existing_clusters = []
+            if os.path.exists(cache_file):
+                try:
+                    with open(cache_file, 'r', encoding='utf-8') as cf:
+                        existing_clusters = json.load(cf)
+                except Exception as e:
+                    logger.error(f"Error loading existing logparser-llm cache for merge: {e}")
+            
+            merged_clusters = list(existing_clusters)
+            seen_templates = set(merged_clusters)
+            for c in tree_router.clusters:
+                if c not in seen_templates:
+                    seen_templates.add(c)
+                    merged_clusters.append(c)
+                    
             with open(cache_file, 'w', encoding='utf-8') as cf:
-                json.dump(tree_router.clusters, cf, indent=4)
-            logger.info(f"Saved {len(tree_router.clusters)} templates to cache.")
+                json.dump(merged_clusters, cf, indent=4)
+            logger.info(f"Saved {len(merged_clusters)} templates to cache.")
         except Exception as e:
             logger.error(f"Error saving cache: {e}")
 
@@ -480,9 +497,28 @@ def main():
         if args.write_cache:
             try:
                 cache_file = os.path.join(cache_dir, 'logbatcher_cache.json')
+                existing_entries = []
+                if os.path.exists(cache_file):
+                    try:
+                        with open(cache_file, 'r', encoding='utf-8') as cf:
+                            existing_entries = json.load(cf)
+                    except Exception as e:
+                        logger.error(f"Error loading existing LogBatcher cache for merge: {e}")
+                
+                merged_entries = list(existing_entries)
+                seen_templates = {entry['template'] for entry in merged_entries if 'template' in entry}
+                for entry in parser_instance.cache.cache:
+                    if entry.get('template') not in seen_templates:
+                        seen_templates.add(entry['template'])
+                        merged_entries.append({
+                            'template': entry['template'],
+                            'ref_log': entry['ref_log'],
+                            'frequency': entry['frequency']
+                        })
+                
                 with open(cache_file, 'w', encoding='utf-8') as cf:
-                    json.dump(parser_instance.cache.cache, cf, indent=4)
-                logger.info(f"Saved {len(parser_instance.cache.cache)} cache entries to cache.")
+                    json.dump(merged_entries, cf, indent=4)
+                logger.info(f"Saved {len(merged_entries)} cache entries to cache.")
             except Exception as e:
                 logger.error(f"Error saving LogBatcher cache: {e}")
         
@@ -553,28 +589,10 @@ def main():
         # Instantiate dedicated parsers per dataset to isolate caches and prevent thrashing
         dataset_parsers = {}
         for ds in logs_by_dataset.keys():
-            parser_inst = LibreLogParser()
+            parser_inst = LibreLogParser(dataset_name=ds)
             if memory_list:
                 parser_inst.memory.memory = list(memory_list)
             dataset_parsers[ds] = parser_inst
-
-        # Interleave log lines round-robin in chunks of size 5000
-        CHUNK_SIZE = 5000
-        datasets_list = list(logs_by_dataset.keys())
-        indices = {ds: 0 for ds in datasets_list}
-        
-        interleaved_logs = []
-        any_remaining = True
-        while any_remaining:
-            any_remaining = False
-            for ds in datasets_list:
-                start_idx = indices[ds]
-                if start_idx < len(logs_by_dataset[ds]):
-                    end_idx = min(start_idx + CHUNK_SIZE, len(logs_by_dataset[ds]))
-                    for idx in range(start_idx, end_idx):
-                        interleaved_logs.append((ds, logs_by_dataset[ds][idx]))
-                    indices[ds] = end_idx
-                    any_remaining = True
 
         start_time = time.perf_counter()
         
@@ -583,44 +601,32 @@ def main():
         cache_hits = 0
         llm_invocations = 0
         total_logs = len(logs_to_parse)
-        last_log_time = start_time
         
-        for ds, log in interleaved_logs:
+        for ds, parser_inst in dataset_parsers.items():
             current_time = time.perf_counter()
             elapsed = current_time - start_time
             if args.time_limit and elapsed > args.time_limit:
                 logger.warning(f"Time limit of {format_duration(args.time_limit)} reached. Stopping early.")
                 break
                 
-            # Periodic status logging
-            if current_time - last_log_time >= 10.0:
-                last_log_time = current_time
-                pct = (log_volume / total_logs) * 100 if total_logs > 0 else 0
-                rate = log_volume / elapsed if elapsed > 0 else 0
-                limit_str = f" | Time Left: {format_duration(args.time_limit - elapsed)}" if args.time_limit else ""
-                logger.info(
-                    f"Progress (LibreLog): parsed {log_volume}/{total_logs} ({pct:.2f}%) | "
-                    f"Speed: {rate:.1f} logs/s | Cache Hits: {cache_hits} | "
-                    f"LLM Calls: {llm_invocations}{limit_str}"
-                )
-                
-            parser_inst = dataset_parsers[ds]
-            raw_log = log['message']
-            masked_log = parser_inst.regex_manager.mask(raw_log)
-            group_key = parser_inst.grouping_manager.get_group_key(masked_log)
-            exact_template = parser_inst.memory.get_exact_match(masked_log, group_key)
+            dataset_logs = logs_by_dataset[ds]
+            logger.info(f"Parsing dataset: {ds} ({len(dataset_logs)} logs)")
             
-            if exact_template:
-                template = exact_template
-                cache_hits += 1
-            else:
-                examples = parser_inst.memory.get_similar_logs(masked_log, parser_inst.k_shots, group_key)
-                template = parser_inst.llama_parser.parse_log(masked_log, examples)
-                parser_inst.memory.add(masked_log, template, group_key)
-                llm_invocations += 1
+            try:
+                results = parser_inst.parse(
+                    dataset_logs,
+                    time_limit=args.time_limit - elapsed if args.time_limit else None,
+                    start_time=start_time
+                )
+                for res in results:
+                    parsed_results[res['id']] = res['template']
                 
-            parsed_results[log['id']] = template
-            log_volume += 1
+                if parser_inst.history:
+                    last_hist = parser_inst.history[-1]
+                    log_volume += last_hist['log_volume']
+                    cache_hits += last_hist['cache_hits']
+            except Exception as e:
+                logger.error(f"Error parsing dataset {ds}: {e}")
             
         elapsed = time.perf_counter() - start_time
         logger.info(f"LibreLog finished parsing in {format_duration(elapsed)}.")
@@ -663,8 +669,17 @@ def main():
         if args.write_cache:
             try:
                 cache_file = os.path.join(cache_dir, 'librelog_cache.json')
-                serializable_mem = []
-                seen_keys = set()
+                existing_entries = []
+                if os.path.exists(cache_file):
+                    try:
+                        with open(cache_file, 'r', encoding='utf-8') as cf:
+                            existing_entries = json.load(cf)
+                    except Exception as e:
+                        logger.error(f"Error loading existing librelog cache for merge: {e}")
+                        
+                serializable_mem = list(existing_entries)
+                seen_keys = {(entry['raw_log'], entry['template']) for entry in serializable_mem}
+                
                 for ds, parser_inst in dataset_parsers.items():
                     for entry in parser_inst.memory.memory:
                         key = (entry['raw_log'], entry['template'])
