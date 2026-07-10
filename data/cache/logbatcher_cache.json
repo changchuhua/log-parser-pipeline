@@ -4878,5 +4878,2830 @@
         "template": "mod_jk child workerEnv in error state <*>",
         "ref_log": "mod_jk child workerEnv in error state 5",
         "frequency": 1
+    },
+    {
+        "template": "smartd has fork()ed into background mode. New PID=<*>",
+        "ref_log": "smartd has fork()ed into background mode. New PID=1760.",
+        "frequency": 3
+    },
+    {
+        "template": "Created MRAppMaster for application <*>",
+        "ref_log": "Created MRAppMaster for application appattempt_1445182159119_0018_000001",
+        "frequency": 1
+    },
+    {
+        "template": "Commit-pending state update from <*>",
+        "ref_log": "Commit-pending state update from attempt_1445182159119_0017_r_000000_0",
+        "frequency": 1
+    },
+    {
+        "template": "Runnning cleanup for the task",
+        "ref_log": "Runnning cleanup for the task",
+        "frequency": 1
+    },
+    {
+        "template": "Process Thread Dump: <*>",
+        "ref_log": "Process Thread Dump: Communication exception",
+        "frequency": 1
+    },
+    {
+        "template": "Read from history task <*>",
+        "ref_log": "Read from history task task_1445175094696_0003_m_000007",
+        "frequency": 1
+    },
+    {
+        "template": "Error writing History Event: <*>@<*>",
+        "ref_log": "Error writing History Event: org.apache.hadoop.mapreduce.jobhistory.JobUnsuccessfulCompletionEvent@13bb724a",
+        "frequency": 1
+    },
+    {
+        "template": "Commit <*> request from <*>",
+        "ref_log": "Commit go/no-go request from attempt_1445087491445_0003_r_000000_0",
+        "frequency": 1
+    },
+    {
+        "template": "Connecting to <*> at <*>:<*>",
+        "ref_log": "Connecting to ResourceManager at msra-sa-41/10.190.173.170:8030",
+        "frequency": 1
+    },
+    {
+        "template": "ReduceTask metrics system shutdown complete.",
+        "ref_log": "ReduceTask metrics system shutdown complete.",
+        "frequency": 1
+    },
+    {
+        "template": "AirPort: Link Up on <*>",
+        "ref_log": "AirPort: Link Up on en0",
+        "frequency": 1
+    },
+    {
+        "template": "Garcon is ready (<*> alive).",
+        "ref_log": "Garcon is ready (1 alive).",
+        "frequency": 1
+    },
+    {
+        "template": "device_generate_desktop_screenshot: authw <*>(<*>), shield <*>(<*>)",
+        "ref_log": "device_generate_desktop_screenshot: authw 0x7fa823c89600(2000), shield 0x7fa8258cac00(2001)",
+        "frequency": 1
+    },
+    {
+        "template": "CFPasteboardBeginGenerationReturn CFPasteboardBeginGeneration(<*>) : Lock timeout",
+        "ref_log": "CFPasteboardBeginGenerationReturn CFPasteboardBeginGeneration(CFPasteboardRef) : Lock timeout",
+        "frequency": 1
+    },
+    {
+        "template": "ChromeExistion main isUndetectWebsite = <*>",
+        "ref_log": "ChromeExistion main isUndetectWebsite = 0",
+        "frequency": 1
+    },
+    {
+        "template": "<*> : BTLE scanning started",
+        "ref_log": "07:45:34.386 : BTLE scanning started",
+        "frequency": 1
+    },
+    {
+        "template": "AppleThunderboltNHIType2::waitForOk2Go2Sx - retries = <*>",
+        "ref_log": "AppleThunderboltNHIType2::waitForOk2Go2Sx - retries = 6",
+        "frequency": 1
+    },
+    {
+        "template": "Sandbox: <*> deny(<*>) file-read-data <*>",
+        "ref_log": "Sandbox: com.apple.WebKit(9854) deny(1) file-read-data /private/etc/hosts",
+        "frequency": 1
+    },
+    {
+        "template": "Watch set is now: {(<*>",
+        "ref_log": "Watch set is now: {(",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>:<*>:<*>(<*>)] Failed to read DnsConfig.",
+        "ref_log": "[0701/100959:WARNING:dns_config_service_posix.cc(306)] Failed to read DnsConfig.",
+        "frequency": 1
+    },
+    {
+        "template": "process <*>[<*>] caught causing excessive wakeups. EXC_RESOURCE supressed due to audio playback",
+        "ref_log": "process WeChat[24144] caught causing excessive wakeups. EXC_RESOURCE supressed due to audio playback",
+        "frequency": 1
+    },
+    {
+        "template": "[QL] No sandbox token for request <*>, it will probably fail",
+        "ref_log": "[QL] No sandbox token for request <QLThumbnailRequest vmware-usbarb-25848.log>, it will probably fail",
+        "frequency": 1
+    },
+    {
+        "template": "Failed to start a scan - central is not powered on: <*>",
+        "ref_log": "Failed to start a scan - central is not powered on: 0",
+        "frequency": 1
+    },
+    {
+        "template": "[CardDAVPlugin-ERROR] Exception caught while running sync with server: Error Domain=<*> Code=<*> \"<*>\"",
+        "ref_log": "[CardDAVPlugin-ERROR] Exception caught while running sync with server: Error Domain=CoreDAVErrorDomain Code=1 \"(null)\"",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: wl0: wl_update_tcpkeep_seq: Original Seq: <*>, Ack: <*>, Win size: <*>",
+        "ref_log": "ARPT: 699458.552894: wl0: wl_update_tcpkeep_seq: Original Seq: 1119615486, Ack: 404855298, Win size: 4096",
+        "frequency": 1
+    },
+    {
+        "template": "Starting job: <*> at <*>",
+        "ref_log": "Starting job: collect at pnmf4.py:225",
+        "frequency": 1
+    },
+    {
+        "template": "An unknown (<*>) driver disconnected.",
+        "ref_log": "An unknown (mesos-slave-13:47891) driver disconnected.",
+        "frequency": 1
+    },
+    {
+        "template": "Task succeeded with attempt <*>",
+        "ref_log": "Task succeeded with attempt attempt_1445144423722_0021_m_000006_0",
+        "frequency": 1
+    },
+    {
+        "template": "serio: i8042 KBD port at <*>,<*> irq <*>",
+        "ref_log": "serio: i8042 KBD port at 0x60,0x64 irq 1",
+        "frequency": 1
+    },
+    {
+        "template": "Intel <*><*><*> detected.<<*>><*>pci_hotplug: PCI Hot Plug PCI Core version: <*>",
+        "ref_log": "Intel E7520/7320/7525 detected.<6>pci_hotplug: PCI Hot Plug PCI Core version: 0.5",
+        "frequency": 1
+    },
+    {
+        "template": "Device: <*>, Bad IEC (SMART) mode page, err=<*>, skip device",
+        "ref_log": "Device: /dev/sda, Bad IEC (SMART) mode page, err=5, skip device",
+        "frequency": 1
+    },
+    {
+        "template": "panfs mount: Read Ahead is turned ON at level <*>",
+        "ref_log": "panfs mount: Read Ahead is turned ON at level 1",
+        "frequency": 1
+    },
+    {
+        "template": "Swap cache: add <*>, delete <*>, find <*>/<*>, race <*>+<*>",
+        "ref_log": "Swap cache: add 64536622, delete 64536412, find 9606733/15749207, race 11+82",
+        "frequency": 1
+    },
+    {
+        "template": "network changed: <*>(<*>) DNS- Proxy-",
+        "ref_log": "network changed: v6(en0-:2607:f140:6000:8:f467:8175:d3fd:ebfd) DNS- Proxy-",
+        "frequency": 1
+    },
+    {
+        "template": "IOPMrootDomain: <*>, state <*>",
+        "ref_log": "IOPMrootDomain: idle cancel, state 1",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: AirPort_Brcm43xx::powerChange: <*>",
+        "ref_log": "ARPT: 763023.011686: AirPort_Brcm43xx::powerChange: System Sleep",
+        "frequency": 1
+    },
+    {
+        "template": "<*> <*><*> <*>",
+        "ref_log": "critical input interrupt enable...0",
+        "frequency": 13
+    },
+    {
+        "template": "-[NetworkAnalyticsEngine _writeJournalRecord:fromCellFingerprint:key:atLOI:ofKind:lqm:isFaulty:] Hashing of the primary key failed. Dropping the journal record.",
+        "ref_log": "-[NetworkAnalyticsEngine _writeJournalRecord:fromCellFingerprint:key:atLOI:ofKind:lqm:isFaulty:] Hashing of the primary key failed. Dropping the journal record.",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: IOPMPowerSource Information: onSleep, SleepType: Normal Sleep, 'ExternalConnected': <*>, 'TimeRemaining': <*>,",
+        "ref_log": "ARPT: 763140.668993: IOPMPowerSource Information: onSleep, SleepType: Normal Sleep, 'ExternalConnected': Yes, 'TimeRemaining': 0,",
+        "frequency": 1
+    },
+    {
+        "template": "pci_hotplug: PCI Hot Plug PCI Core version: <*>",
+        "ref_log": "pci_hotplug: PCI Hot Plug PCI Core version: 0.5",
+        "frequency": 1
+    },
+    {
+        "template": "Version <*> (<*>, <*>)",
+        "ref_log": "Version 3.0.2 (APM BIOS 1.2, Linux driver 1.16ac)",
+        "frequency": 1
+    },
+    {
+        "template": "ide<*>: BM-DMA at <*>, BIOS settings: hda:<*>, hdb:<*>",
+        "ref_log": "ide0: BM-DMA at 0xffa0-0xffa7, BIOS settings: hda:DMA, hdb:pio",
+        "frequency": 1
+    },
+    {
+        "template": "[KERNEL_IB][ib_mad_static_compute_base][/mnt_projects/sysapps/src/ib/topspin/topspin-src-3.2.0-16/ib/ts_api_ng/mad/obj_host_amd64_custom1_rhel4/ts_ib_mad/mad_static.c:<*>]Couldn't find a suitable network device; setting lid_base to <*>",
+        "ref_log": "[KERNEL_IB][ib_mad_static_compute_base][/mnt_projects/sysapps/src/ib/topspin/topspin-src-3.2.0-16/ib/ts_api_ng/mad/obj_host_amd64_custom1_rhel4/ts_ib_mad/mad_static.c:132]Couldn't find a suitable network device; setting lid_base to 1",
+        "frequency": 1
+    },
+    {
+        "template": "CPU<*>: Intel(R) Xeon(TM) CPU <*> stepping <*>",
+        "ref_log": "CPU0: Intel(R) Xeon(TM) CPU 3.60GHz stepping 03",
+        "frequency": 1
+    },
+    {
+        "template": "probe of <*> failed with error <*>",
+        "ref_log": "probe of vesafb0 failed with error -6",
+        "frequency": 1
+    },
+    {
+        "template": "you want, please write a subnet declaration",
+        "ref_log": "you want, please write a subnet declaration",
+        "frequency": 1
+    },
+    {
+        "template": "[INFO]: Configuration caused by discovering new ports",
+        "ref_log": "[INFO]: Configuration caused by discovering new ports",
+        "frequency": 1
+    },
+    {
+        "template": "deleteHealthNotification()",
+        "ref_log": "deleteHealthNotification()",
+        "frequency": 1
+    },
+    {
+        "template": "context=<*>@<*>",
+        "ref_log": "context=com.huawei.health.manager.DaemonService@c6229ff",
+        "frequency": 1
+    },
+    {
+        "template": "policy=<*>",
+        "ref_log": "policy=/system/emui/base:/system/emui/china:/vendor/etc:/odm/etc:/product/etc:/hw_odm:/hw_oem:/data/cust:/version/region_comm/china:/cust_spec",
+        "frequency": 1
+    },
+    {
+        "template": "env.createBean2(): Factory error creating <*><*>( <*>, <*>)",
+        "ref_log": "env.createBean2(): Factory error creating channel.jni:jni ( channel.jni, jni)",
+        "frequency": 1
+    },
+    {
+        "template": "[client <*>] Invalid URI in request <*><*> <*><*>",
+        "ref_log": "[client 210.245.233.251] Invalid URI in request GET HTTP/1.1",
+        "frequency": 1
+    },
+    {
+        "template": "<*> : Purged contact hashes",
+        "ref_log": "17:02:57.328 : Purged contact hashes",
+        "frequency": 1
+    },
+    {
+        "template": "ChromeExistion main isBrowserDetect = <*>",
+        "ref_log": "ChromeExistion main isBrowserDetect = 1",
+        "frequency": 1
+    },
+    {
+        "template": "Error returned from iconservicesagent: <*>",
+        "ref_log": "Error returned from iconservicesagent: (null)",
+        "frequency": 1
+    },
+    {
+        "template": "CoreAnimation: timed out fence <*>",
+        "ref_log": "CoreAnimation: timed out fence 5a3ff",
+        "frequency": 1
+    },
+    {
+        "template": "DHCP <*>: ARP detect gateway failed, arp_client_transmit(<*>) failed, Network is down (<*>)",
+        "ref_log": "DHCP en0: ARP detect gateway failed, arp_client_transmit(en0) failed, Network is down (50)",
+        "frequency": 1
+    },
+    {
+        "template": "[QL] No sandbox token for thumbnail request <*>, it will probably fail",
+        "ref_log": "[QL] No sandbox token for thumbnail request file:///private/var/log/SleepWakeStacks.bin, it will probably fail",
+        "frequency": 1
+    },
+    {
+        "template": "<*> ERROR: >aq> <*>: AQBuffer * <*> has enqueue count of <*>",
+        "ref_log": "20:07:04.530 ERROR: >aq> 3177: AQBuffer * 0x7fd8787fad00 has enqueue count of 1",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>] itemasync_SetProperty signalled err=<*> (<*>) (invalidated) at /Library/Caches/<*>/Sources/<*>/Prototypes/<*>/<*> line <*>",
+        "ref_log": "[12:17:03.875] itemasync_SetProperty signalled err=-12785 (kFigBaseObjectError_Invalidated) (invalidated) at /Library/Caches/com.apple.xbs/Sources/CoreMedia/CoreMedia-1731.15.207/Prototypes/Player/FigPlayer_Async.c line 2306",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: <*>: setup_keepalive: Local port: <*>, Remote port: <*>",
+        "ref_log": "ARPT: 720628.306304: wl0: setup_keepalive: Local port: 58423, Remote port: 443",
+        "frequency": 1
+    },
+    {
+        "template": "Lustre: Routing socket NAL loaded (Routing disabled, initial mem <*>, incarnation <*>)",
+        "ref_log": "Lustre: Routing socket NAL loaded (Routing disabled, initial mem 0, incarnation 0x40525da327a8c)",
+        "frequency": 1
+    },
+    {
+        "template": "[ib_sm_bringup.c:450]: Active state mismatch GUID=<*>, port=<*>, state <*>, GUID=<*>, port=<*>, state <*>",
+        "ref_log": "[ib_sm_bringup.c:450]: Active state mismatch GUID=dc020001006a0600, port=6, state 1, GUID=687e020000ad0500, port=1, state 4",
+        "frequency": 1
+    },
+    {
+        "template": "NETWORK: <*> from server, <*>, <*>, <*>, <*>",
+        "ref_log": "NETWORK: no response from server, reachability, 2, queryRetries, 1",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: ARPT: Wake Reason: <*>",
+        "ref_log": "ARPT: 620999.412142: ARPT: Wake Reason: Wake on Scan offload",
+        "frequency": 1
+    },
+    {
+        "template": "Surface test allowed updates after <*> attempts (<*> ms)",
+        "ref_log": "Surface test allowed updates after 18 attempts (72 ms)",
+        "frequency": 1
+    },
+    {
+        "template": "hfs: unmount initiated on <*> on device <*>",
+        "ref_log": "hfs: unmount initiated on Recovery HD on device disk0s3",
+        "frequency": 1
+    },
+    {
+        "template": "tcp_connection_destination_handle_tls_close_notify <*> closing socket due to TLS CLOSE_NOTIFY alert",
+        "ref_log": "tcp_connection_destination_handle_tls_close_notify 2478 closing socket due to TLS CLOSE_NOTIFY alert",
+        "frequency": 1
+    },
+    {
+        "template": "TCP NoDelay set to: <*>",
+        "ref_log": "TCP NoDelay set to: true",
+        "frequency": 1
+    },
+    {
+        "template": "Purge task is not scheduled.",
+        "ref_log": "Purge task is not scheduled.",
+        "frequency": 1
+    },
+    {
+        "template": "Getting a snapshot from leader",
+        "ref_log": "Getting a snapshot from leader",
+        "frequency": 1
+    },
+    {
+        "template": "ide1: BM-DMA at <*>, BIOS settings: hdc:DMA, hdd:pio",
+        "ref_log": "ide1: BM-DMA at 0xffa8-0xffaf, BIOS settings: hdc:DMA, hdd:pio",
+        "frequency": 1
+    },
+    {
+        "template": "PCI: Using IRQ router PIIX/ICH [<*>] at <*>",
+        "ref_log": "PCI: Using IRQ router PIIX/ICH [8086/2410] at 0000:00:1f.0",
+        "frequency": 1
+    },
+    {
+        "template": "#<*># : TTY=<*> ; PWD=<*> ; USER=<*> ; COMMAND=<*>",
+        "ref_log": "#23# : TTY=pts/3 ; PWD=/home/#23# ; USER=root ; COMMAND=/bin/su -",
+        "frequency": 1
+    },
+    {
+        "template": "Unable to register device <*> (no Directive -d removable). Exiting.",
+        "ref_log": "Unable to register device /dev/sda (no Directive -d removable). Exiting.",
+        "frequency": 1
+    },
+    {
+        "template": "HPET (<*>) @ <*>",
+        "ref_log": "HPET (v001 DELL PE BKC 0x00000001 MSFT 0x0100000a) @ 0x00000000000fd81c",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>]: no routing required for port guid <*>, lid <*>",
+        "ref_log": "[ib_sm_discovery.c:949]: no routing required for port guid 0x5ad000003947d, lid 738",
+        "frequency": 1
+    },
+    {
+        "template": "not allocating divert_blk for non-ethernet device <*>",
+        "ref_log": "not allocating divert_blk for non-ethernet device lo",
+        "frequency": 1
+    },
+    {
+        "template": "Instrumentation Service EventID: <*> Server Administrator starting",
+        "ref_log": "Instrumentation Service EventID: 1000 Server Administrator starting",
+        "frequency": 1
+    },
+    {
+        "template": "<*> RQD: create user info for daily using",
+        "ref_log": "<INFO> RQD: create user info for daily using",
+        "frequency": 1
+    },
+    {
+        "template": "hibernate_page_list_setall found pageCount <*>",
+        "ref_log": "hibernate_page_list_setall found pageCount 486079",
+        "frequency": 1
+    },
+    {
+        "template": "storeaccountd(<*>) deny file-write-create <*>/Users/xpc/Library/Caches/com.apple.Safari/ProductionBag",
+        "ref_log": "storeaccountd(345) deny file-write-create /Users/xpc/Library/Caches/com.apple.Safari/ProductionBag",
+        "frequency": 1
+    },
+    {
+        "template": "Triggering diganostics messages cleanup",
+        "ref_log": "Triggering diganostics messages cleanup",
+        "frequency": 1
+    },
+    {
+        "template": "<*>: channel changed to <*>",
+        "ref_log": "en0: channel changed to 132,+1",
+        "frequency": 1
+    },
+    {
+        "template": "Sandbox: <*>(<*>) deny(<*>) ipc-posix-shm-read-data <*>:",
+        "ref_log": "Sandbox: SpotlightNetHelp(352) deny(1) ipc-posix-shm-read-data CFPBS:186A7:",
+        "frequency": 1
+    },
+    {
+        "template": "Node <*> DMA free:<*> min:<*> low:<*> high:<*> active:<*> inactive:<*> present:<*> pages_scanned:<*> all_unreclaimable? <*>",
+        "ref_log": "Node 0 DMA free:11592kB min:4kB low:8kB high:12kB active:0kB inactive:0kB present:16384kB pages_scanned:44662 all_unreclaimable? yes",
+        "frequency": 1
+    },
+    {
+        "template": "Job <*> failed: <*> at <*>, took <*> s",
+        "ref_log": "Job 3 failed: count at pnmf4.py:358, took 234.472444 s",
+        "frequency": 1
+    },
+    {
+        "template": "ShuffleMapStage <*> (reduceByKey at <*>) failed in <*> s",
+        "ref_log": "ShuffleMapStage 3 (reduceByKey at pnmf4.py:357) failed in 234.432 s",
+        "frequency": 1
+    },
+    {
+        "template": "Failed to connect to <*> for block, add to deadNodes and continue. java.net.ConnectException: Connection timed out: no further information",
+        "ref_log": "Failed to connect to /10.86.169.121:50010 for block, add to deadNodes and continue. java.net.ConnectException: Connection timed out: no further information",
+        "frequency": 1
+    },
+    {
+        "template": "<*> GoogleSoftwareUpdateAgent[<*>/<*>] [lvl=<*>] -[KSCheckAction performAction] KSCheckAction checking <*> ticket(s).",
+        "ref_log": "2017-07-03 20:25:13.370 GoogleSoftwareUpdateAgent[33847/0x7000002a0000] [lvl=2] -[KSCheckAction performAction] KSCheckAction checking 1 ticket(s).",
+        "frequency": 1
+    },
+    {
+        "template": "network_reachability_changed : network is not reachable, netbiosd is shutting down",
+        "ref_log": "network_reachability_changed : network is not reachable, netbiosd is shutting down",
+        "frequency": 1
+    },
+    {
+        "template": "Invoking spindump for pid=<*> wakeups_rate=<*> duration=<*> because of excessive wakeups",
+        "ref_log": "Invoking spindump for pid=10018 wakeups_rate=1313 duration=35 because of excessive wakeups",
+        "frequency": 1
+    },
+    {
+        "template": "-[SOAPParser:<*> parser:didStartElement:namespaceURI:qualifiedName:attributes:] Type not found in EWSItemType for ExchangePersonIdGuid (t:<*>)",
+        "ref_log": "-[SOAPParser:0x7f8b026caa40 parser:didStartElement:namespaceURI:qualifiedName:attributes:] Type not found in EWSItemType for ExchangePersonIdGuid (t:ExchangePersonIdGuid)",
+        "frequency": 1
+    },
+    {
+        "template": "Error communicating with RM: Resource Manager doesn't recognize AttemptId: <*>",
+        "ref_log": "Error communicating with RM: Resource Manager doesn't recognize AttemptId: application_1445087491445_0004",
+        "frequency": 1
+    },
+    {
+        "template": "TaskAttempt killed because it ran on unusable node <*>. AttemptId:<*>",
+        "ref_log": "TaskAttempt killed because it ran on unusable node 04DN8IQ.fareast.corp.microsoft.com:55452. AttemptId:attempt_1445087491445_0004_m_000002_0",
+        "frequency": 1
+    },
+    {
+        "template": "Merging <*> intermediate segments out of a total of <*>",
+        "ref_log": "Merging 4 intermediate segments out of a total of 13",
+        "frequency": 1
+    },
+    {
+        "template": "Task:<*> is done. And is in the process of committing",
+        "ref_log": "Task:attempt_1445182159119_0005_m_000007_0 is done. And is in the process of committing",
+        "frequency": 1
+    },
+    {
+        "template": "PCI: cache line size of <*> is not supported by device <*>",
+        "ref_log": "PCI: cache line size of 128 is not supported by device 0000:00:1d.7",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: PCI interrupt <*>[<*>] -> GSI <*> (level, <*>) -> IRQ <*>",
+        "ref_log": "ACPI: PCI interrupt 0000:00:1d.1[B] -> GSI 19 (level, low) -> IRQ 177",
+        "frequency": 1
+    },
+    {
+        "template": "pan_ips: error -- cfg target addresses, <*> (Out of memory), err_loc=<*>, <*>",
+        "ref_log": "pan_ips: error -- cfg target addresses, 0x5 (Out of memory), err_loc=1, rhel_4_amd64/release/build/panfs/ips/pan_ips_cfg.c:294",
+        "frequency": 1
+    },
+    {
+        "template": "Device: <*>, Temperature changed <*> Celsius to <*> Celsius since last report",
+        "ref_log": "Device: /dev/sda, Temperature changed -2 Celsius to 22 Celsius since last report",
+        "frequency": 1
+    },
+    {
+        "template": "Couldn't find a requirement string for masquerading client <*>",
+        "ref_log": "Couldn't find a requirement string for masquerading client com.apple.Maps",
+        "frequency": 1
+    },
+    {
+        "template": "Targeting domains:node-<*> and nodes:node-[<*>]",
+        "ref_log": "Targeting domains:node-D7 and nodes:node-[232-233\\ 244-245]",
+        "frequency": 1
+    },
+    {
+        "template": "initSyncModel current SyncModel is <*>",
+        "ref_log": "initSyncModel current SyncModel is 2",
+        "frequency": 1
+    },
+    {
+        "template": "start compare with midware counter",
+        "ref_log": "start compare with midware counter",
+        "frequency": 1
+    },
+    {
+        "template": "MyGetDetailDataCallback onResult bundle == <*>",
+        "ref_log": "MyGetDetailDataCallback onResult bundle == null",
+        "frequency": 1
+    },
+    {
+        "template": "support extand step counter!,return true",
+        "ref_log": "support extand step counter!,return true",
+        "frequency": 1
+    },
+    {
+        "template": "onStartCommand Intent { cmp=<*> }",
+        "ref_log": "onStartCommand Intent { cmp=com.huawei.health/.manager.DaemonService }",
+        "frequency": 1
+    },
+    {
+        "template": "Creating new log file: <*>",
+        "ref_log": "Creating new log file: log.700000001",
+        "frequency": 1
+    },
+    {
+        "template": "shutdown of request processor complete",
+        "ref_log": "shutdown of request processor complete",
+        "frequency": 1
+    },
+    {
+        "template": "Got <*> expected <*>",
+        "ref_log": "Got zxid 0x100000083 expected 0x1",
+        "frequency": 1
+    },
+    {
+        "template": "Warning! Could not relabel with <*>, not relabeling.",
+        "ref_log": "Warning! Could not relabel with system_u:object_r:devpts_t, not relabeling.",
+        "frequency": 1
+    },
+    {
+        "template": "rsyncd version <*> starting, listening on port <*>",
+        "ref_log": "rsyncd version 2.6.2 starting, listening on port 873",
+        "frequency": 1
+    },
+    {
+        "template": "usb <*>: new <*> USB device using address <*>",
+        "ref_log": "usb 1-3: new high speed USB device using address 2",
+        "frequency": 1
+    },
+    {
+        "template": "ttyS0 at I/O <*> (irq = <*>) is a <*>",
+        "ref_log": "ttyS0 at I/O 0x3f8 (irq = 4) is a NS16550A",
+        "frequency": 1
+    },
+    {
+        "template": "[WARN]: CLI output failed with error <*>. Exiting thread.",
+        "ref_log": "[WARN]: CLI output failed with error Broken pipe. Exiting thread.",
+        "frequency": 1
+    },
+    {
+        "template": "Issuing kill to other attempt <*>",
+        "ref_log": "Issuing kill to other attempt attempt_1445062781478_0020_m_000003_1",
+        "frequency": 1
+    },
+    {
+        "template": "Read completed tasks from history <*>",
+        "ref_log": "Read completed tasks from history 1",
+        "frequency": 1
+    },
+    {
+        "template": "task migration cache decay timeout: <*> msecs.",
+        "ref_log": "task migration cache decay timeout: 1 msecs.",
+        "frequency": 1
+    },
+    {
+        "template": "checking if image is <*>... it is",
+        "ref_log": "checking if image is initramfs... it is",
+        "frequency": 1
+    },
+    {
+        "template": "j<*>: from=<*>, size=<*>, class=<*>, nrcpts=<*>, msgid=<*>, relay=<*>",
+        "ref_log": "jAA5LVA8006358: from=root, size=631354, class=0, nrcpts=1, msgid=<200511100521.jAA5LVA8006358@eadmin1>, relay=#7#@localhost",
+        "frequency": 1
+    },
+    {
+        "template": "<*> ksfetch[<*>] [lvl=<*>] main() ksfetch done fetching.",
+        "ref_log": "2017-07-04 09:42:58.121 ksfetch[34604/0x7fff79824000] [lvl=2] main() ksfetch done fetching.",
+        "frequency": 1
+    },
+    {
+        "template": "<*> : Discoverable mode changed to <*>",
+        "ref_log": "22:24:31.108 : Discoverable mode changed to Contacts Only",
+        "frequency": 1
+    },
+    {
+        "template": "open(<*>): No such file or directory",
+        "ref_log": "open(/dev/pts/0): No such file or directory",
+        "frequency": 1
+    },
+    {
+        "template": "httpd: page allocation failure. order:<*>, mode:<*>",
+        "ref_log": "httpd: page allocation failure. order:0, mode:0x1d2",
+        "frequency": 1
+    },
+    {
+        "template": "agpgart: detected <*> dedicated video ram.",
+        "ref_log": "agpgart: detected 4MB dedicated video ram.",
+        "frequency": 1
+    },
+    {
+        "template": "listening on IPv4 interface <*>, <*>#<*>",
+        "ref_log": "listening on IPv4 interface eth0, 63.126.79.67#53",
+        "frequency": 1
+    },
+    {
+        "template": "hibernate_setup(<*>) took <*> ms",
+        "ref_log": "hibernate_setup(0) took 5841 ms",
+        "frequency": 1
+    },
+    {
+        "template": "Invalid Connection ID <*>",
+        "ref_log": "Invalid Connection ID 0",
+        "frequency": 1
+    },
+    {
+        "template": "warning: can't get client address: <*>",
+        "ref_log": "warning: can't get client address: Connection reset by peer",
+        "frequency": 1
+    },
+    {
+        "template": "SELinux: initialized (dev , type <*>), uses task SIDs",
+        "ref_log": "SELinux: initialized (dev , type pipefs), uses task SIDs",
+        "frequency": 1
+    },
+    {
+        "template": "en0: channel changed to 1",
+        "ref_log": "en0: channel changed to 1",
+        "frequency": 1
+    },
+    {
+        "template": "hibernate_teardown: mark_as_unneeded_pages 4096, 55080, 34381",
+        "ref_log": "hibernate_teardown: mark_as_unneeded_pages 4096, 55080, 34381",
+        "frequency": 1
+    },
+    {
+        "template": "wake time set +0.448905 s",
+        "ref_log": "wake time set +0.448905 s",
+        "frequency": 1
+    },
+    {
+        "template": "ChromeExistion main linkUrl = (null)",
+        "ref_log": "ChromeExistion main linkUrl = (null)",
+        "frequency": 1
+    },
+    {
+        "template": "01:18:35.385 : BTLE scanning started",
+        "ref_log": "01:18:35.385 : BTLE scanning started",
+        "frequency": 1
+    },
+    {
+        "template": ".sdef warning for argument '' of command '<*>' in suite '<*>': '<*>' is not a valid type name.",
+        "ref_log": ".sdef warning for argument '' of command 'indent first line char width' in suite 'Text Suite': '4051' is not a valid type name.",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>] <*>",
+        "ref_log": "[00:19:32.211] <<< CFByteFlume >>> fbf_ResumeRetryAttempt: [0x7f9e9b634e00] Reconnection attempt already in progress. Leave it alone. (Unexpected race condition?)",
+        "frequency": 1
+    },
+    {
+        "template": "org.apache.spark.SparkException: Exception while starting container <*> on host <*>",
+        "ref_log": "org.apache.spark.SparkException: Exception while starting container container_1485248649253_0037_01_000002 on host mesos-slave-16",
+        "frequency": 1
+    },
+    {
+        "template": "ResultStage <*> (collect at <*>) finished in <*> s",
+        "ref_log": "ResultStage 0 (collect at pnmf4.py:225) finished in 6.049 s",
+        "frequency": 1
+    },
+    {
+        "template": "Exception in task <*> in stage <*> (TID <*>)",
+        "ref_log": "Exception in task 40.0 in stage 3.0 (TID 91)",
+        "frequency": 1
+    },
+    {
+        "template": "-[ISGenerateImageOp generateImageWithCompletion:] Failed to composit image for descriptor <ISBindingImageDescriptor: <*>>.",
+        "ref_log": "-[ISGenerateImageOp generateImageWithCompletion:] Failed to composit image for descriptor <ISBindingImageDescriptor: 0x7f995060a600>.",
+        "frequency": 1
+    },
+    {
+        "template": "Service \"<*>\" tried to hijack endpoint \"<*>\" from owner: <*>.<*>",
+        "ref_log": "Service \"com.apple.xpc.launchd.unmanaged.loginwindow.94\" tried to hijack endpoint \"com.apple.tsm.uiserver\" from owner: com.apple.SystemUIServer.agent",
+        "frequency": 1
+    },
+    {
+        "template": "polled file major <*>, minor <*>, blocksize <*>, pollers <*>",
+        "ref_log": "polled file major 1, minor 0, blocksize 4096, pollers 5",
+        "frequency": 1
+    },
+    {
+        "template": "IO80211AWDLPeerManager::setAwdlOperatingMode Setting the AWDL operation mode from <*> to <*>",
+        "ref_log": "IO80211AWDLPeerManager::setAwdlOperatingMode Setting the AWDL operation mode from AUTO to SUSPENDED",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: wl0: setup_keepalive: interval <*>, retry_interval <*>, retry_count <*>",
+        "ref_log": "ARPT: 626474.046636: wl0: setup_keepalive: interval 900, retry_interval 30, retry_count 10",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>]: Failed discover node test, node <*>, port_num= <*>, error code <*>",
+        "ref_log": "[ib_sm_discovery.c:1103]: Failed discover node test, node 5ad00000279e0, port_num= 2, error code 1",
+        "frequency": 1
+    },
+    {
+        "template": "Memory: <*>k/<*>k available (<*>k kernel code, <*>k reserved, <*>k data, <*>k init)",
+        "ref_log": "Memory: 6106088k/7340032k available (2076k kernel code, 0k reserved, 1278k data, 188k init)",
+        "frequency": 1
+    },
+    {
+        "template": "Unable to register SCSI device <*> at line <*> of file <*>",
+        "ref_log": "Unable to register SCSI device /dev/sda at line 1 of file /etc/smartd.conf",
+        "frequency": 1
+    },
+    {
+        "template": "mount.panfs error: mount request rejected because client-realm clock skew exceeds <*> seconds",
+        "ref_log": "mount.panfs error: mount request rejected because client-realm clock skew exceeds 10 seconds",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: PCI interrupt <*>[D] -> GSI <*> (level, low) -> IRQ <*>",
+        "ref_log": "ACPI: PCI interrupt 0000:00:1d.7[D] -> GSI 23 (level, low) -> IRQ 193",
+        "frequency": 1
+    },
+    {
+        "template": "initDataPrivacy the dataPrivacy is <*>",
+        "ref_log": "initDataPrivacy the dataPrivacy is true",
+        "frequency": 1
+    },
+    {
+        "template": "EXT3-fs: write access will be enabled during recovery.",
+        "ref_log": "EXT3-fs: write access will be enabled during recovery.",
+        "frequency": 1
+    },
+    {
+        "template": "Actually performing action comment for <*>",
+        "ref_log": "Actually performing action comment for 22589429328",
+        "frequency": 1
+    },
+    {
+        "template": "WARNING: hibernate_page_list_setall skipped <*> xpmapped pages",
+        "ref_log": "WARNING: hibernate_page_list_setall skipped 8156 xpmapped pages",
+        "frequency": 1
+    },
+    {
+        "template": "CoreAnimation: context hosting changed while <*>!",
+        "ref_log": "CoreAnimation: context hosting changed while locked!",
+        "frequency": 1
+    },
+    {
+        "template": "Got an XPC error: Connection <*>",
+        "ref_log": "Got an XPC error: Connection invalid",
+        "frequency": 1
+    },
+    {
+        "template": "vm_compressor_flush completed - took <*> msecs",
+        "ref_log": "vm_compressor_flush completed - took 4020 msecs",
+        "frequency": 1
+    },
+    {
+        "template": "uhci_hcd <*>: new USB bus registered, assigned bus number <*>",
+        "ref_log": "uhci_hcd 0000:00:1f.2: new USB bus registered, assigned bus number 1",
+        "frequency": 2
+    },
+    {
+        "template": "IA32 emulation $Id: <*>,v <*> <*> <*> <*> $",
+        "ref_log": "IA32 emulation $Id: sys_ia32.c,v 1.32 2002/03/24 13:02:28 ak Exp $",
+        "frequency": 1
+    },
+    {
+        "template": "<*>/<*> driver $Revision: <*> $ <*> ports, IRQ sharing enabled",
+        "ref_log": "8250/16550 driver $Revision: 1.90 $ 8 ports, IRQ sharing enabled",
+        "frequency": 1
+    },
+    {
+        "template": "megaraid: #<*># (Release Date: <*>)",
+        "ref_log": "megaraid: #19# (Release Date: Mon Mar 07 12:27:22 EST 2005)",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>]: Failed to set LID on switch=<*>, because NO RESPONSE",
+        "ref_log": "[ib_sm_assign.c:389]: Failed to set LID on switch=66a100400017e, because NO RESPONSE",
+        "frequency": 1
+    },
+    {
+        "template": "<*> close, <*> bytes (<*> KB) sent, <*> bytes received, lifetime <1 sec",
+        "ref_log": "dmp.tenmax.io:443 close, 1262 bytes (1.23 KB) sent, 772 bytes received, lifetime <1 sec",
+        "frequency": 1
+    },
+    {
+        "template": "JobHistoryEventHandler notified that forceJobCompletion is <*>",
+        "ref_log": "JobHistoryEventHandler notified that forceJobCompletion is true",
+        "frequency": 1
+    },
+    {
+        "template": "<*> freed by <*> in <*>ms",
+        "ref_log": "MSRA-SA-39.fareast.corp.microsoft.com:13562 freed by fetcher#5 in 4567ms",
+        "frequency": 1
+    },
+    {
+        "template": "Registering class <*> for class <*>",
+        "ref_log": "Registering class org.apache.hadoop.mapreduce.v2.app.commit.CommitterEventType for class org.apache.hadoop.mapreduce.v2.app.commit.CommitterEventHandler",
+        "frequency": 1
+    },
+    {
+        "template": "[HID] [MT] MTActuatorManagement::getActuatorRef Calling MTActuatorOpen() outside of MTTrackpadHIDManager.",
+        "ref_log": "[HID] [MT] MTActuatorManagement::getActuatorRef Calling MTActuatorOpen() outside of MTTrackpadHIDManager.",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: framerdy <*> bmccmd <*> framecnt <*>",
+        "ref_log": "ARPT: 700925.426986: framerdy 0x0 bmccmd 7 framecnt 1024",
+        "frequency": 1
+    },
+    {
+        "template": "zip importer encountered an error (<*>) scanning \"<*>\".",
+        "ref_log": "zip importer encountered an error (-1) scanning \"/Users/xpc/Library/Containers/com.netease.163music/Data/Documents/storage/Logs/music.163.bi.log.zip\".",
+        "frequency": 1
+    },
+    {
+        "template": "<*> RQD: Persist userinfo data with count <*>",
+        "ref_log": "<INFO> RQD: Persist userinfo data with count 0",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>] <<<< Boss >>>> figPlaybackBossPrerollCompleted: unexpected preroll-complete notification",
+        "ref_log": "[21:46:17.293] <<<< Boss >>>> figPlaybackBossPrerollCompleted: unexpected preroll-complete notification",
+        "frequency": 1
+    },
+    {
+        "template": "configure: keyword <*> unknown, line ignored",
+        "ref_log": "configure: keyword \"authenticate\" unknown, line ignored",
+        "frequency": 1
+    },
+    {
+        "template": "<*>: Donald Becker and others. <*>",
+        "ref_log": "3c59x: Donald Becker and others. www.scyld.com/network/vortex.html",
+        "frequency": 1
+    },
+    {
+        "template": "smartd is exiting (exit status <*>)",
+        "ref_log": "smartd is exiting (exit status 0)",
+        "frequency": 1
+    },
+    {
+        "template": "Creating a new ticket...",
+        "ref_log": "Creating a new ticket...",
+        "frequency": 1
+    },
+    {
+        "template": "com.apple.Addres(<*>) deny network-outbound <*>",
+        "ref_log": "com.apple.Addres(36514) deny network-outbound /private/var/run/mDNSResponder",
+        "frequency": 1
+    },
+    {
+        "template": "ChromeExistion main isUndetectWithCommand = <*>",
+        "ref_log": "ChromeExistion main isUndetectWithCommand = 1",
+        "frequency": 1
+    },
+    {
+        "template": "tcp_connection_tls_session_error_callback_imp <*> __tcp_connection_tls_session_callback_write_block_invoke.<*> error <*>",
+        "ref_log": "tcp_connection_tls_session_error_callback_imp 105 __tcp_connection_tls_session_callback_write_block_invoke.434 error 32",
+        "frequency": 1
+    },
+    {
+        "template": "Sandbox: <*> deny(1) network-outbound <*>",
+        "ref_log": "Sandbox: com.apple.Addres(35110) deny(1) network-outbound /private/var/run/mDNSResponder",
+        "frequency": 1
+    },
+    {
+        "template": "PCI: PCI BIOS revision <*> entry at <*>, last bus=<*>",
+        "ref_log": "PCI: PCI BIOS revision 2.10 entry at 0xfc0ce, last bus=1",
+        "frequency": 1
+    },
+    {
+        "template": "select reported <*> but no bad file descriptors were found",
+        "ref_log": "select reported EBADF but no bad file descriptors were found",
+        "frequency": 1
+    },
+    {
+        "template": "SELinux: initialized (<*>, type <*>), not configured for labeling",
+        "ref_log": "SELinux: initialized (dev , type mqueue), not configured for labeling",
+        "frequency": 1
+    },
+    {
+        "template": "PBRequester failed with Error Error Domain=<*> Code=<*> \"<*>\" UserInfo={NSUnderlyingError=<*> {Error Domain=<*> Code=<*> \"<*>\" UserInfo={NSErrorFailingURLStringKey=<*>, NSErrorFailingURLKey=<*>, _kCFStreamErrorCodeKey=<*>, _kCFStreamErrorDomainKey=<*>, NSLocalizedDescription=<*>}, NSErrorFailingURLStringKey=<*>, NSErrorFailingURLKey=<*>, _kCFStreamErrorDomainKey=<*>, _kCFStreamErrorCodeKey=<*>, NSLocalizedDescription=<*>}",
+        "ref_log": "PBRequester failed with Error Error Domain=NSURLErrorDomain Code=-1005 \"The network connection was lost.\" UserInfo={NSUnderlyingError=0x7fe13501b4f0 {Error Domain=kCFErrorDomainCFNetwork Code=-1005 \"The network connection was lost.\" UserInfo={NSErrorFailingURLStringKey=https://gsp64-ssl.ls.apple.com/a/v2/use, NSErrorFailingURLKey=https://gsp64-ssl.ls.apple.com/a/v2/use, _kCFStreamErrorCodeKey=57, _kCFStreamErrorDomainKey=1, NSLocalizedDescription=The network connection was lost.}}, NSErrorFailingURLStringKey=https://gsp64-ssl.ls.apple.com/a/v2/use, NSErrorFailingURLKey=https://gsp64-ssl.ls.apple.com/a/v2/use, _kCFStreamErrorDomainKey=1, _kCFStreamErrorCodeKey=57, NSLocalizedDescription=The network connection was lost.}",
+        "frequency": 1
+    },
+    {
+        "template": "process <*> caught causing excessive wakeups. Observed wakeups rate (per sec): <*>; Maximum permitted wakeups rate (per sec): <*>; Observation period: <*>; Task lifetime number of wakeups: <*>",
+        "ref_log": "process QQ[10018] caught causing excessive wakeups. Observed wakeups rate (per sec): 1300; Maximum permitted wakeups rate (per sec): 150; Observation period: 300 seconds; Task lifetime number of wakeups: 284157487",
+        "frequency": 1
+    },
+    {
+        "template": "pan_ips: error -- real init, 0x5 (Out of memory), err_loc=3, rhel_4_amd64/release/build/panfs/ips/pan_ips.c:143 <*><*> <*> <*> <*> mount.panfs: bindcache: failed init IPS: 0x5 (Out of memory)",
+        "ref_log": "pan_ips: error -- real init, 0x5 (Out of memory), err_loc=3, rhel_4_amd64/release/build/panfs/ips/pan_ips.c:143 <11>Nov 9 16:30:30 mount.panfs: bindcache: failed init IPS: 0x5 (Out of memory)",
+        "frequency": 1
+    },
+    {
+        "template": "<*>: Error: java.net.NoRouteToHostException: No Route to Host from <*> to <*> failed on socket timeout exception: java.net.NoRouteToHostException: No route to host: no further information; For more details see: http://wiki.apache.org/hadoop/NoRouteToHost",
+        "ref_log": "Diagnostics report from attempt_1445144423722_0020_m_000001_0: Error: java.net.NoRouteToHostException: No Route to Host from MININT-FNANLI5/127.0.0.1 to msra-sa-41:9000 failed on socket timeout exception: java.net.NoRouteToHostException: No route to host: no further information; For more details see: http://wiki.apache.org/hadoop/NoRouteToHost",
+        "frequency": 1
+    },
+    {
+        "template": "Targeting domains:node-D<*> and nodes:node-[<*>]",
+        "ref_log": "Targeting domains:node-D0 and nodes:node-[1\\ 5\\ 11\\ 18]",
+        "frequency": 1
+    },
+    {
+        "template": "pan_ips: error -- cfg target addresses, 0x5 (Out of memory), err_loc=1, rhel_4_amd64/release/build/panfs/ips/pan_ips_cfg.c:294 <*><*> <*> <*> mount.panfs: pan_ips: error -- real init, 0x5 (Out of memory), err_loc=3, rhel_4_amd64/release/build/panfs/ips/pan_ips.c:<*>",
+        "ref_log": "pan_ips: error -- cfg target addresses, 0x5 (Out of memory), err_loc=1, rhel_4_amd64/release/build/panfs/ips/pan_ips_cfg.c:294 <11>Nov 9 15:58:27 mount.panfs: pan_ips: error -- real init, 0x5 (Out of memory), err_loc=3, rhel_4_amd64/release/build/panfs/ips/pan_ips.c:143",
+        "frequency": 1
+    },
+    {
+        "template": "Communication exception: <*>: <*>",
+        "ref_log": "Communication exception: java.io.IOException: Failed on local exception: java.io.IOException: An existing connection was forcibly closed by the remote host; Host Details : local host is: \"04DN8IQ/10.86.164.15\"; destination host is: \"minint-fnanli5.fareast.corp.microsoft.com\":62270;",
+        "frequency": 1
+    },
+    {
+        "template": "disable_update_timeout: UI updates were forcibly disabled by application \"<*>\" for over <*> seconds. Server has re-enabled them.",
+        "ref_log": "disable_update_timeout: UI updates were forcibly disabled by application \"<N/ASCII>\" for over 1.00 seconds. Server has re-enabled them.",
+        "frequency": 1
+    },
+    {
+        "template": "-[NETClientConnection effectiveBundleID] using process name <*> as bundle ID (this is expected for daemons without bundle ID",
+        "ref_log": "-[NETClientConnection effectiveBundleID] using process name apsd as bundle ID (this is expected for daemons without bundle ID",
+        "frequency": 1
+    },
+    {
+        "template": "<*>: state <*>, image pages <*>, sum was <*>, imageSize <*>, image1Size <*>, conflictCount <*>, nextFree <*>",
+        "ref_log": "hibernate_machine_init: state 2, image pages 469505, sum was cc77b4c3, imageSize 0x2e756000, image1Size 0x24df0000, conflictCount 7798, nextFree 7596",
+        "frequency": 1
+    },
+    {
+        "template": "Job <*> finished: collect at <*>:<*>, took <*> s",
+        "ref_log": "Job 0 finished: collect at pnmf4.py:221, took 8.836851 s",
+        "frequency": 1
+    },
+    {
+        "template": "Remote daemon shut down; proceeding with flushing remote transports.",
+        "ref_log": "Remote daemon shut down; proceeding with flushing remote transports.",
+        "frequency": 1
+    },
+    {
+        "template": "Error sending message [message = <*>] in <*> attempts",
+        "ref_log": "Error sending message [message = GetLocations(broadcast_6_piece201)] in 1 attempts",
+        "frequency": 1
+    },
+    {
+        "template": "Executor killed task <*> in stage <*> (TID <*>)",
+        "ref_log": "Executor killed task 39.2 in stage 1.0 (TID 104)",
+        "frequency": 1
+    },
+    {
+        "template": "Failed to fetch remote block <*> from BlockManagerId(<*>, <*>, <*>) (failed attempt <*>)",
+        "ref_log": "Failed to fetch remote block broadcast_4_piece324 from BlockManagerId(7, mesos-slave-21, 51927) (failed attempt 1)",
+        "frequency": 1
+    },
+    {
+        "template": "Times: total = <*>, boot = <*>, init = <*>, finish = <*>",
+        "ref_log": "Times: total = 30, boot = 2, init = 1, finish = 27",
+        "frequency": 1
+    },
+    {
+        "template": "Final app status: <*>, exitCode: <*>, (reason: <*>)",
+        "ref_log": "Final app status: FAILED, exitCode: 1, (reason: User application exited with status 1)",
+        "frequency": 1
+    },
+    {
+        "template": "Starting task <*> in stage <*> (TID <*>, <*>, partition <*>,<*>, <*> bytes)",
+        "ref_log": "Starting task 10.0 in stage 1.0 (TID 12, mesos-slave-21, partition 10,PROCESS_LOCAL, 1242676 bytes)",
+        "frequency": 1
+    },
+    {
+        "template": "<*> : Starting AirDrop server for user <*> on wake",
+        "ref_log": "19:31:55.061 : Starting AirDrop server for user 501 on wake",
+        "frequency": 1
+    },
+    {
+        "template": "tcp_connection_destination_perform_socket_connect <*> connectx to <*> failed: [<*>] Network is down",
+        "ref_log": "tcp_connection_destination_perform_socket_connect 18964 connectx to 183.57.48.75:80@0 failed: [50] Network is down",
+        "frequency": 1
+    },
+    {
+        "template": "device_generate_lock_screen_screenshot: authw <*>(<*>)[<*>] shield <*>(<*>), dev [<*>]",
+        "ref_log": "device_generate_lock_screen_screenshot: authw 0x7fa825cb6a00(2000)[0, 0, 0, 0] shield 0x7fa823af0400(2001), dev [1440,900]",
+        "frequency": 1
+    },
+    {
+        "template": "Bluetooth -- LE is supported - Disable LE meta event",
+        "ref_log": "Bluetooth -- LE is supported - Disable LE meta event",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: wl0: MDNS: <*> SRV Recs, <*> TXT Recs",
+        "ref_log": "ARPT: 724568.620880: wl0: MDNS: 0 SRV Recs, 0 TXT Recs",
+        "frequency": 1
+    },
+    {
+        "template": "Processing the event EventType: <*> for container <*> taskAttempt <*>",
+        "ref_log": "Processing the event EventType: CONTAINER_REMOTE_LAUNCH for container container_1445062781478_0018_01_000015 taskAttempt attempt_1445062781478_0018_m_000006_1",
+        "frequency": 1
+    },
+    {
+        "template": "initUserPrivacy the userPrivacy is <*>",
+        "ref_log": "initUserPrivacy the userPrivacy is true",
+        "frequency": 1
+    },
+    {
+        "template": "reload : <*> restar <*>",
+        "ref_log": "reload : 11903 restar 0",
+        "frequency": 1
+    },
+    {
+        "template": "screen status <*>,think screen <*>",
+        "ref_log": "screen status unknown,think screen on",
+        "frequency": 1
+    },
+    {
+        "template": "ifCanSync not! no cloud version",
+        "ref_log": "ifCanSync not! no cloud version",
+        "frequency": 1
+    },
+    {
+        "template": "insertHiHealthData() end totalTime = <*>",
+        "ref_log": "insertHiHealthData() end totalTime = 33",
+        "frequency": 1
+    },
+    {
+        "template": "Page bounds {{0, 0}, {400, 400}}",
+        "ref_log": "Page bounds {{0, 0}, {400, 400}}",
+        "frequency": 1
+    },
+    {
+        "template": "Unable to start NetBIOS name service:",
+        "ref_log": "Unable to start NetBIOS name service:",
+        "frequency": 1
+    },
+    {
+        "template": "Service exited with abnormal code: 1",
+        "ref_log": "Service exited with abnormal code: 1",
+        "frequency": 1
+    },
+    {
+        "template": "hibernate_rebuild completed - took 92 msecs",
+        "ref_log": "hibernate_rebuild completed - took 92 msecs",
+        "frequency": 1
+    },
+    {
+        "template": "17:49:19.033 : BTLE scanner Powered Off",
+        "ref_log": "17:49:19.033 : BTLE scanner Powered Off",
+        "frequency": 1
+    },
+    {
+        "template": "DHCPDISCOVER from <*> via <*>: network <*>: <*> <*> leases",
+        "ref_log": "DHCPDISCOVER from 00:11:43:e3:ba:c3 via eth1: network A_net: no free leases",
+        "frequency": 1
+    },
+    {
+        "template": "xinetd Version <*> started with libwrap <*> options compiled in.",
+        "ref_log": "xinetd Version 2.3.13 started with libwrap loadavg options compiled in.",
+        "frequency": 1
+    },
+    {
+        "template": "Setting clock (<*>): <*> succeeded",
+        "ref_log": "Setting clock (localtime): Wed Nov 9 17:09:36 MST 2005 succeeded",
+        "frequency": 1
+    },
+    {
+        "template": "<*> close, <*> bytes sent, <*> bytes (<*> KB) received, lifetime <1 sec",
+        "ref_log": "proxy.cse.cuhk.edu.hk:5070 close, 522 bytes sent, 81588 bytes (79.6 KB) received, lifetime <1 sec",
+        "frequency": 1
+    },
+    {
+        "template": "com.apple.ical.sync.x-coredata://<*>/ExchangePrincipal/p<*>: scheduler returned false; however, this job is <*> seconds overdue. Running anyway.",
+        "ref_log": "com.apple.ical.sync.x-coredata://DB05755C-483D-44B7-B93B-ED06E57FF420/ExchangePrincipal/p13: scheduler returned false; however, this job is 1 seconds overdue. Running anyway.",
+        "frequency": 1
+    },
+    {
+        "template": "-[UABestAppSuggestionManager notifyBestAppChanged:type:options:bundleIdentifier:activityType:dynamicIdentifier:when:confidence:deviceName:deviceIdentifier:deviceType:] <*> UASuggestedActionType=<*> (null)/(null) opts=(null) when=<*> confidence=<*> from=(null)/(null) (UABestAppSuggestionManager.m #<*>)",
+        "ref_log": "-[UABestAppSuggestionManager notifyBestAppChanged:type:options:bundleIdentifier:activityType:dynamicIdentifier:when:confidence:deviceName:deviceIdentifier:deviceType:] (null) UASuggestedActionType=0 (null)/(null) opts=(null) when=2017-07-06 02:25:32 +0000 confidence=1 from=(null)/(null) (UABestAppSuggestionManager.m #319)",
+        "frequency": 1
+    },
+    {
+        "template": "Successfully connected to <*> for <*>:blk_<*>",
+        "ref_log": "Successfully connected to /10.86.169.121:50010 for BP-1347369012-10.190.173.170-1444972147527:blk_1073744042_3267",
+        "frequency": 1
+    },
+    {
+        "template": "error: Received disconnect from <*>: <*>: No more user authentication methods available. [preauth]",
+        "ref_log": "error: Received disconnect from 103.99.0.122: 14: No more user authentication methods available. [preauth]",
+        "frequency": 1
+    },
+    {
+        "template": "md: ... autorun <*>",
+        "ref_log": "md: ... autorun DONE.",
+        "frequency": 1
+    },
+    {
+        "template": "Enabling swap space: <*>",
+        "ref_log": "Enabling swap space: succeeded",
+        "frequency": 1
+    },
+    {
+        "template": "<*> device driver loaded",
+        "ref_log": "dcdbas device driver loaded",
+        "frequency": 1
+    },
+    {
+        "template": "Using <*> based timekeeping.",
+        "ref_log": "Using HPET based timekeeping.",
+        "frequency": 1
+    },
+    {
+        "template": "syslog-ng version <*> starting",
+        "ref_log": "syslog-ng version 1.6.7 starting",
+        "frequency": 1
+    },
+    {
+        "template": "Received disconnect from <*>: <*>: Bye Bye [preauth]",
+        "ref_log": "Received disconnect from 183.62.140.253: 11: Bye Bye [preauth]",
+        "frequency": 1
+    },
+    {
+        "template": "en0: DAD complete for <*> - duplicate found.",
+        "ref_log": "en0: DAD complete for 2607:f140:6000:8:c6b3:1ff:fecd:467f - duplicate found.",
+        "frequency": 1
+    },
+    {
+        "template": "tcp_connection_handle_connect_conditions_bad <*> failed: <*> - <*>",
+        "ref_log": "tcp_connection_handle_connect_conditions_bad 21292 failed: 3 - No network route",
+        "frequency": 1
+    },
+    {
+        "template": "notify question section contains no SOA",
+        "ref_log": "notify question section contains no SOA",
+        "frequency": 1
+    },
+    {
+        "template": "You can enable it with acpi=<*>",
+        "ref_log": "You can enable it with acpi=force",
+        "frequency": 1
+    },
+    {
+        "template": "sendmail: page allocation failure. order:<*>, mode:<*>",
+        "ref_log": "sendmail: page allocation failure. order:0, mode:0x1d2",
+        "frequency": 1
+    },
+    {
+        "template": "No items found in keychain",
+        "ref_log": "No items found in keychain",
+        "frequency": 1
+    },
+    {
+        "template": "tcp_connection_tls_session_error_callback_imp 2375 __tcp_connection_tls_session_callback_write_block_invoke.434 error 22",
+        "ref_log": "tcp_connection_tls_session_error_callback_imp 2375 __tcp_connection_tls_session_callback_write_block_invoke.434 error 22",
+        "frequency": 1
+    },
+    {
+        "template": "00:03:52.301 : BTLE scanning started",
+        "ref_log": "00:03:52.301 : BTLE scanning started",
+        "frequency": 1
+    },
+    {
+        "template": "ttloop: peer died: <*>",
+        "ref_log": "ttloop: peer died: Invalid or incomplete multibyte or wide character",
+        "frequency": 1
+    },
+    {
+        "template": "agpgart: Maximum main memory to use for agp memory: <*>",
+        "ref_log": "agpgart: Maximum main memory to use for agp memory: 93M",
+        "frequency": 1
+    },
+    {
+        "template": "connection from <*> (<*>) at <*>",
+        "ref_log": "connection from 202.147.190.179 (host202-147-190-179.khi.dancom.net.pk) at Mon Feb 13 17:58:11 2006",
+        "frequency": 1
+    },
+    {
+        "template": "Copyright (c) <*>-<*> LSI Logic Corporation",
+        "ref_log": "Copyright (c) 1999-2005 LSI Logic Corporation",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: PCI Interrupt Routing Table [\\_SB_.PCI0.PALO.DOBB._PRT]",
+        "ref_log": "ACPI: PCI Interrupt Routing Table [\\_SB_.PCI0.PALO.DOBB._PRT]",
+        "frequency": 1
+    },
+    {
+        "template": "Active:<*> inactive:<*> dirty:<*> writeback:<*> unstable:<*> free:<*> slab:<*> mapped:<*> pagetables:<*>",
+        "ref_log": "Active:764515 inactive:727169 dirty:0 writeback:0 unstable:0 free:3550 slab:8020 mapped:1490913 pagetables:9947",
+        "frequency": 1
+    },
+    {
+        "template": "[INFO]: Receive SystemImageGUID change trap from port (LID= <*>)",
+        "ref_log": "[INFO]: Receive SystemImageGUID change trap from port (LID= 29)",
+        "frequency": 1
+    },
+    {
+        "template": "Inode-cache hash table entries: <*> (order: <*>, <*> bytes)",
+        "ref_log": "Inode-cache hash table entries: 524288 (order: 10, 4194304 bytes)",
+        "frequency": 1
+    },
+    {
+        "template": "[smux_accept] accepted fd <*> from <*>:<*>",
+        "ref_log": "[smux_accept] accepted fd 13 from 127.0.0.1:32772",
+        "frequency": 1
+    },
+    {
+        "template": "mount.panfs warning: couldn't ping address #<*>#:<*>",
+        "ref_log": "mount.panfs warning: couldn't ping address #27#:3095",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: PCI Interrupt Routing Table [\\_SB_.PCI0.PBHI.PXB1._PRT]",
+        "ref_log": "ACPI: PCI Interrupt Routing Table [\\_SB_.PCI0.PBHI.PXB1._PRT]",
+        "frequency": 1
+    },
+    {
+        "template": "getVersion= <*>",
+        "ref_log": "getVersion= Athene3",
+        "frequency": 1
+    },
+    {
+        "template": "checkLocalDataValue <*>",
+        "ref_log": "checkLocalDataValue false",
+        "frequency": 1
+    },
+    {
+        "template": "compareMidWareCacheAndLocalCache enter...",
+        "ref_log": "compareMidWareCacheAndLocalCache enter...",
+        "frequency": 1
+    },
+    {
+        "template": "getTodayBasicStandardSteps=<*>",
+        "ref_log": "getTodayBasicStandardSteps= 1514100778366##0##5017",
+        "frequency": 1
+    },
+    {
+        "template": "next day:steps<*>",
+        "ref_log": "next day:steps0mLastReport7425",
+        "frequency": 1
+    },
+    {
+        "template": "debug: could not init rm_client: <*> (<*>)",
+        "ref_log": "debug: could not init rm_client: 0x5 (Out of memory)",
+        "frequency": 1
+    },
+    {
+        "template": "cpu <*> hot: low <*>, high <*>, batch <*>",
+        "ref_log": "cpu 0 hot: low 2, high 6, batch 1",
+        "frequency": 1
+    },
+    {
+        "template": "couldn't ping address <*>:<*> using <*>:<*>, <*> (pan_sock: timeout)",
+        "ref_log": "couldn't ping address #27#:3095 using 10.100.144.6:1, 0x23a1 (pan_sock: timeout)",
+        "frequency": 1
+    },
+    {
+        "template": "SCSI device <*>: <*> 512-byte hdwr sectors (<*> MB)",
+        "ref_log": "SCSI device sda: 143114240 512-byte hdwr sectors (73274 MB)",
+        "frequency": 1
+    },
+    {
+        "template": "#<*># : TTY=pts/<*> ; PWD=/home/#<*>#/cisco ; USER=<*> ; COMMAND=<*>",
+        "ref_log": "#26# : TTY=pts/5 ; PWD=/home/#26#/cisco ; USER=root ; COMMAND=/bin/bash",
+        "frequency": 1
+    },
+    {
+        "template": "Password authentication for user #<*># accepted.",
+        "ref_log": "Password authentication for user #41# accepted.",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: PCI Interrupt Routing Table [\\_SB_.PCI0.PALO.DOBA._PRT]",
+        "ref_log": "ACPI: PCI Interrupt Routing Table [\\_SB_.PCI0.PALO.DOBA._PRT]",
+        "frequency": 1
+    },
+    {
+        "template": "getLastSyncDBTime= <*>",
+        "ref_log": "getLastSyncDBTime= -1",
+        "frequency": 1
+    },
+    {
+        "template": "getMidWareCache result=<*>",
+        "ref_log": "getMidWareCache result=true",
+        "frequency": 1
+    },
+    {
+        "template": "initCacheFromFile enter...",
+        "ref_log": "initCacheFromFile enter...",
+        "frequency": 1
+    },
+    {
+        "template": "getGoalNotificationShowStatus= <*>",
+        "ref_log": "getGoalNotificationShowStatus= true",
+        "frequency": 1
+    },
+    {
+        "template": "getServiceRestartRecord= <*>",
+        "ref_log": "getServiceRestartRecord= 1514018661059",
+        "frequency": 1
+    },
+    {
+        "template": "Device: <*>, is SMART capable. Adding to <*> list.",
+        "ref_log": "Device: /dev/sda, is SMART capable. Adding to \"monitor\" list.",
+        "frequency": 1
+    },
+    {
+        "template": "INT_SRC_OVR (bus <*> bus_irq <*> global_irq <*> dfl dfl)",
+        "ref_log": "INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)",
+        "frequency": 1
+    },
+    {
+        "template": "scsi0 : LSI Logic MegaRAID driver",
+        "ref_log": "scsi0 : LSI Logic MegaRAID driver",
+        "frequency": 1
+    },
+    {
+        "template": "pan_trace: panfs trace buffer <*> added.",
+        "ref_log": "pan_trace: panfs trace buffer 0xffffffffa07f3520 added.",
+        "frequency": 1
+    },
+    {
+        "template": "readXmlIfSupportEX result=<*>",
+        "ref_log": "readXmlIfSupportEX result=true",
+        "frequency": 1
+    },
+    {
+        "template": "initDataManager enter...",
+        "ref_log": "initDataManager enter...",
+        "frequency": 1
+    },
+    {
+        "template": "isScreenOn <*>",
+        "ref_log": "isScreenOn false",
+        "frequency": 1
+    },
+    {
+        "template": "theDayChanged <*>",
+        "ref_log": "theDayChanged 1514217600224",
+        "frequency": 1
+    },
+    {
+        "template": "setDeviceShutDownValue shutDownTime=<*>,isShutDown=<*>",
+        "ref_log": "setDeviceShutDownValue shutDownTime=0,isShutDown=false",
+        "frequency": 1
+    },
+    {
+        "template": "Vendor: <*> Model: <*> RAID<*> <*> Rev: <*>",
+        "ref_log": "Vendor: MegaRAID Model: LD 0 RAID0 69G Rev: 521S",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>]: IB node <*> port <*> is <*> state",
+        "ref_log": "[ib_sm_sweep.c:411]: IB node 0x0005AD0000027DF4 port 14 is INIT state",
+        "frequency": 1
+    },
+    {
+        "template": "Dquot-cache hash table entries: <*> (order <*>, <*> bytes)",
+        "ref_log": "Dquot-cache hash table entries: 512 (order 0, 4096 bytes)",
+        "frequency": 1
+    },
+    {
+        "template": "ehci_hcd <*>: USB 2.0 enabled, EHCI 1.00, driver <*>",
+        "ref_log": "ehci_hcd 0000:00:1d.7: USB 2.0 enabled, EHCI 1.00, driver 2004-May-10",
+        "frequency": 1
+    },
+    {
+        "template": "<*> STOP",
+        "ref_log": "en0 STOP",
+        "frequency": 1
+    },
+    {
+        "template": "Configuration Notice:",
+        "ref_log": "Configuration Notice:",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: Using <*> for interrupt routing",
+        "ref_log": "ACPI: Using IOAPIC for interrupt routing",
+        "frequency": 1
+    },
+    {
+        "template": "getMidWareCache mRemote=<*>",
+        "ref_log": "getMidWareCache mRemote=com.huawei.health.c.c@d990a94",
+        "frequency": 1
+    },
+    {
+        "template": "startStepCounter <*>",
+        "ref_log": "startStepCounter enter...",
+        "frequency": 1
+    },
+    {
+        "template": "supportStandStepCounter <*>",
+        "ref_log": "supportStandStepCounter true",
+        "frequency": 1
+    },
+    {
+        "template": "rebuild notification",
+        "ref_log": "rebuild notification",
+        "frequency": 1
+    },
+    {
+        "template": "getDiffTotalSteps= <*>",
+        "ref_log": "getDiffTotalSteps= 1514217600264##0",
+        "frequency": 1
+    },
+    {
+        "template": "**** [IOBluetoothHostControllerUSBTransport][start] -- completed -- result = <*> -- <*> ****",
+        "ref_log": "**** [IOBluetoothHostControllerUSBTransport][start] -- completed -- result = TRUE -- 0x6800 ****",
+        "frequency": 1
+    },
+    {
+        "template": "tcp_connection_destination_perform_socket_connect <*> connectx to <*> failed: [<*>] <*>",
+        "ref_log": "tcp_connection_destination_perform_socket_connect 20985 connectx to 203.205.147.206:8080@0 failed: [65] No route to host",
+        "frequency": 1
+    },
+    {
+        "template": "BUG in libdispatch client: kevent[EVFILT_MEMORYSTATUS] add: \"<*>\" - <*>",
+        "ref_log": "BUG in libdispatch client: kevent[EVFILT_MEMORYSTATUS] add: \"Operation not supported\" - 0x2d",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>] FigAgglomeratorSetObjectForKey signalled err=<*> (<*> (NULL key) at /Library/Caches/com.apple.xbs/Sources/CoreMedia/CoreMedia-<*>/Prototypes/LegibleOutput/FigAgglomerator.c line <*>",
+        "ref_log": "[20:57:35.007] FigAgglomeratorSetObjectForKey signalled err=-16020 (kFigStringConformerError_ParamErr) (NULL key) at /Library/Caches/com.apple.xbs/Sources/CoreMedia/CoreMedia-1731.15.207/Prototypes/LegibleOutput/FigAgglomerator.c line 92",
+        "frequency": 1
+    },
+    {
+        "template": "onBind intent = Intent { act=<*> pkg=<*> }",
+        "ref_log": "onBind intent = Intent { act=com.huawei.hihealthservice.HiHealthService pkg=com.huawei.health }",
+        "frequency": 1
+    },
+    {
+        "template": "megaraid: probe new device <*>: bus <*>:slot <*>:func <*>",
+        "ref_log": "megaraid: probe new device 0x1028:0x0013:0x1028:0x016c: bus 2:slot 14:func 0",
+        "frequency": 1
+    },
+    {
+        "template": "smartd version <*> [<*>] Copyright (C) <*> Bruce Allen",
+        "ref_log": "smartd version 5.33 [x86_64-redhat-linux-gnu] Copyright (C) 2002-4 Bruce Allen",
+        "frequency": 1
+    },
+    {
+        "template": "[INFO]: Configuration caused by some ports in INIT state",
+        "ref_log": "[INFO]: Configuration caused by some ports in INIT state",
+        "frequency": 1
+    },
+    {
+        "template": "Started SparkUI at <*>",
+        "ref_log": "Started SparkUI at http://10.10.34.16:50826",
+        "frequency": 1
+    },
+    {
+        "template": "ApplicationMaster registered as <*>",
+        "ref_log": "ApplicationMaster registered as NettyRpcEndpointRef(spark://YarnAM@10.10.34.30:43036)",
+        "frequency": 1
+    },
+    {
+        "template": "NSAllowAppKitWeakReferences=YES",
+        "ref_log": "NSAllowAppKitWeakReferences=YES",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: <*> (v001 DELL PE BKC <*> MSFT <*>) @ <*>",
+        "ref_log": "ACPI: MCFG (v001 DELL PE BKC 0x00000001 MSFT 0x0100000a) @ 0x00000000000fd854",
+        "frequency": 1
+    },
+    {
+        "template": "[<*> Version:<*>]",
+        "ref_log": "[ChromeExistion Version:1.0.2]",
+        "frequency": 1
+    },
+    {
+        "template": "<*>::<*> <*>",
+        "ref_log": "CCProfileMonitor::freeResources done",
+        "frequency": 1
+    },
+    {
+        "template": "pan_ips: error -- cfg target addresses, <*> (<*>), err_loc=<*>, <*>:<*>",
+        "ref_log": "pan_ips: error -- cfg target addresses, 0x5 (Out of memory), err_loc=1, rhel_4_amd64/release/build/panfs/ips/pan_ips_cfg.c:294",
+        "frequency": 1
+    },
+    {
+        "template": "Calling handler for <*>",
+        "ref_log": "Calling handler for JobFinishedEvent",
+        "frequency": 1
+    },
+    {
+        "template": "IPC Server Responder: <*>",
+        "ref_log": "IPC Server Responder: starting",
+        "frequency": 1
+    },
+    {
+        "template": "Brought up <*> CPUs",
+        "ref_log": "Brought up 2 CPUs",
+        "frequency": 1
+    },
+    {
+        "template": "User <*>, coming from #<*>#, authenticated.",
+        "ref_log": "User #29#, coming from #30#, authenticated.",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: LAPIC_NMI (acpi_id[<*>] high edge lint[<*>])",
+        "ref_log": "ACPI: LAPIC_NMI (acpi_id[0x01] high edge lint[0x1])",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>] Failed setting the front application to loginwindow, psn <*>, securitySessionID=<*>, err=<*>",
+        "ref_log": "[cps/setfront] Failed setting the front application to loginwindow, psn 0x0-0x1001, securitySessionID=0x186a7, err=-13066",
+        "frequency": 1
+    },
+    {
+        "template": "getStepsTarget= <*>",
+        "ref_log": "getStepsTarget= 10000",
+        "frequency": 1
+    },
+    {
+        "template": "getCfgFile enter...",
+        "ref_log": "getCfgFile enter...",
+        "frequency": 1
+    },
+    {
+        "template": "registerLogCallback <*>",
+        "ref_log": "registerLogCallback com.huawei.health.c.c@d990a94",
+        "frequency": 1
+    },
+    {
+        "template": "getStepCounterStatus= <*>",
+        "ref_log": "getStepCounterStatus= true",
+        "frequency": 1
+    },
+    {
+        "template": "SystemClock.elapsedRealtime(): <*>",
+        "ref_log": "SystemClock.elapsedRealtime(): 29950",
+        "frequency": 1
+    },
+    {
+        "template": "<*> RQD: UserInfoUploadHandler success finish request with <*> records",
+        "ref_log": "<INFO> RQD: UserInfoUploadHandler success finish request with 1 records",
+        "frequency": 1
+    },
+    {
+        "template": "scanning scsi channel <*> [virtual] for logical drives",
+        "ref_log": "scanning scsi channel 1 [virtual] for logical drives",
+        "frequency": 1
+    },
+    {
+        "template": "<*>: invalid character <*> in login name",
+        "ref_log": "tty2: invalid character 0x1b in login name",
+        "frequency": 1
+    },
+    {
+        "template": "XPC Error while checking if iCDP is enabled for DSID <*>: Error Domain=<*> Code=<*> \"<*>\" UserInfo={<*>}",
+        "ref_log": "XPC Error while checking if iCDP is enabled for DSID 874161398: Error Domain=NSCocoaErrorDomain Code=4099 \"The connection to service named com.apple.cdp.daemon was invalidated.\" UserInfo={NSDebugDescription=The connection to service named com.apple.cdp.daemon was invalidated.}",
+        "frequency": 1
+    },
+    {
+        "template": "Failed to connect to <*>:50010 for block, add to deadNodes and continue. java.net.ConnectException: Connection timed out: no further information",
+        "ref_log": "Failed to connect to /10.86.169.121:50010 for block, add to deadNodes and continue. java.net.ConnectException: Connection timed out: no further information",
+        "frequency": 1
+    },
+    {
+        "template": "en0: manual intervention required!",
+        "ref_log": "en0: manual intervention required!",
+        "frequency": 1
+    },
+    {
+        "template": "AirPort: Link Down on <*>. Reason <*> (<*>).",
+        "ref_log": "AirPort: Link Down on en0. Reason 8 (Disassociated because station leaving).",
+        "frequency": 1
+    },
+    {
+        "template": "<<<< MediaValidator >>>> mv_ValidateRFC4281CodecId: Unrecognized codec <*>. Failed codec specific check.",
+        "ref_log": "<<<< MediaValidator >>>> mv_ValidateRFC4281CodecId: Unrecognized codec 1.(null). Failed codec specific check.",
+        "frequency": 1
+    },
+    {
+        "template": "dnssd_clientstub ConnectToServer: connect() failed path:<*> Socket:<*> Err:<*> Errno:<*> Operation not permitted",
+        "ref_log": "dnssd_clientstub ConnectToServer: connect() failed path:/var/run/mDNSResponder Socket:4 Err:-1 Errno:1 Operation not permitted",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: IOPMPowerSource Information: onSleep, SleepType: <*>, 'ExternalConnected': <*>, 'TimeRemaining': <*>,",
+        "ref_log": "ARPT: 725218.810962: IOPMPowerSource Information: onSleep, SleepType: Standby, 'ExternalConnected': No, 'TimeRemaining': 630,",
+        "frequency": 1
+    },
+    {
+        "template": "insertHiHealthData() bulkSaveDetailHiHealthData fail errorCode = <*>,errorMessage = <*>",
+        "ref_log": "insertHiHealthData() bulkSaveDetailHiHealthData fail errorCode = 4,errorMessage = ERR_DATA_INSERT",
+        "frequency": 1
+    },
+    {
+        "template": "cpu <*> cold: low <*>, high <*>, batch <*>",
+        "ref_log": "cpu 1 cold: low 0, high 2, batch 1",
+        "frequency": 1
+    },
+    {
+        "template": "#<*>#-rh1 (Release Date: <*>)",
+        "ref_log": "#38#-rh1 (Release Date: Fri Dec 10 19:02:14 EST 2004)",
+        "frequency": 1
+    },
+    {
+        "template": "scanning scsi channel <*> [Phy <*>] for non-raid devices",
+        "ref_log": "scanning scsi channel 0 [Phy 0] for non-raid devices",
+        "frequency": 1
+    },
+    {
+        "template": "mount.panfs: cannot init pan_fm_util_path_util module: <*> (<*>)",
+        "ref_log": "mount.panfs: cannot init pan_fm_util_path_util module: 0x5 (Out of memory)",
+        "frequency": 1
+    },
+    {
+        "template": "IOAPIC[<*>]: apic_id <*>, version <*>, address <*>, GSI <*>-<*>",
+        "ref_log": "IOAPIC[2]: apic_id 9, version 32, address 0xfec83000, GSI 64-87",
+        "frequency": 1
+    },
+    {
+        "template": "CCProfileMonitor::setStreamEventHandler",
+        "ref_log": "CCProfileMonitor::setStreamEventHandler",
+        "frequency": 1
+    },
+    {
+        "template": "StopHardwareStream",
+        "ref_log": "StopHardwareStream",
+        "frequency": 1
+    },
+    {
+        "template": "AppleCamIn::power_off_hardware",
+        "ref_log": "AppleCamIn::power_off_hardware",
+        "frequency": 1
+    },
+    {
+        "template": "newHeight=<*>,oldHeight=<*>",
+        "ref_log": "newHeight=990.000000,oldHeight=5452.000000",
+        "frequency": 1
+    },
+    {
+        "template": "Mellanox Tavor Device Driver is creating device <*> (domain=<*>, bus=<*>, devfn=<*>)",
+        "ref_log": "Mellanox Tavor Device Driver is creating device \"InfiniHost0\" (domain=00, bus=08, devfn=00)",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: MADT (<*>) @ <*>",
+        "ref_log": "ACPI: MADT (v001 DELL PE BKC 0x00000001 MSFT 0x0100000a) @ 0x00000000000fd724",
+        "frequency": 1
+    },
+    {
+        "template": "Unknown base file: <*>",
+        "ref_log": "Unknown base file: /var/lib/nova/instances/_base/a489c868f0c37da93b76227c91bb03908ac0e742",
+        "frequency": 1
+    },
+    {
+        "template": "Call stack:",
+        "ref_log": "Call stack:",
+        "frequency": 1
+    },
+    {
+        "template": "<*> enter",
+        "ref_log": "BuildActDeviceEntry enter",
+        "frequency": 1
+    },
+    {
+        "template": "<*> started",
+        "ref_log": "hibernate_teardown started",
+        "frequency": 1
+    },
+    {
+        "template": "<*> changed",
+        "ref_log": "network changed",
+        "frequency": 1
+    },
+    {
+        "template": "-[<*>]",
+        "ref_log": "-[WebSocketNetWork webSocketDidOpen:]",
+        "frequency": 1
+    },
+    {
+        "template": "Memory: <*>/<*>k available (<*>k kernel code, <*>k reserved, <*>k data, <*>k init)",
+        "ref_log": "Memory: 6106088k/7340032k available (2076k kernel code, 0k reserved, 1278k data, 188k init)",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>]: Active state mismatch GUID=<*>, port=<*>, state <*>, GUID=<*>, port=<*>, state <*>",
+        "ref_log": "[ib_sm_bringup.c:450]: Active state mismatch GUID=ff020001006a0600, port=2, state 1, GUID=f87d020000ad0500, port=1, state 4",
+        "frequency": 1
+    },
+    {
+        "template": "handle_will_sleep_auth_and_shield_windows: Reordering authw <*>(<*>) (lock state: <*>)",
+        "ref_log": "handle_will_sleep_auth_and_shield_windows: Reordering authw 0x7fa82d664600(2000) (lock state: 3)",
+        "frequency": 1
+    },
+    {
+        "template": "i2c <*> entries driver",
+        "ref_log": "i2c /dev entries driver",
+        "frequency": 1
+    },
+    {
+        "template": "insertHiHealthData() checkAppType 0 appID = <*>",
+        "ref_log": "insertHiHealthData() checkAppType 0 appID = 1",
+        "frequency": 1
+    },
+    {
+        "template": "Final Stats: PendingReds:<*> ScheduledMaps:<*> ScheduledReds:<*> AssignedMaps:<*> AssignedReds:<*> CompletedMaps:<*> CompletedReds:<*> ContAlloc:<*> ContRel:<*> HostLocal:<*> RackLocal:<*>",
+        "ref_log": "Final Stats: PendingReds:0 ScheduledMaps:0 ScheduledReds:0 AssignedMaps:0 AssignedReds:0 CompletedMaps:10 CompletedReds:1 ContAlloc:12 ContRel:0 HostLocal:1 RackLocal:10",
+        "frequency": 1
+    },
+    {
+        "template": "time.c: Using <*> HPET timer.",
+        "ref_log": "time.c: Using 14.318180 MHz HPET timer.",
+        "frequency": 1
+    },
+    {
+        "template": "mounted filesystem with <*>",
+        "ref_log": "mounted filesystem with ordered data mode.",
+        "frequency": 1
+    },
+    {
+        "template": "<*> stopped!",
+        "ref_log": "MapOutputTrackerMasterEndpoint stopped!",
+        "frequency": 1
+    },
+    {
+        "template": "Registering <*>",
+        "ref_log": "Registering MapOutputTracker",
+        "frequency": 1
+    },
+    {
+        "template": "<*> stopped",
+        "ref_log": "BlockManager stopped",
+        "frequency": 1
+    },
+    {
+        "template": "Received disconnect from <*>: 11: Closed due to user request. [preauth]",
+        "ref_log": "Received disconnect from 103.207.39.99: 11: Closed due to user request. [preauth]",
+        "frequency": 1
+    },
+    {
+        "template": "+[NSFileCoordinator addFilePresenter:] could not get a sandbox extension. primaryPresentedItemURL: <*>, presentedItemURL: <*>",
+        "ref_log": "+[NSFileCoordinator addFilePresenter:] could not get a sandbox extension. primaryPresentedItemURL: file:////Users/xpc/Library/Group%20Containers/UBF8T346G9.Office/msoclip1/01/clip.htm, presentedItemURL: file:////Users/xpc/Library/Group%20Containers/UBF8T346G9.Office/msoclip1/01/clip",
+        "frequency": 1
+    },
+    {
+        "template": "initExtendStepCounter <*>",
+        "ref_log": "initExtendStepCounter 101",
+        "frequency": 1
+    },
+    {
+        "template": "getWriteDBLastDataMinute= <*>",
+        "ref_log": "getWriteDBLastDataMinute= 25234951",
+        "frequency": 1
+    },
+    {
+        "template": "startStepCounterInter <*>",
+        "ref_log": "startStepCounterInter stand",
+        "frequency": 1
+    },
+    {
+        "template": "registersensorsuccess: <*>",
+        "ref_log": "registersensorsuccess: true",
+        "frequency": 1
+    },
+    {
+        "template": "getTodaySportData mStepsRecordManager=<*>",
+        "ref_log": "getTodaySportData mStepsRecordManager=com.huawei.health.g.c@1cd89a1",
+        "frequency": 1
+    },
+    {
+        "template": "not allocating <*> for non-ethernet device <*>",
+        "ref_log": "not allocating divert_blk for non-ethernet device sit0",
+        "frequency": 1
+    },
+    {
+        "template": "Bad protocol version identification '<*>' from <*> port <*>",
+        "ref_log": "Bad protocol version identification 'GET / HTTP/1.0' from 182.48.105.210 port 30762",
+        "frequency": 2
+    },
+    {
+        "template": "<*> Thread started: EventFetcher for fetching Map Completion Events",
+        "ref_log": "attempt_1445087491445_0010_r_000000_0 Thread started: EventFetcher for fetching Map Completion Events",
+        "frequency": 1
+    },
+    {
+        "template": "<*> <*> : <*> : <*> <*><*>",
+        "ref_log": "Follower sid: 2 : info : org.apache.zookeeper.server.quorum.QuorumPeer$QuorumServer@9736e99",
+        "frequency": 1
+    },
+    {
+        "template": "fatal: Write failed: Connection reset by peer [<*>]",
+        "ref_log": "fatal: Write failed: Connection reset by peer [preauth]",
+        "frequency": 1
+    },
+    {
+        "template": "<*>: DNSServiceCreateConnection: <*> registered records, <*> kDNSServiceFlagsShareConnection operation PID[<*>](<*>)",
+        "ref_log": "43: DNSServiceCreateConnection: 0 registered records, 1 kDNSServiceFlagsShareConnection operation PID[53](configd)",
+        "frequency": 1
+    },
+    {
+        "template": "Cleaning up expired diagnostic messages database at path: <*>",
+        "ref_log": "Cleaning up expired diagnostic messages database at path: /var/log/DiagnosticMessages/2017.06.02.asl",
+        "frequency": 1
+    },
+    {
+        "template": "PCI: PCI BIOS revision 2.10 entry at <*>, last bus=<*>",
+        "ref_log": "PCI: PCI BIOS revision 2.10 entry at 0xfc0ce, last bus=1",
+        "frequency": 1
+    },
+    {
+        "template": "SELinux: initialized (dev , type <*>), not configured for labeling",
+        "ref_log": "SELinux: initialized (dev , type hugetlbfs), not configured for labeling",
+        "frequency": 1
+    },
+    {
+        "template": "Task: <*> - exited : java.io.IOException: Spill failed",
+        "ref_log": "Task: attempt_1445182159119_0004_m_000004_0 - exited : java.io.IOException: Spill failed",
+        "frequency": 1
+    },
+    {
+        "template": "Diagnostics report from <*>: Error: java.io.IOException: Spill failed",
+        "ref_log": "Diagnostics report from attempt_1445182159119_0004_m_000004_0: Error: java.io.IOException: Spill failed",
+        "frequency": 1
+    },
+    {
+        "template": "Finished task <*> in stage <*> (TID <*>. <*> bytes result sent to driver",
+        "ref_log": "Finished task 5.0 in stage 1.0 (TID 7). 1001 bytes result sent to driver",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>][<*>][<*>]ib0: can't find hw address for hash <*>",
+        "ref_log": "[IB_NET][ipoib_sarp_rewrite_send][/mnt_projects/sysapps/src/ib/topspin/topspin-src-3.2.0-16/host/ulp/ipoib/obj_host_amd64_custom1_rhel4/ts_ipoib/ipoib_arp.c:1008]ib0: can't find hw address for hash 00:00:00:00:00:00",
+        "frequency": 1
+    },
+    {
+        "template": "IOBluetoothUSBDFU::probe avoid Bluetooth automatic firmware update because USB Bluetooth active",
+        "ref_log": "IOBluetoothUSBDFU::probe avoid Bluetooth automatic firmware update because USB Bluetooth active",
+        "frequency": 1
+    },
+    {
+        "template": "nw_path_query_lqm Tried to query LQM on path with no interfaces",
+        "ref_log": "nw_path_query_lqm Tried to query LQM on path with no interfaces",
+        "frequency": 1
+    },
+    {
+        "template": "CCFile::captureLogRun Skipping current file Dir file [<*>]-io80211Family-002.pcapng, Current File [<*>]-io80211Family-002.pcapng",
+        "ref_log": "CCFile::captureLogRun Skipping current file Dir file [2017-07-05_17,03,08.042220]-io80211Family-002.pcapng, Current File [2017-07-05_17,03,08.042220]-io80211Family-002.pcapng",
+        "frequency": 1
+    },
+    {
+        "template": "CPU: <*> <*> stepping <*>",
+        "ref_log": "CPU: Intel Pentium III (Coppermine) stepping 06",
+        "frequency": 1
+    },
+    {
+        "template": "Monitoring <*> ATA and <*> SCSI devices",
+        "ref_log": "Monitoring 1 ATA and 0 SCSI devices",
+        "frequency": 1
+    },
+    {
+        "template": "Kernel command line: <*> <*> <*>",
+        "ref_log": "Kernel command line: ro root=LABEL=/ rhgb quiet",
+        "frequency": 1
+    },
+    {
+        "template": "DFS Read",
+        "ref_log": "DFS Read",
+        "frequency": 1
+    },
+    {
+        "template": "Preempting <*>",
+        "ref_log": "Preempting attempt_1445087491445_0004_r_000000_1000",
+        "frequency": 1
+    },
+    {
+        "template": "<*> Exception",
+        "ref_log": "DataStreamer Exception",
+        "frequency": 1
+    },
+    {
+        "template": "Linux version <*> (<*>) (gcc version <*>) #1 <*>",
+        "ref_log": "Linux version 2.6.5-1.358 (bhcompile@bugs.build.redhat.com) (gcc version 3.3.3 20040412 (Red Hat Linux 3.3.3-7)) #1 Sat May 8 09:04:50 EDT 2004",
+        "frequency": 3
+    },
+    {
+        "template": "securityd_xpc_dictionary_handler <*>[<*>] copy_matching Error Domain=<*> Code=<*> \"<*>\" (paramErr: error in user parameter list) UserInfo={NSDescription=<*>}",
+        "ref_log": "securityd_xpc_dictionary_handler cloudd[326] copy_matching Error Domain=NSOSStatusErrorDomain Code=-50 \"query missing class name\" (paramErr: error in user parameter list) UserInfo={NSDescription=query missing class name}",
+        "frequency": 1
+    },
+    {
+        "template": "Slow ReadProcessor read fields took <*> (threshold=<*>); ack: seqno: <*> status: <*> status: <*> downstreamAckTimeNanos: <*>, targets: [<*>]",
+        "ref_log": "Slow ReadProcessor read fields took 48957ms (threshold=30000ms); ack: seqno: -2 status: SUCCESS status: ERROR downstreamAckTimeNanos: 0, targets: [172.22.149.145:50010, 10.86.169.121:50010]",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: AirPort_Brcm43xx::platformWoWEnable: WWEN[enable]",
+        "ref_log": "ARPT: 621293.772955: AirPort_Brcm43xx::platformWoWEnable: WWEN[enable]",
+        "frequency": 1
+    },
+    {
+        "template": "Diagnostics report from <*>: Error: <*>: error in shuffle in <*>",
+        "ref_log": "Diagnostics report from attempt_1445182159119_0003_r_000000_0: Error: org.apache.hadoop.mapreduce.task.reduce.Shuffle$ShuffleError: error in shuffle in fetcher#3",
+        "frequency": 1
+    },
+    {
+        "template": "Going to preempt <*> due to lack of space for maps",
+        "ref_log": "Going to preempt 1 due to lack of space for maps",
+        "frequency": 1
+    },
+    {
+        "template": "DFS chooseDataNode: got # <*> IOException, will wait for <*> msec.",
+        "ref_log": "DFS chooseDataNode: got # 1 IOException, will wait for 398.80007962755826 msec.",
+        "frequency": 1
+    },
+    {
+        "template": "ACPI: PCI Interrupt Link [LNKA] (IRQs <*>) <*>",
+        "ref_log": "ACPI: PCI Interrupt Link [LNKA] (IRQs 3 4 5 6 7 10 11 12) *15",
+        "frequency": 1
+    },
+    {
+        "template": "Parents of final stage: <*>",
+        "ref_log": "Parents of final stage: List(ShuffleMapStage 1)",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>] <<<< CRABS >>>> crabsFlumeHostUnavailable: [<*>] Byte flume reports host unavailable.",
+        "ref_log": "[11:59:24.857] <<<< CRABS >>>> crabsFlumeHostUnavailable: [0x7f961cf08cf0] Byte flume reports host unavailable.",
+        "frequency": 1
+    },
+    {
+        "template": "-[SFLListManager(ServiceReplyProtocol) notifyChanges:toListWithIdentifier:] Notified of item changes to list with identifier <*>",
+        "ref_log": "-[SFLListManager(ServiceReplyProtocol) notifyChanges:toListWithIdentifier:] Notified of item changes to list with identifier com.apple.LSSharedFileList.RecentApplications",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: wl0: setup_keepalive: Seq: <*>, Ack: <*>, Win size: <*>",
+        "ref_log": "ARPT: 761803.556420: wl0: setup_keepalive: Seq: 405164489, Ack: 1504240432, Win size: 4096",
+        "frequency": 1
+    },
+    {
+        "template": "getAppContext() isAppValid health or wear, packageName = <*>",
+        "ref_log": "getAppContext() isAppValid health or wear, packageName = com.huawei.health",
+        "frequency": 1
+    },
+    {
+        "template": "Task: <*> - exited : <*>",
+        "ref_log": "Task: attempt_1445182159119_0004_m_000004_0 - exited : java.io.IOException: There is not enough space on the disk",
+        "frequency": 1
+    },
+    {
+        "template": "#<*># (Release Date: <*>)",
+        "ref_log": "#39# (Release Date: Mon Sep 27 22:15:07 EDT 2004)",
+        "frequency": 1
+    },
+    {
+        "template": "Wrote <*> new dynamic host decls to leases file.",
+        "ref_log": "Wrote 0 new dynamic host decls to leases file.",
+        "frequency": 1
+    },
+    {
+        "template": "PCI: Setting latency timer of device <*> to <*>",
+        "ref_log": "PCI: Setting latency timer of device 0000:00:1d.2 to 64",
+        "frequency": 1
+    },
+    {
+        "template": "Accepted publickey for <*> from <*> port <*> ssh2",
+        "ref_log": "Accepted publickey for root from ::ffff:10.100.30.54 port 43190 ssh2",
+        "frequency": 1
+    },
+    {
+        "template": "Unregistering ApplicationMaster with <*>",
+        "ref_log": "Unregistering ApplicationMaster with SUCCEEDED",
+        "frequency": 1
+    },
+    {
+        "template": "Driver commanded a shutdown",
+        "ref_log": "Driver commanded a shutdown",
+        "frequency": 1
+    },
+    {
+        "template": "IOHibernatePollerOpen(<*>)",
+        "ref_log": "IOHibernatePollerOpen(0)",
+        "frequency": 1
+    },
+    {
+        "template": "AppleCamIn::wakeEventHandlerThread",
+        "ref_log": "AppleCamIn::wakeEventHandlerThread",
+        "frequency": 1
+    },
+    {
+        "template": "Checking '<*>' instruction... OK.",
+        "ref_log": "Checking 'hlt' instruction... OK.",
+        "frequency": 1
+    },
+    {
+        "template": "inconsistent nodesets node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok>",
+        "ref_log": "inconsistent nodesets node-160 0x0001edfe <ok> node-161 0x1001fdfe <ok> node-162 0x1001fdfe <ok> node-163 0x1001fdfe <ok>",
+        "frequency": 1
+    },
+    {
+        "template": "pan_ips: error -- real init, <*> (<*>), err_loc=<*>, <*>",
+        "ref_log": "pan_ips: error -- real init, 0x5 (Out of memory), err_loc=3, rhel_4_amd64/release/build/panfs/ips/pan_ips.c:143",
+        "frequency": 1
+    },
+    {
+        "template": "e1000: <*>: e1000_watchdog: NIC Link is <*> <*> Mbps <*>",
+        "ref_log": "e1000: eth0: e1000_watchdog: NIC Link is Up 1000 Mbps Full Duplex",
+        "frequency": 1
+    },
+    {
+        "template": "System clock time adjusted to the past. Resetting next wakeup time.",
+        "ref_log": "System clock time adjusted to the past. Resetting next wakeup time.",
+        "frequency": 1
+    },
+    {
+        "template": "PCI interrupt <*> -> GSI <*> (level, low) -> IRQ <*>",
+        "ref_log": "PCI interrupt 0000:06:07.0[A] -> GSI 64 (level, low) -> IRQ 185",
+        "frequency": 1
+    },
+    {
+        "template": "<*> base files: <*>",
+        "ref_log": "Active base files: /var/lib/nova/instances/_base/a489c868f0c37da93b76227c91bb03908ac0e742",
+        "frequency": 1
+    },
+    {
+        "template": "AppleActuatorDevice::start Entered",
+        "ref_log": "AppleActuatorDevice::start Entered",
+        "frequency": 1
+    },
+    {
+        "template": "ignored is_io_service_close(<*>,<*>)",
+        "ref_log": "ignored is_io_service_close(0x100000420,IOHIDParamUserClient)",
+        "frequency": 1
+    },
+    {
+        "template": "BuildActDeviceEntry exit",
+        "ref_log": "BuildActDeviceEntry exit",
+        "frequency": 1
+    },
+    {
+        "template": "hibernate_machine_init reading",
+        "ref_log": "hibernate_machine_init reading",
+        "frequency": 1
+    },
+    {
+        "template": "############################## _getSysMsgList",
+        "ref_log": "############################## _getSysMsgList",
+        "frequency": 1
+    },
+    {
+        "template": "<*> <*><*> <*><*> <*> <*>",
+        "ref_log": "initDataPrivacy the dataPrivacy is true",
+        "frequency": 21
+    },
+    {
+        "template": "writeBlock blk_<*> received exception <*>: <*>",
+        "ref_log": "writeBlock blk_-3102267849859399193 received exception java.io.IOException: Connection reset by peer",
+        "frequency": 1
+    },
+    {
+        "template": "enabling pid=<*> for plug-in <*> <*> <*>",
+        "ref_log": "enabling pid=30298 for plug-in com.apple.ncplugin.FindMyFriends(1.0) 1E63F5A5-D9F4-4A1C-8B08-6F71290D52D5 /System/Library/Frameworks/NotificationCenter.framework/PlugIns/com.apple.ncplugin.FindMyFriends.appex",
+        "frequency": 1
+    },
+    {
+        "template": "MidplaneSwitchController performing bit sparing on <*> bit 3",
+        "ref_log": "MidplaneSwitchController performing bit sparing on R27-M1-L3-U18-C bit 3",
+        "frequency": 1
+    },
+    {
+        "template": "Closed socket connection for client /<*> (<*>)",
+        "ref_log": "Closed socket connection for client /10.10.34.12:36461 (no session established for client)",
+        "frequency": 1
+    },
+    {
+        "template": "no floppy controllers found",
+        "ref_log": "no floppy controllers found",
+        "frequency": 1
+    },
+    {
+        "template": "Creating Topspin /dev entries:",
+        "ref_log": "Creating Topspin /dev entries:",
+        "frequency": 1
+    },
+    {
+        "template": "InsertCallBack() onSuccess type = <*> data=<*>",
+        "ref_log": "InsertCallBack() onSuccess type = 0 data=true",
+        "frequency": 1
+    },
+    {
+        "template": "After Scheduling: PendingReds:<*> ScheduledMaps:<*> ScheduledReds:<*> AssignedMaps:<*> AssignedReds:<*> CompletedMaps:<*> CompletedReds:<*> ContAlloc:<*> ContRel:<*> HostLocal:<*> RackLocal:<*>",
+        "ref_log": "After Scheduling: PendingReds:1 ScheduledMaps:9 ScheduledReds:0 AssignedMaps:1 AssignedReds:0 CompletedMaps:0 CompletedReds:0 ContAlloc:1 ContRel:0 HostLocal:0 RackLocal:1",
+        "frequency": 1
+    },
+    {
+        "template": "Freeing unused kernel memory: <*>",
+        "ref_log": "Freeing unused kernel memory: 188k freed",
+        "frequency": 1
+    },
+    {
+        "template": "Registered BlockManager",
+        "ref_log": "Registered BlockManager",
+        "frequency": 1
+    },
+    {
+        "template": "YarnClusterScheduler.postStartHook done",
+        "ref_log": "YarnClusterScheduler.postStartHook done",
+        "frequency": 1
+    },
+    {
+        "template": "OutputCommitCoordinator stopped!",
+        "ref_log": "OutputCommitCoordinator stopped!",
+        "frequency": 1
+    },
+    {
+        "template": "Started SelectChannelConnector@<*>:<*>",
+        "ref_log": "Started SelectChannelConnector@0.0.0.0:46861",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: <*>: <*>: Original Seq: <*>, Ack: <*>, Win size: <*>",
+        "ref_log": "ARPT: 672779.018054: wl0: wl_update_tcpkeep_seq: Original Seq: 290129984, Ack: 1018310028, Win size: 4096",
+        "frequency": 1
+    },
+    {
+        "template": "NETWORK: requery, <*>, <*>, <*>, <*>, <*>, items, <*>, <*>, <*>",
+        "ref_log": "NETWORK: requery, 0, 0, 0, 0, 348, items, fQueryRetries, 1, fLastRetryTimestamp, 520826202.3",
+        "frequency": 1
+    },
+    {
+        "template": "calculateAltitudeWithCache totalAltitude=<*>",
+        "ref_log": "calculateAltitudeWithCache totalAltitude=90",
+        "frequency": 1
+    },
+    {
+        "template": "calculateCaloriesWithCache totalCalories=<*>",
+        "ref_log": "calculateCaloriesWithCache totalCalories=182941",
+        "frequency": 1
+    },
+    {
+        "template": "getStepsNotificationShowStatus= <*>",
+        "ref_log": "getStepsNotificationShowStatus= false",
+        "frequency": 1
+    },
+    {
+        "template": "timeStamp back,extendReportTimeStamp=<*>",
+        "ref_log": "timeStamp back,extendReportTimeStamp=1514149858000",
+        "frequency": 1
+    },
+    {
+        "template": "Booting processor <*>/<*> rip <*> rsp <*>",
+        "ref_log": "Booting processor 1/6 rip 6000 rsp 100bff05f58",
+        "frequency": 1
+    },
+    {
+        "template": "CPU<*>: Intel(R) Xeon(TM) CPU <*>GHz stepping <*>",
+        "ref_log": "CPU0: Intel(R) Xeon(TM) CPU 3.60GHz stepping 03",
+        "frequency": 1
+    },
+    {
+        "template": "<*> close, <*> bytes sent, <*> bytes received, lifetime <1 sec",
+        "ref_log": "client-lb.dropbox.com:443 close, 0 bytes sent, 0 bytes received, lifetime <1 sec",
+        "frequency": 1
+    },
+    {
+        "template": "Accepted password for <*> from <*> port <*> ssh2",
+        "ref_log": "Accepted password for curi from 137.189.90.232 port 50940 ssh2",
+        "frequency": 1
+    },
+    {
+        "template": "kvstart = <*>; kvend = <*>; length = <*>/<*>",
+        "ref_log": "kvstart = 16767536(67070144); kvend = 7854204(31416816); length = 8913333/6553600",
+        "frequency": 1
+    },
+    {
+        "template": "Job <*> failed: count at <*>, took <*> s",
+        "ref_log": "Job 3 failed: count at pnmf4.py:358, took 234.472444 s",
+        "frequency": 1
+    },
+    {
+        "template": "pam_unix(sshd:session): session opened for user <*> by (uid=0)",
+        "ref_log": "pam_unix(sshd:session): session opened for user curi by (uid=0)",
+        "frequency": 1
+    },
+    {
+        "template": "ImageIO: CGImageDestinationFinalize image destination does not have enough images",
+        "ref_log": "ImageIO: CGImageDestinationFinalize image destination does not have enough images",
+        "frequency": 1
+    },
+    {
+        "template": "Finished task <*> in stage <*> (TID <*>) <*>",
+        "ref_log": "Finished task 46.0 in stage 1.0 (TID 48) in 363 ms on mesos-master-1 (1/48)",
+        "frequency": 1
+    },
+    {
+        "template": "inconsistent nodesets <*>",
+        "ref_log": "inconsistent nodesets node-127 0x1fffffffa <ok> node-96 0x1fffffffe <ok> node-98 0x1fffffffa <ok>",
+        "frequency": 1
+    },
+    {
+        "template": "Exception in receiveBlock for block <*> java.io.IOException: Connection reset by peer",
+        "ref_log": "Exception in receiveBlock for block blk_-3102267849859399193 java.io.IOException: Connection reset by peer",
+        "frequency": 1
+    },
+    {
+        "template": "EXT3-fs: write access #<*># be enabled during recovery.",
+        "ref_log": "EXT3-fs: write access #15# be enabled during recovery.",
+        "frequency": 1
+    },
+    {
+        "template": "network_reachability_changed : network is <*>, netbiosd is <*>",
+        "ref_log": "network_reachability_changed : network is not reachable, netbiosd is shutting down",
+        "frequency": 1
+    },
+    {
+        "template": "getpeername (ftpd): Transport endpoint is not connected",
+        "ref_log": "getpeername (ftpd): Transport endpoint is not connected",
+        "frequency": 1
+    },
+    {
+        "template": "JOB_CREATE <*>",
+        "ref_log": "JOB_CREATE job_1445062781478_0018",
+        "frequency": 1
+    },
+    {
+        "template": "KILLING <*>",
+        "ref_log": "KILLING attempt_1445062781478_0019_m_000004_0",
+        "frequency": 1
+    },
+    {
+        "template": "Abandoning <*>",
+        "ref_log": "Abandoning BP-1347369012-10.190.173.170-1444972147527:blk_1073742515_1710",
+        "frequency": 1
+    },
+    {
+        "template": "ATTEMPT_START <*>",
+        "ref_log": "ATTEMPT_START task_1445062781478_0016_m_000000",
+        "frequency": 1
+    },
+    {
+        "template": "tlb error.........................<*>",
+        "ref_log": "tlb error.........................0",
+        "frequency": 1
+    },
+    {
+        "template": "[client <*>] Attempt to serve directory: <*>",
+        "ref_log": "[client 210.245.151.81] Attempt to serve directory: /var/www/html/",
+        "frequency": 1
+    },
+    {
+        "template": "Apache/2.0.49 (Fedora) configured -- resuming normal operations",
+        "ref_log": "Apache/2.0.49 (Fedora) configured -- resuming normal operations",
+        "frequency": 1
+    },
+    {
+        "template": "<*> Error Domain=NSURLErrorDomain Code=<*> \"<*>\" UserInfo={NSUnderlyingError=<*> {Error Domain=kCFErrorDomainCFNetwork Code=<*> \"<*>\" UserInfo={NSErrorFailingURLStringKey=<*>, NSErrorFailingURLKey=<*>, _kCFStreamErrorCodeKey=<*>, _kCFStreamErrorDomainKey=<*>, NSLocalizedDescription=<*>}}, NSErrorFailingURLStringKey=<*>, NSErrorFailingURLKey=<*>, _kCFStreamErrorDomainKey=<*>, _kCFStreamErrorCodeKey=<*>, NSLocalizedDescription=<*>}",
+        "ref_log": "2017-07-06 00:30:39.046 ksfetch[36445/0x7fff79824000] [lvl=2] -[FetchDelegate fetcher:failedWithError:] Fetcher generated error: Error Domain=NSURLErrorDomain Code=-1009 \"The Internet connection appears to be offline.\" UserInfo={NSUnderlyingError=0x100776f40 {Error Domain=kCFErrorDomainCFNetwork Code=-1009 \"The Internet connection appears to be offline.\" UserInfo={NSErrorFailingURLStringKey=http://tools.google.com/service/update2?cup2hreq=1a0ffcef35b0476b0ed0eb432c8d31ea408014829966fd6560490d452a136395&cup2key=7:2835435629, NSErrorFailingURLKey=http://tools.google.com/service/update2?cup2hreq=1a0ffcef35b0476b0ed0eb432c8d31ea408014829966fd6560490d452a136395&cup2key=7:2835435629, _kCFStreamErrorCodeKey=8, _kCFStreamErrorDomainKey=12, NSLocalizedDescription=The Internet connection appears to be offline.}}, NSErrorFailingURLStringKey=http://tools.google.com/service/update2?cup2hreq=1a0ffcef35b0476b0ed0eb432c8d31ea408014829966fd6560490d452a136395&cup2key=7:2835435629, NSErrorFailingURLKey=http://tools.google.com/service/update2?cup2hreq=1a0ffcef35b0476b0ed0eb432c8d31ea408014829966fd6560490d452a136395&cup2key=7:2835435629, _kCFStreamErrorDomainKey=12, _kCFStreamErrorCodeKey=8, NSLocalizedDescription=The Internet connection appears to be offline.}",
+        "frequency": 1
+    },
+    {
+        "template": "pan_ips: error -- real init, 0x5 (Out of memory), err_loc=3, rhel_4_amd64/release/build/panfs/ips/pan_ips.c:143 <11>Nov 9 16:30:<*> mount.panfs: bindcache: failed init IPS: 0x5 (Out of memory)",
+        "ref_log": "pan_ips: error -- real init, 0x5 (Out of memory), err_loc=3, rhel_4_amd64/release/build/panfs/ips/pan_ips.c:143 <11>Nov 9 16:30:28 mount.panfs: bindcache: failed init IPS: 0x5 (Out of memory)",
+        "frequency": 1
+    },
+    {
+        "template": "Path not allowed in target domain: type = <*>, path = <*> error = <*>: The specified service did not ship in the requestor's bundle, origin = <*>",
+        "ref_log": "Path not allowed in target domain: type = pid, path = /System/Library/StagedFrameworks/Safari/SafariShared.framework/Versions/A/XPCServices/com.apple.Safari.History.xpc/Contents/MacOS/com.apple.Safari.History error = 147: The specified service did not ship in the requestor's bundle, origin = /System/Library/StagedFrameworks/Safari/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc",
+        "frequency": 1
+    },
+    {
+        "template": "Exception running child : <*> from <*>/<*> to <*> failed on socket timeout exception: <*>; For more details see: <*>",
+        "ref_log": "Exception running child : java.net.NoRouteToHostException: No Route to Host from MININT-FNANLI5/127.0.0.1 to msra-sa-41:9000 failed on socket timeout exception: java.net.NoRouteToHostException: No route to host: no further information; For more details see: http://wiki.apache.org/hadoop/NoRouteToHost",
+        "frequency": 1
+    },
+    {
+        "template": "Google Chrome He[<*>] triggered unnest of range 0x7fff93c00000->0x7fff93e00000 of DYLD shared region in VM map <*>. While not abnormal for debuggers, this increases system memory footprint until the target exits.",
+        "ref_log": "Google Chrome He[36776] triggered unnest of range 0x7fff93c00000->0x7fff93e00000 of DYLD shared region in VM map 0x77c9114550458a9b. While not abnormal for debuggers, this increases system memory footprint until the target exits.",
+        "frequency": 1
+    },
+    {
+        "template": "SecOSStatusWith error:<*> Error Domain=NSOSStatusErrorDomain Code=<*> \"<*>\" (paramErr: error in user parameter list) UserInfo={NSDescription=<*>}",
+        "ref_log": "SecOSStatusWith error:[-50] Error Domain=NSOSStatusErrorDomain Code=-50 \"query missing class name\" (paramErr: error in user parameter list) UserInfo={NSDescription=query missing class name}",
+        "frequency": 1
+    },
+    {
+        "template": "<*>: Supported channels <*>",
+        "ref_log": "en0: Supported channels 1 2 3 4 5 6 7 8 9 10 11 12 13 36 40 44 48 52 56 60 64 100 104 108 112 116 120 124 128 132 136 140 144 149 153 157 161",
+        "frequency": 1
+    },
+    {
+        "template": "inconsistent nodesets node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok>",
+        "ref_log": "inconsistent nodesets node-63 0x1fffffffe <ok> node-32 0x000095fe <ok> node-33 0x000095fe <ok> node-34 0x000095fe <ok> node-54 0x1c08003fe <ok> node-47 0x0105fffe <ok> node-40 0x1c08003fe <ok>",
+        "frequency": 1
+    },
+    {
+        "template": "Instrumentation Service EventID: <*> Temperature sensor <*> value Sensor location: <*> Chassis location: <*> Previous state was: <*> Temperature sensor value (in Degrees Celsius): <*>",
+        "ref_log": "Instrumentation Service EventID: 1052 Temperature sensor returned to a normal value Sensor location: BMC Riser Temp Chassis location: Main System Chassis Previous state was: Unknown Temperature sensor value (in Degrees Celsius): 23.0",
+        "frequency": 1
+    },
+    {
+        "template": "inconsistent nodesets node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok>",
+        "ref_log": "inconsistent nodesets node-160 0x00000002 <ok> node-162 0x0000003e <ok> node-163 0x0000003e <ok> node-164 0x0000003e <ok> node-161 0x0000003e <ok>",
+        "frequency": 1
+    },
+    {
+        "template": "Loading keyring",
+        "ref_log": "Loading keyring",
+        "frequency": 1
+    },
+    {
+        "template": "autorun ...",
+        "ref_log": "autorun ...",
+        "frequency": 1
+    },
+    {
+        "template": "<*> usecs.",
+        "ref_log": "852.05 usecs.",
+        "frequency": 1
+    },
+    {
+        "template": "removing chargen",
+        "ref_log": "removing chargen",
+        "frequency": 1
+    },
+    {
+        "template": "Stopping syslog-ng:",
+        "ref_log": "Stopping syslog-ng:",
+        "frequency": 1
+    },
+    {
+        "template": "Prepared Local resources Map(__spark__.jar -> resource { scheme: \"hdfs\" host: \"<*>\" port: <*> file: \"<*>\" } size: <*> timestamp: <*> type: FILE visibility: PRIVATE, pyspark.zip -> resource { scheme: \"hdfs\" host: \"<*>\" port: <*> file: \"<*>\" } size: <*> timestamp: <*> type: FILE visibility: PRIVATE, py4j-0.9-src.zip -> resource { scheme: \"hdfs\" host: \"<*>\" port: <*> file: \"<*>\" } size: <*> timestamp: <*> type: FILE visibility: PRIVATE)",
+        "ref_log": "Prepared Local resources Map(__spark__.jar -> resource { scheme: \"hdfs\" host: \"10.10.34.11\" port: 9000 file: \"/user/curi/.sparkStaging/application_1485248649253_0047/spark-assembly-1.6.0-hadoop2.2.0.jar\" } size: 109525492 timestamp: 1490684938527 type: FILE visibility: PRIVATE, pyspark.zip -> resource { scheme: \"hdfs\" host: \"10.10.34.11\" port: 9000 file: \"/user/curi/.sparkStaging/application_1485248649253_0047/pyspark.zip\" } size: 355358 timestamp: 1490684938615 type: FILE visibility: PRIVATE, py4j-0.9-src.zip -> resource { scheme: \"hdfs\" host: \"10.10.34.11\" port: 9000 file: \"/user/curi/.sparkStaging/application_1485248649253_0047/py4j-0.9-src.zip\" } size: 44846 timestamp: 1490684938635 type: FILE visibility: PRIVATE)",
+        "frequency": 1
+    },
+    {
+        "template": ".sdef warning for attribute '<*>' of class '<*>' in suite '<*>': '<*>' is not a valid type name.",
+        "ref_log": ".sdef warning for attribute 'automationSecurity' of class 'application' in suite 'Microsoft Word Suite': 'mAuS' is not a valid type name.",
+        "frequency": 1
+    },
+    {
+        "template": "ide: Assuming <*> system bus speed for PIO modes; override with idebus=xx",
+        "ref_log": "ide: Assuming 33MHz system bus speed for PIO modes; override with idebus=xx",
+        "frequency": 3
+    },
+    {
+        "template": "Authentication failed from <*> (<*>): Permission denied in replay cache code",
+        "ref_log": "Authentication failed from 163.27.187.39 (163.27.187.39): Permission denied in replay cache code",
+        "frequency": 1
+    },
+    {
+        "template": "<*> more authentication failure; logname= uid=<*> euid=<*> tty=<*>ssh ruser= rhost=<*> user=<*>",
+        "ref_log": "1 more authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=80.96.171.182 user=test",
+        "frequency": 1
+    },
+    {
+        "template": "RAMDISK driver initialized: <*> RAM disks of <*>K size <*> blocksize",
+        "ref_log": "RAMDISK driver initialized: 16 RAM disks of 16384K size 1024 blocksize",
+        "frequency": 2
+    },
+    {
+        "template": "ACPI disabled because your bios is from <*> and too old",
+        "ref_log": "ACPI disabled because your bios is from 2000 and too old",
+        "frequency": 1
+    },
+    {
+        "template": "getResources() for <*>: ask=<*> release= <*> newContainers=<*> finishedContainers=<*> resourcelimit=<memory:<*>, vCores:<*>> knownNMs=<*>",
+        "ref_log": "getResources() for application_1445087491445_0002: ask=4 release= 0 newContainers=0 finishedContainers=1 resourcelimit=<memory:0, vCores:-27> knownNMs=4",
+        "frequency": 1
+    },
+    {
+        "template": "Error communicating with RM: Could not contact RM after <*> milliseconds.",
+        "ref_log": "Error communicating with RM: Could not contact RM after 360000 milliseconds.",
+        "frequency": 1
+    },
+    {
+        "template": "inconsistent nodesets node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok>",
+        "ref_log": "inconsistent nodesets node-33 0x000001fe <ok> node-34 0x000001fe <ok> node-32 0x0801fdfe <ok> node-35 0x000001fe <ok> node-39 0x000001fe <ok> node-37 0x000001fe <ok> node-36 0x000001fe <ok> node-38 0x000001fe <ok>",
+        "frequency": 1
+    },
+    {
+        "template": "inconsistent nodesets node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok> node-<*> <*> <ok>",
+        "ref_log": "inconsistent nodesets node-0 0x0001e1fe <ok> node-3 0x0001fdfe <ok> node-2 0x4001fdfe <ok> node-1 0x4001fdfe <ok> node-7 0x4001fdfe <ok> node-6 0x4001fdfe <ok>",
+        "frequency": 1
+    },
+    {
+        "template": "[ib_sm_bringup.c:584]: Force neighbor port (node=<*>, port=<*>) to DOWN because state(<*>) should be active but not.",
+        "ref_log": "[ib_sm_bringup.c:584]: Force neighbor port (node=66a0001000257, port=8) to DOWN because state(1) should be active but not.",
+        "frequency": 1
+    },
+    {
+        "template": "Stopped Spark web UI at <*>",
+        "ref_log": "Stopped Spark web UI at http://10.10.34.23:33134",
+        "frequency": 1
+    },
+    {
+        "template": "MemoryStore started with capacity <*> GB",
+        "ref_log": "MemoryStore started with capacity 14.2 GB",
+        "frequency": 1
+    },
+    {
+        "template": "[<*>] FigFileForkOpenMainByCFURL signalled err=<*> (errno) (open failed) at <*> line <*>",
+        "ref_log": "[17:14:21.117] FigFileForkOpenMainByCFURL signalled err=35 (errno) (open failed) at /Library/Caches/com.apple.xbs/Sources/CoreMedia_frameworks/CoreMedia-1731.15.207/Sources/Platform/Darwin/DarwinFile.c line 456",
+        "frequency": 1
+    },
+    {
+        "template": "hibernate_page_list_setall preflight pageCount <*> est comp <*> setfile <*> min <*>",
+        "ref_log": "hibernate_page_list_setall preflight pageCount 564974 est comp 36 setfile 933232640 min 1073741824",
+        "frequency": 1
+    },
+    {
+        "template": "Opened file <*>, size <*>, extents <*>, maxio <*> ssd <*>",
+        "ref_log": "Opened file /var/log/SleepWakeStacks.bin, size 172032, extents 1, maxio 2000000 ssd 1",
+        "frequency": 1
+    },
+    {
+        "template": "Extension remained dirty for too long after trying to exit. Killing.",
+        "ref_log": "Extension remained dirty for too long after trying to exit. Killing.",
+        "frequency": 1
+    },
+    {
+        "template": "tcp_connection_destination_perform_socket_connect <*> connectx to <*>@<*> failed: [<*>] Can't assign requested address",
+        "ref_log": "tcp_connection_destination_perform_socket_connect 25135 connectx to 183.36.108.140:80@0 failed: [49] Can't assign requested address",
+        "frequency": 1
+    },
+    {
+        "template": "saveHealthDetailData() saveOneDetailData fail hiHealthData = <*>,type = <*>",
+        "ref_log": "saveHealthDetailData() saveOneDetailData fail hiHealthData = 1514390400000,type = 40005",
+        "frequency": 1
+    },
+    {
+        "template": "Setting clock (<*>): <*> <*> <*> <*> <*> <*> succeeded",
+        "ref_log": "Setting clock (localtime): Wed Nov 9 15:57:35 MST 2005 succeeded",
+        "frequency": 1
+    },
+    {
+        "template": "IOThunderboltSwitch<*>(<*>)::listenerCallback - Thunderbolt HPD packet for route = <*> port = <*> unplug = <*>",
+        "ref_log": "IOThunderboltSwitch<0>(0x0)::listenerCallback - Thunderbolt HPD packet for route = 0x0 port = 11 unplug = 0",
+        "frequency": 1
+    },
+    {
+        "template": "Endpoint has been activated through legacy launch(<*>) APIs. Please switch to XPC or bootstrap_check_in(): <*>",
+        "ref_log": "Endpoint has been activated through legacy launch(3) APIs. Please switch to XPC or bootstrap_check_in(): com.apple.CoreLocation.agent",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: AQM agg results <*> len hi/lo: <*> BAbitmap(<*> <*> <*> <*> <*>",
+        "ref_log": "ARPT: 621197.900441: AQM agg results 0x8001 len hi/lo: 0x0 0x26 BAbitmap(0-3) 0 0 0 0",
+        "frequency": 1
+    },
+    {
+        "template": "<*> error : Could not connect through proxy proxy.cse.cuhk.edu.hk:5070 - Proxy server cannot establish a connection with the target, status code <*>",
+        "ref_log": "xf.stat-doctor.qq.com:443 error : Could not connect through proxy proxy.cse.cuhk.edu.hk:5070 - Proxy server cannot establish a connection with the target, status code 503",
+        "frequency": 1
+    },
+    {
+        "template": "IOBluetoothUSBDFU::probe",
+        "ref_log": "IOBluetoothUSBDFU::probe",
+        "frequency": 1
+    },
+    {
+        "template": "AppleCamIn::handleWakeEvent_gated",
+        "ref_log": "AppleCamIn::handleWakeEvent_gated",
+        "frequency": 1
+    },
+    {
+        "template": "kern_open_file_for_direct_io(<*>)",
+        "ref_log": "kern_open_file_for_direct_io(0)",
+        "frequency": 1
+    },
+    {
+        "template": "jemmytest",
+        "ref_log": "jemmytest",
+        "frequency": 1
+    },
+    {
+        "template": "CCFile::captureLog",
+        "ref_log": "CCFile::captureLog",
+        "frequency": 1
+    },
+    {
+        "template": "warning: unable to look up <*>: No such file or directory",
+        "ref_log": "warning: unable to look up public/pickup: No such file or directory",
+        "frequency": 1
+    },
+    {
+        "template": "Incomplete task interrupted: Attempting to kill Python Worker",
+        "ref_log": "Incomplete task interrupted: Attempting to kill Python Worker",
+        "frequency": 1
+    },
+    {
+        "template": "message repeated <*> times: [ Failed password for root from <*> port <*> ssh2]",
+        "ref_log": "message repeated 5 times: [ Failed password for root from 60.186.247.224 port 55560 ssh2]",
+        "frequency": 1
+    },
+    {
+        "template": "FA||Url||taskID[<*>] dealloc",
+        "ref_log": "FA||Url||taskID[2019353354] dealloc",
+        "frequency": 1
+    },
+    {
+        "template": "handle_will_sleep_auth_and_shield_windows: Deferring.",
+        "ref_log": "handle_will_sleep_auth_and_shield_windows: Deferring.",
+        "frequency": 1
+    },
+    {
+        "template": "encryptStart <*>",
+        "ref_log": "encryptStart 14020",
+        "frequency": 1
+    },
+    {
+        "template": "hibernate_rebuild started",
+        "ref_log": "hibernate_rebuild started",
+        "frequency": 1
+    },
+    {
+        "template": "-[PushServiceStoreDispatch getEnabledMediaTypesWithReply:]",
+        "ref_log": "-[PushServiceStoreDispatch getEnabledMediaTypesWithReply:]",
+        "frequency": 1
+    },
+    {
+        "template": "<*> configured",
+        "ref_log": "mod_security/1.9dev2 configured",
+        "frequency": 1
+    },
+    {
+        "template": "startInsertSportSync first <*> steps sync,do all sync",
+        "ref_log": "startInsertSportSync first 500 steps sync,do all sync",
+        "frequency": 1
+    },
+    {
+        "template": "Targeting domains:node-D0 and nodes:node-[<*>]",
+        "ref_log": "Targeting domains:node-D0 and nodes:node-[12-13\\ 20-21]",
+        "frequency": 1
+    },
+    {
+        "template": "ServerFileSystem domain give_domain is full",
+        "ref_log": "ServerFileSystem domain give_domain is full",
+        "frequency": 1
+    },
+    {
+        "template": "<*>:<*>:Transmitted block <*> to /<*>:<*>",
+        "ref_log": "10.250.14.224:50010:Transmitted block blk_-1608999687919862906 to /10.251.215.16:50010",
+        "frequency": 1
+    },
+    {
+        "template": "Connection broken for id <*>, my id = <*>, error =",
+        "ref_log": "Connection broken for id 188978561024, my id = 2, error =",
+        "frequency": 1
+    },
+    {
+        "template": "registered new driver <*>",
+        "ref_log": "registered new driver hiddev",
+        "frequency": 1
+    },
+    {
+        "template": "Public key <*> used.",
+        "ref_log": "Public key /root/.ssh2/id_dsa_cap_ssh.pub used.",
+        "frequency": 1
+    },
+    {
+        "template": "<*>: scheduler_evaluate_activity told me to run this job; however, but the start time isn't for <*> seconds. Ignoring.",
+        "ref_log": "com.apple.Safari.SafeBrowsing.Update: scheduler_evaluate_activity told me to run this job; however, but the start time isn't for 2450 seconds. Ignoring.",
+        "frequency": 1
+    },
+    {
+        "template": "floating point instr. enabled.....<*>",
+        "ref_log": "floating point instr. enabled.....1",
+        "frequency": 1
+    },
+    {
+        "template": "<*>: clean, <*> files, <*>/<*> blocks",
+        "ref_log": "/tmp: clean, 22/4947968 files, 175767/9887999 blocks",
+        "frequency": 1
+    },
+    {
+        "template": "Slf4jLogger started",
+        "ref_log": "Slf4jLogger started",
+        "frequency": 1
+    },
+    {
+        "template": "Starting remoting",
+        "ref_log": "Starting remoting",
+        "frequency": 1
+    },
+    {
+        "template": "ApplicationAttemptId: <*>",
+        "ref_log": "ApplicationAttemptId: appattempt_1485248649253_0037_000001",
+        "frequency": 1
+    },
+    {
+        "template": "MemoryStore cleared",
+        "ref_log": "MemoryStore cleared",
+        "frequency": 1
+    },
+    {
+        "template": "stopped o.s.j.s.ServletContextHandler{<*>,<*>}",
+        "ref_log": "stopped o.s.j.s.ServletContextHandler{/jobs/job,null}",
+        "frequency": 1
+    },
+    {
+        "template": "upLoadOneMinuteDataToEngine time=<*>",
+        "ref_log": "upLoadOneMinuteDataToEngine time=25235047,0,15,0,20002",
+        "frequency": 1
+    },
+    {
+        "template": "Kerberos password accepted for user #41# (#41#@#24#).",
+        "ref_log": "Kerberos password accepted for user #41# (#41#@#24#).",
+        "frequency": 1
+    },
+    {
+        "template": "ehci_hcd 0000:00:1d.7: irq 193, pci mem ffffff00106dc000",
+        "ref_log": "ehci_hcd 0000:00:1d.7: irq 193, pci mem ffffff00106dc000",
+        "frequency": 1
+    },
+    {
+        "template": "Failed while starting block fetches",
+        "ref_log": "Failed while starting block fetches",
+        "frequency": 1
+    },
+    {
+        "template": "<*>:<*> error : A connection request was canceled before the completion.",
+        "ref_log": "oimagea5.ydstatic.com:80 error : A connection request was canceled before the completion.",
+        "frequency": 1
+    },
+    {
+        "template": "Failed password for <*> from <*> port <*> ssh2",
+        "ref_log": "Failed password for root from 183.62.140.253 port 35304 ssh2",
+        "frequency": 1
+    },
+    {
+        "template": "CoreAnimation: warning, deleted thread with uncommitted CATransaction; set CA_DEBUG_TRANSACTIONS=1 in environment to log backtraces.",
+        "ref_log": "CoreAnimation: warning, deleted thread with uncommitted CATransaction; set CA_DEBUG_TRANSACTIONS=1 in environment to log backtraces.",
+        "frequency": 1
+    },
+    {
+        "template": "ARPT: <*>: AQM agg params <*> maxlen hi/lo <*> minlen <*> adjlen <*>",
+        "ref_log": "ARPT: 770712.787652: AQM agg params 0xfc0 maxlen hi/lo 0x0 0xffff minlen 0x0 adjlen 0x0",
+        "frequency": 1
+    },
+    {
+        "template": "[HID] [ATC] [Error] AppleDeviceManagementHIDEventService::start Could not make a string from out connection notification key",
+        "ref_log": "[HID] [ATC] [Error] AppleDeviceManagementHIDEventService::start Could not make a string from out connection notification key",
+        "frequency": 1
+    },
+    {
+        "template": "setTodayTotalDetailSteps=<*><*><*><*><*><*>",
+        "ref_log": "setTodayTotalDetailSteps=1514284200000##4364##1023855##77229##62451##56106574",
+        "frequency": 1
+    },
+    {
+        "template": "The job-conf file on the remote FS is <*>/job.xml",
+        "ref_log": "The job-conf file on the remote FS is /tmp/hadoop-yarn/staging/msrabi/.staging/job_1445062781478_0016/job.xml",
+        "frequency": 1
+    },
+    {
+        "template": "rts panic! - stopping execution",
+        "ref_log": "rts panic! - stopping execution",
+        "frequency": 1
+    },
+    {
+        "template": "Server environment:<*>, built on <*>",
+        "ref_log": "Server environment:zookeeper.version=3.4.5--1, built on 06/10/2013 17:26 GMT",
+        "frequency": 1
+    },
+    {
+        "template": "Found inactive connection to <*>/<*>:<*>, creating a new one.",
+        "ref_log": "Found inactive connection to mesos-slave-11/10.10.34.21:54378, creating a new one.",
+        "frequency": 1
+    },
+    {
+        "template": "Job <*> finished: <*> at <*>:<*>, took <*> s",
+        "ref_log": "Job 0 finished: collect at pnmf4.py:292, took 5.679733 s",
+        "frequency": 1
+    },
+    {
+        "template": "Error sending message [<*>] in <*> attempts",
+        "ref_log": "Error sending message [message = GetLocations(broadcast_4_piece251)] in 1 attempts",
+        "frequency": 1
+    },
+    {
+        "template": "Received disconnect from <*>: <*>: <*>",
+        "ref_log": "Received disconnect from 119.137.62.142: 11: disconnected by user",
+        "frequency": 1
+    },
+    {
+        "template": "Disconnecting: <*> for <*> [<*>]",
+        "ref_log": "Disconnecting: Too many authentication failures for admin [preauth]",
+        "frequency": 1
+    },
+    {
+        "template": "PAM service(<*>) ignoring max retries; <*> > <*>",
+        "ref_log": "PAM service(sshd) ignoring max retries; 6 > 3",
+        "frequency": 1
+    },
+    {
+        "template": "Received disconnect from <*>: <*>: <*> [<*>]",
+        "ref_log": "Received disconnect from 183.62.140.253: 11: Bye Bye [preauth]",
+        "frequency": 1
+    },
+    {
+        "template": "assigned <*> of <*> to <*> to fetcher#<*>",
+        "ref_log": "assigned 1 of 1 to MSRA-SA-41.fareast.corp.microsoft.com:13562 to fetcher#1",
+        "frequency": 1
+    },
+    {
+        "template": "Receiving block <*> src: /<*>:<*> dest: /<*>:<*>",
+        "ref_log": "Receiving block blk_4333100743580272058 src: /10.251.91.84:58554 dest: /10.251.91.84:50010",
+        "frequency": 1
+    },
+    {
+        "template": "[client <*>] request failed: <*>",
+        "ref_log": "[client 66.173.222.134] request failed: URI too long (longer than 8190)",
+        "frequency": 1
+    },
+    {
+        "template": "maxSessionTimeout set to <*>",
+        "ref_log": "maxSessionTimeout set to -1",
+        "frequency": 1
+    },
+    {
+        "template": "input_userauth_request: invalid user <*> [<*>]",
+        "ref_log": "input_userauth_request: invalid user test [preauth]",
+        "frequency": 1
+    },
+    {
+        "template": "Connection closed by <*> [<*>]",
+        "ref_log": "Connection closed by 183.57.42.19 [preauth]",
+        "frequency": 1
+    },
+    {
+        "template": "onReceive action: <*>",
+        "ref_log": "onReceive action: android.intent.action.SCREEN_OFF",
+        "frequency": 1
+    },
+    {
+        "template": "flushTempCacheToDB by <*>",
+        "ref_log": "flushTempCacheToDB by stand",
+        "frequency": 1
+    },
+    {
+        "template": "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*> is added to <*> size <*>",
+        "ref_log": "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.39.242:50010 is added to blk_-8187589158061744826 size 67108864",
+        "frequency": 1
+    },
+    {
+        "template": "Service <*> tried to hijack endpoint <*> from owner: <*>",
+        "ref_log": "Service \"com.apple.xpc.launchd.unmanaged.loginwindow.94\" tried to hijack endpoint \"com.apple.tsm.uiserver\" from owner: com.apple.SystemUIServer.agent",
+        "frequency": 1
+    },
+    {
+        "template": "device_generate_lock_screen_screenshot: authw <*> shield <*>, dev <*>",
+        "ref_log": "device_generate_lock_screen_screenshot: authw 0x7fa823c89600(2000)[0, 0, 1440, 900] shield 0x7fa8258cac00(2001), dev [1440,900]",
+        "frequency": 1
+    },
+    {
+        "template": "tcp_connection_destination_perform_socket_connect <*> connectx to <*>@<*> failed: [<*>] <*>",
+        "ref_log": "tcp_connection_destination_perform_socket_connect 10784 connectx to 40.97.130.210:443@0 failed: [50] Network is down",
+        "frequency": 1
+    },
+    {
+        "template": "mapResourceRequest:<memory:<*>, vCores:<*>>",
+        "ref_log": "mapResourceRequest:<memory:1024, vCores:1>",
+        "frequency": 1
+    },
+    {
+        "template": "Started <*>@<*>:<*>",
+        "ref_log": "Started HttpServer2$SelectChannelConnectorWithSafeStartup@0.0.0.0:44086",
+        "frequency": 1
+    },
+    {
+        "template": "mapreduce.task.io.sort.mb: <*>",
+        "ref_log": "mapreduce.task.io.sort.mb: 100",
+        "frequency": 1
+    },
+    {
+        "template": "queue: <*>",
+        "ref_log": "queue: default",
+        "frequency": 1
+    },
+    {
+        "template": "Launching <*>",
+        "ref_log": "Launching attempt_1445062781478_0016_r_000000_0",
+        "frequency": 1
+    },
+    {
+        "template": "psu failure\\ ambient=<*>",
+        "ref_log": "psu failure\\ ambient=25",
+        "frequency": 1
+    },
+    {
+        "template": "Digest: generating secret for digest authentication ...",
+        "ref_log": "Digest: generating secret for digest authentication ...",
+        "frequency": 1
     }
 ]

@@ -145,10 +145,10 @@ def generate_html_report(viz_data, output_path='data/report.html'):
         </header>
 
         <!-- Dynamic Summary Cards -->
-        <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"></div>
+        <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
 
         <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <!-- Radar Chart Card -->
             <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-4 text-white">Accuracy Profile (Radar)</h3>
@@ -164,43 +164,120 @@ def generate_html_report(viz_data, output_path='data/report.html'):
                     <canvas id="barChart"></canvas>
                 </div>
             </div>
+
+            <!-- Scatter Plot Card -->
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <h3 class="text-lg font-semibold mb-4 text-white">Cost vs. Benefit (Scatter)</h3>
+                <div class="relative h-96">
+                    <canvas id="scatterPlot"></canvas>
+                </div>
+            </div>
+
+            <!-- Cache Scalability Line Chart Card -->
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <h3 class="text-lg font-semibold mb-4 text-white">Cache Scalability (Log Volume vs Invocations)</h3>
+                <div class="relative h-96">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Correlation Heatmap Card -->
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 lg:col-span-2">
+                <h3 class="text-lg font-semibold mb-4 text-white">Spearman Rank Correlation Matrix</h3>
+                <div class="overflow-x-auto">
+                    <table class="table-auto w-full text-center border-collapse text-gray-300">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="p-4"></th>
+                                <th class="p-4 font-semibold text-white">PMSS</th>
+                                <th class="p-4 font-semibold text-white">FGA</th>
+                                <th class="p-4 font-semibold text-white">FTA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-800">
+                                <td class="p-4 font-semibold text-white">PMSS</td>
+                                <td class="p-4 bg-indigo-900 text-white font-bold">1.0000</td>
+                                <td id="cell-pmss-fga" class="p-4 font-bold">-</td>
+                                <td id="cell-pmss-fta" class="p-4 font-bold">-</td>
+                            </tr>
+                            <tr class="border-b border-gray-800">
+                                <td class="p-4 font-semibold text-white">FGA</td>
+                                <td id="cell-fga-pmss" class="p-4 font-bold">-</td>
+                                <td class="p-4 bg-indigo-900 text-white font-bold">1.0000</td>
+                                <td id="cell-fga-fta" class="p-4 font-bold">-</td>
+                            </tr>
+                            <tr>
+                                <td class="p-4 font-semibold text-white">FTA</td>
+                                <td id="cell-fta-pmss" class="p-4 font-bold">-</td>
+                                <td id="cell-fta-fga" class="p-4 font-bold">-</td>
+                                <td class="p-4 bg-indigo-900 text-white font-bold">1.0000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const reportData = {json.dumps(viz_data)};
-        const parser = Object.keys(reportData.summary)[0];
-        const summary = reportData.summary[parser];
+        const parsers = Object.keys(reportData.summary);
         
-        // Build cards
+        // Build summary cards
         const cardContainer = document.getElementById('summary-cards');
-        const metrics = [
-            {{ name: 'Group Accuracy (GA)', val: (summary.GA * 100).toFixed(1) + '%' }},
-            {{ name: 'Parsing Accuracy (PA)', val: (summary.PA * 100).toFixed(1) + '%' }},
-            {{ name: 'Few-shot Template (FTA)', val: (summary.FTA * 100).toFixed(1) + '%' }},
-            {{ name: 'LLM Invocations', val: summary.LLM_Calls.toLocaleString() }}
-        ];
-        metrics.forEach(m => {{
+        parsers.forEach(parser => {{
+            const summary = reportData.summary[parser];
+            const failRate = (summary.failure_rate * 100).toFixed(2) + '%';
             cardContainer.innerHTML += `
                 <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                    <div class="text-sm font-medium text-gray-400 truncate">${{m.name}}</div>
-                    <div class="mt-2 text-3xl font-semibold text-white">${{m.val}}</div>
+                    <div class="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-2">${{parser.toUpperCase()}}</div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-gray-400">GA / PA</div>
+                            <div class="text-lg font-bold text-white">${{(summary.GA * 100).toFixed(1)}}% / ${{(summary.PA * 100).toFixed(1)}}%</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Time / Tokens</div>
+                            <div class="text-lg font-bold text-white">${{Math.round(summary.Time_s)}}s / ${{summary.Tokens.toLocaleString()}}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Timeouts / Failures</div>
+                            <div class="text-lg font-bold text-white">${{summary.llm_timeouts}} / ${{summary.failed_invocations}}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Failure Rate</div>
+                            <div class="text-lg font-bold text-red-400">${{failRate}}</div>
+                        </div>
+                    </div>
                 </div>
             `;
         }});
 
-        // Render Radar
+        // 1. Accuracy Profile (Radar)
+        const radarColors = [
+            {{ bg: 'rgba(99, 110, 250, 0.2)', border: 'rgba(99, 110, 250, 1)' }},
+            {{ bg: 'rgba(239, 85, 59, 0.2)', border: 'rgba(239, 85, 59, 1)' }},
+            {{ bg: 'rgba(0, 204, 150, 0.2)', border: 'rgba(0, 204, 150, 1)' }}
+        ];
+        
+        const radarDatasets = parsers.map((parser, idx) => {{
+            const summary = reportData.summary[parser];
+            const color = radarColors[idx % radarColors.length];
+            return {{
+                label: parser.toUpperCase(),
+                data: [summary.GA, summary.PA, summary.FGA, summary.FTA, summary.PMSS],
+                backgroundColor: color.bg,
+                borderColor: color.border,
+                borderWidth: 2
+            }};
+        }});
+
         new Chart(document.getElementById('radarChart'), {{
             type: 'radar',
             data: {{
                 labels: ['GA', 'PA', 'FGA', 'FTA', 'PMSS'],
-                datasets: [{{
-                    label: parser.toUpperCase(),
-                    data: [summary.GA, summary.PA, summary.FGA, summary.FTA, summary.PMSS],
-                    backgroundColor: 'rgba(99, 110, 250, 0.2)',
-                    borderColor: 'rgba(99, 110, 250, 1)',
-                    borderWidth: 2
-                }}]
+                datasets: radarDatasets
             }},
             options: {{
                 responsive: true,
@@ -221,30 +298,43 @@ def generate_html_report(viz_data, output_path='data/report.html'):
             }}
         }});
 
-        // Render Bar Chart
-        const sens = reportData.visualizations.grouped_bar_chart_sensitivity[parser];
-        const levels = Object.keys(sens);
-        const paData = levels.map(l => sens[l].PA);
-        const ftaData = levels.map(l => sens[l].FTA);
+        // 2. Bar Chart Datasets (Sensitivity Corrections)
+        const barColors = [
+            {{ pa: '#636EFA', fta: '#EF553B' }},
+            {{ pa: '#33b5e5', fta: '#ff4444' }},
+            {{ pa: '#00C851', fta: '#ffbb33' }}
+        ];
+        const barDatasets = [];
+        parsers.forEach((parser, idx) => {{
+            const sens = reportData.visualizations.grouped_bar_chart_sensitivity[parser];
+            if (!sens) return;
+            const levels = Object.keys(sens);
+            const paData = levels.map(l => sens[l].PA);
+            const ftaData = levels.map(l => sens[l].FTA);
+            const color = barColors[idx % barColors.length];
+            
+            barDatasets.push({{
+                label: `${{parser.toUpperCase()}} PA`,
+                data: paData,
+                backgroundColor: color.pa,
+                borderRadius: 4
+            }});
+            barDatasets.push({{
+                label: `${{parser.toUpperCase()}} FTA`,
+                data: ftaData,
+                backgroundColor: color.fta,
+                borderRadius: 4
+            }});
+        }});
+
+        const tempSens = reportData.visualizations.grouped_bar_chart_sensitivity[parsers[0]];
+        const sensLevels = tempSens ? Object.keys(tempSens) : [];
 
         new Chart(document.getElementById('barChart'), {{
             type: 'bar',
             data: {{
-                labels: levels.map(l => l.toUpperCase()),
-                datasets: [
-                    {{
-                        label: 'Parsing Accuracy (PA)',
-                        data: paData,
-                        backgroundColor: '#636EFA',
-                        borderRadius: 4
-                    }},
-                    {{
-                        label: 'Few-shot Template (FTA)',
-                        data: ftaData,
-                        backgroundColor: '#EF553B',
-                        borderRadius: 4
-                    }}
-                ]
+                labels: sensLevels.map(l => l.toUpperCase()),
+                datasets: barDatasets
             }},
             options: {{
                 responsive: true,
@@ -258,10 +348,120 @@ def generate_html_report(viz_data, output_path='data/report.html'):
                 }}
             }}
         }});
+
+        // 3. Scatter Plot (Cost vs Benefit)
+        const scatterColors = ['#636EFA', '#EF553B', '#00CC96'];
+        const scatterDatasets = parsers.map((parser, idx) => {{
+            const summary = reportData.summary[parser];
+            return {{
+                label: parser.toUpperCase(),
+                data: [{{ x: summary.Time_s, y: summary.FGA }}],
+                backgroundColor: scatterColors[idx % scatterColors.length],
+                pointRadius: 10,
+                pointHoverRadius: 12
+            }};
+        }});
+
+        new Chart(document.getElementById('scatterPlot'), {{
+            type: 'scatter',
+            data: {{
+                datasets: scatterDatasets
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {{
+                    x: {{
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {{ display: true, text: 'Execution Time (seconds)', color: '#9CA3AF' }},
+                        ticks: {{ color: '#9CA3AF' }},
+                        grid: {{ color: 'rgba(255, 255, 255, 0.1)' }}
+                    }},
+                    y: {{
+                        title: {{ display: true, text: 'FGA (Few-shot Group Accuracy)', color: '#9CA3AF' }},
+                        ticks: {{ color: '#9CA3AF' }},
+                        grid: {{ color: 'rgba(255, 255, 255, 0.1)' }},
+                        suggestedMin: 0,
+                        suggestedMax: 1
+                    }}
+                }},
+                plugins: {{
+                    legend: {{ labels: {{ color: '#FFF' }} }}
+                }}
+            }}
+        }});
+
+        // 4. Line Chart (Cache Scalability)
+        const lineColors = ['#636EFA', '#EF553B', '#00CC96'];
+        const lineDatasets = parsers.map((parser, idx) => {{
+            const hData = reportData.visualizations.line_graph_cache_scalability[parser]?.history || [];
+            return {{
+                label: parser.toUpperCase(),
+                data: hData.map(h => ({{ x: h.log_volume, y: h.llm_invocations }})),
+                borderColor: lineColors[idx % lineColors.length],
+                backgroundColor: 'transparent',
+                borderWidth: 2.5,
+                tension: 0.1,
+                pointRadius: 4
+            }};
+        }});
+
+        new Chart(document.getElementById('lineChart'), {{
+            type: 'line',
+            data: {{
+                datasets: lineDatasets
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {{
+                    x: {{
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {{ display: true, text: 'Log Ingestion Volume', color: '#9CA3AF' }},
+                        ticks: {{ color: '#9CA3AF' }},
+                        grid: {{ color: 'rgba(255, 255, 255, 0.1)' }}
+                    }},
+                    y: {{
+                        title: {{ display: true, text: 'Cumulative LLM Invocations', color: '#9CA3AF' }},
+                        ticks: {{ color: '#9CA3AF' }},
+                        grid: {{ color: 'rgba(255, 255, 255, 0.1)' }}
+                    }}
+                }},
+                plugins: {{
+                    legend: {{ labels: {{ color: '#FFF' }} }}
+                }}
+            }}
+        }});
+
+        // 5. Correlation Heatmap Grid Population
+        const matrix = reportData.correlation_matrix || {{ pmss_fga: 0, pmss_fta: 0, fga_fta: 0 }};
+        const cellColor = (val) => {{
+            const absVal = Math.abs(val);
+            return val >= 0 ? `rgba(99, 110, 250, ${{absVal}})` : `rgba(239, 85, 59, ${{absVal}})`;
+        }};
+        const setCell = (id, val) => {{
+            const cell = document.getElementById(id);
+            if (cell) {{
+                cell.innerText = val.toFixed(4);
+                cell.style.backgroundColor = cellColor(val);
+                cell.style.color = '#FFF';
+            }}
+        }};
+        
+        setCell('cell-pmss-fga', matrix.pmss_fga);
+        setCell('cell-fga-pmss', matrix.pmss_fga);
+        
+        setCell('cell-pmss-fta', matrix.pmss_fta);
+        setCell('cell-fta-pmss', matrix.pmss_fta);
+        
+        setCell('cell-fga-fta', matrix.fga_fta);
+        setCell('cell-fta-fga', matrix.fga_fta);
     </script>
 </body>
 </html>"""
-    
+
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
 
@@ -407,6 +607,8 @@ def main():
             history = []
             model_used = "unknown-model"
             method_used = "unknown-method"
+            llm_timeouts = 0
+            failed_invocations = 0
             profile_file = os.path.join(parsed_dir, f"{parser_name}_profile.json")
             if os.path.exists(profile_file):
                 try:
@@ -418,6 +620,8 @@ def main():
                         history = prof_data.get('history', [])
                         model_used = prof_data.get('model_used', model_used)
                         method_used = prof_data.get('method_used', method_used)
+                        llm_timeouts = prof_data.get('llm_timeouts', 0)
+                        failed_invocations = prof_data.get('failed_invocations', 0)
                 except Exception as e:
                     logger.error(f"Error loading profile for {parser_name}: {e}")
             metrics['Time(s)'] = time_score
@@ -426,12 +630,42 @@ def main():
             metrics['history'] = history
             metrics['model_used'] = model_used
             metrics['method_used'] = method_used
+            metrics['llm_timeouts'] = llm_timeouts
+            metrics['failed_invocations'] = failed_invocations
+            total_attempts = llm_invocations + llm_timeouts + failed_invocations
+            metrics['failure_rate'] = (llm_timeouts + failed_invocations) / total_attempts if total_attempts > 0 else 0.0
             
             report[parser_name] = metrics
             
         except Exception as e:
             logger.error(f"Error evaluating {pf}: {e}")
             
+    # 4. Calculate Spearman rank correlations
+    from scipy.stats import spearmanr
+    import math
+    
+    pmss_vals = []
+    fga_vals = []
+    fta_vals = []
+    
+    for parser, met in report.items():
+        pmss_vals.append(met.get('PMSS', 0.0))
+        fga_vals.append(met.get('FGA', 0.0))
+        fta_vals.append(met.get('FTA', 0.0))
+        
+    corr_pmss_fga, _ = spearmanr(pmss_vals, fga_vals) if len(pmss_vals) > 1 else (0.0, 1.0)
+    corr_pmss_fta, _ = spearmanr(pmss_vals, fta_vals) if len(pmss_vals) > 1 else (0.0, 1.0)
+    corr_fga_fta, _ = spearmanr(fga_vals, fta_vals) if len(fga_vals) > 1 else (0.0, 1.0)
+    
+    if math.isnan(corr_pmss_fga): corr_pmss_fga = 0.0
+    if math.isnan(corr_pmss_fta): corr_pmss_fta = 0.0
+    if math.isnan(corr_fga_fta): corr_fga_fta = 0.0
+    
+    logger.info("Spearman Rank Correlation Coefficients across evaluated parsers:")
+    logger.info(f"  PMSS vs. FGA: {corr_pmss_fga:.4f}")
+    logger.info(f"  PMSS vs. FTA: {corr_pmss_fta:.4f}")
+    logger.info(f"  FGA vs. FTA: {corr_fga_fta:.4f}")
+
     report_file = 'data/evaluation_report.json'
     with open(report_file, 'w') as f:
         # Standard reports
@@ -443,6 +677,11 @@ def main():
     # Generate schema-compliant visualization report
     viz_report = {
         "summary": {},
+        "correlation_matrix": {
+            "pmss_fga": float(corr_pmss_fga),
+            "pmss_fta": float(corr_pmss_fta),
+            "fga_fta": float(corr_fga_fta)
+        },
         "visualizations": {
             "radar_chart": {},
             "scatter_plot": {},
@@ -461,7 +700,10 @@ def main():
             "GA": met['GA'],
             "Time_s": met['Time(s)'],
             "LLM_Calls": met['LLM Invocations'],
-            "Tokens": met['Total Tokens']
+            "Tokens": met['Total Tokens'],
+            "llm_timeouts": met.get('llm_timeouts', 0),
+            "failed_invocations": met.get('failed_invocations', 0),
+            "failure_rate": met.get('failure_rate', 0.0)
         }
         viz_report["visualizations"]["radar_chart"][parser] = {
             "FGA": met['FGA'],
@@ -520,12 +762,12 @@ def main():
         except Exception as e:
             logger.error(f"Error archiving report files for {parser}: {e}")
     
-    table_str = "\n" + "="*149 + "\n"
-    table_str += f"{'Parser':<20} | {'GA':<10} | {'PA':<10} | {'FGA':<10} | {'FTA':<10} | {'ED':<10} | {'PMSS':<10} | {'Time(s)':<10} | {'LLM Calls':<10} | {'Tokens':<10}\n"
-    table_str += "="*149 + "\n"
+    table_str = "\n" + "="*179 + "\n"
+    table_str += f"{'Parser':<20} | {'GA':<10} | {'PA':<10} | {'FGA':<10} | {'FTA':<10} | {'ED':<10} | {'PMSS':<10} | {'Time(s)':<10} | {'LLM Calls':<10} | {'Tokens':<10} | {'Timeouts':<10} | {'Failures':<10} | {'Fail Rate':<10}\n"
+    table_str += "="*179 + "\n"
     for parser, met in report.items():
-        table_str += f"{parser:<20} | {met['GA']:<10.4f} | {met['PA']:<10.4f} | {met['FGA']:<10.4f} | {met['FTA']:<10.4f} | {met['ED']:<10.4f} | {met['PMSS']:<10.4f} | {met['Time(s)']:<10.4f} | {met['LLM Invocations']:<10} | {met['Total Tokens']:<10}\n"
-    table_str += "="*149
+        table_str += f"{parser:<20} | {met['GA']:<10.4f} | {met['PA']:<10.4f} | {met['FGA']:<10.4f} | {met['FTA']:<10.4f} | {met['ED']:<10.4f} | {met['PMSS']:<10.4f} | {met['Time(s)']:<10.4f} | {met['LLM Invocations']:<10} | {met['Total Tokens']:<10} | {met.get('llm_timeouts', 0):<10} | {met.get('failed_invocations', 0):<10} | {met.get('failure_rate', 0.0)*100:<9.2f}%\n"
+    table_str += "="*179
     logger.info(table_str)
 
 if __name__ == "__main__":

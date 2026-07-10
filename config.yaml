@@ -23,5 +23,15 @@ librelog:
   k_shots: 3
   enable_reflection: true
 evaluator:
-  nrows: 5000
+  nrows: 50000
 
+deployer:
+  dry_run: false
+  pipeline_name: "so_custom_ingest_pipeline"
+  elasticsearch:
+    port: 9200
+    verify_certs: false
+  saltstack:
+    tmp_dir: "/tmp/"
+    destination_dir: "/opt/so/saltstack/local/salt/elasticsearch/files/ingest/"
+    file_owner: "so-elasticsearch:so-elasticsearch"

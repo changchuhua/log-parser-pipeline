@@ -460,12 +460,28 @@ class LogParser:
         if self.check_pre_logs(log_list=logs, dic=False):
             res_list = self.store_regx_for_logs(res_list, groups_from_parser, re.escape(logs[0]).replace("\\ ", " "))
         else:
-            for log in logs[::-1]:
+            from collections import defaultdict
+            remove_counts = defaultdict(int)
+            remaining_logs = []
+            for log in logs:
                 matched_regex = self.regex_manager1.find_matched_regex_template(log)
                 if matched_regex:
-                    logs.remove(log)
-                    groups_from_parser = self.remove_first_matching_item(groups_from_parser, log)
                     res_list.append([log, "0", matched_regex])
+                    remove_counts[log] += 1
+                else:
+                    remaining_logs.append(log)
+            
+            remaining_groups = []
+            for item in groups_from_parser:
+                content = item['Content']
+                if remove_counts[content] > 0:
+                    remove_counts[content] -= 1
+                else:
+                    remaining_groups.append(item)
+            
+            logs = remaining_logs
+            groups_from_parser = remaining_groups
+            
             if logs:
                 log_regex = self.generate_log_template_using_pipeline(log_list=logs)
                 res_list = self.store_regx_for_logs(res_list, groups_from_parser, log_regex)

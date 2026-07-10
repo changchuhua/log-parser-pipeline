@@ -59,6 +59,20 @@ services:
     networks:
       - search-net
 
+  component_5:
+    build:
+      context: ./component_5_deployer
+      dockerfile: Dockerfile
+    image: component_5_deployer
+    container_name: so_deployer
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    env_file:
+      - .env
+    networks:
+      - search-net
+
 networks:
   search-net:
     name: search-net

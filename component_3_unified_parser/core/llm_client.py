@@ -46,6 +46,8 @@ class OllamaClient:
         self.prompt_tokens = 0
         self.completion_tokens = 0
         self.total_tokens = 0
+        self.llm_timeouts = 0
+        self.failed_invocations = 0
         
         # Read request timeout from environment variable (defaults to 90 seconds)
         self.timeout = int(os.environ.get('OLLAMA_TIMEOUT', '90'))
@@ -88,7 +90,9 @@ class OllamaClient:
             "invocations": self.invocations,
             "prompt_tokens": self.prompt_tokens,
             "completion_tokens": self.completion_tokens,
-            "total_tokens": self.total_tokens
+            "total_tokens": self.total_tokens,
+            "llm_timeouts": self.llm_timeouts,
+            "failed_invocations": self.failed_invocations
         }
         
     def get_embedding(self, text):
@@ -138,6 +142,10 @@ class OllamaClient:
                 else:
                     raise KeyError("No embedding key found in response")
             except requests.exceptions.RequestException as e:
+                if isinstance(e, requests.exceptions.Timeout):
+                    self.llm_timeouts += 1
+                else:
+                    self.failed_invocations += 1
                 logger.warning(f"Embedding request attempt {attempt + 1} failed: {e}")
                 self._log_debug("embeddings", payload, error_msg=str(e))
                 if attempt == 1:
@@ -201,6 +209,10 @@ class OllamaClient:
                 else:
                     raise KeyError("No expected content keys found in response")
             except requests.exceptions.RequestException as e:
+                if isinstance(e, requests.exceptions.Timeout):
+                    self.llm_timeouts += 1
+                else:
+                    self.failed_invocations += 1
                 logger.warning(f"Completion request attempt {attempt + 1} failed: {e}")
                 self._log_debug("generate", payload, error_msg=str(e))
                 if attempt == 1:

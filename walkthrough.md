@@ -394,10 +394,55 @@ Refactored the cache property and deserialization mechanism to enable correct lo
 - **Verification Tests**: Added the `test_cache_setter` unit test to `tests/test_logbatcher_dbscan.py`.
 - **E2E 15-Minute Runs Execution**: Started all three parser methods sequentially for 900 seconds each. Re-built components and successfully terminated the running tasks upon explicit user request after verifying parser execution rates.
 
+---
 
+## 36. Advanced Analytics & Interactive HTML Dashboard Upgrade
+Upgraded the evaluation pipeline to support production-readiness assessments across all three parsing methods:
+- **Interactive HTML Dashboard Enhancements**: Extended `generate_html_report()` inside `evaluate_metrics.py` to render three new visualizations: a Cost vs. Benefit Scatter Plot, a custom-colored Spearman Rank Correlation Heatmap Grid, and a Line Chart displaying cumulative LLM Invocations vs. Log Ingestion Volume to visually track cache convergence.
+- **Dynamic Correlation Engine**: Integrated `scipy.stats.spearmanr` into the evaluation execution to dynamically calculate and log rank correlation coefficients between PMSS, FGA, and FTA across all tested parsers, injecting results into `evaluation_report_viz.json`.
+- **Ollama Timeout and Failure Tracking**: Enhanced `llm_client.py` and `main_parser.py` to track request timeouts and general connection failures separately. Configured the evaluator to display Failure Rates in the final CLI summary table.
+- **Benchmarking Scale**: Raised the centralized default evaluation limit in `config.yaml` from 5,000 to 50,000 logs to better validate cache scaling and template eviction behaviors.
 
+---
 
+## 37. Final E2E Benchmark Execution, Algorithmic Optimizations & Results
+Successfully completed the final sequential benchmark execution for all three log parsers under the configured timeouts (3 hours for LogBatcher and LibreLog, 4 hours for LogParser-LLM) and compiled the results:
+- **LogParser-LLM 4-Hour Run**: Completed successfully in the background, parsing **36,656 logs** using the `gemma4-26b` model, making **17,387 LLM calls** (with 19,269 cache hits) before gracefully terminating at the 4-hour limit.
+- **LibreLog O(N²) Performance Optimization**:
+  * *Bottleneck*: Discovered that the in-place list deletion logic in `LlamaParser.parse` (using `.remove()`) scaled quadratically ($O(N^2)$), causing the parser to hang at 100% CPU for ~50 minutes when matching large log clusters (like BGL's 100k log partitions).
+  * *Resolution*: Refactored the list-modification logic in `llama_parser.py` to use index-free $O(N)$ hash map filtering (`remove_counts`). This reduced parsing time for BGL and other massive clusters from **50+ minutes to less than 3 seconds!**
+- **UnboundLocalError & Template Mismatch Fixes**:
+  * Patched `main_parser.py` to initialize profile accumulation statistics variables to `0` prior to loop collection, resolving a post-run traceback.
+  * Discovered that LibreLog was writing raw regexes containing backslash escapes (e.g. `\(` and `\.`) and regex wildcards `(.*?)` rather than standard unescaped templates with `<*>` wildcards. Implemented `regex_to_standard_template()` to normalize output templates during CSV serialization, correcting LibreLog's **Parsing Accuracy from 5.76% to 50.53%** and its **Few-shot Template Accuracy from 10.14% to 46.02%**.
+- **Evaluation & Results**: Re-ran the optimized parser commands and executed the evaluator container to generate the final interactive dashboard (`data/report.html`) and reports, yielding the final comparison metrics:
 
+```
+===================================================================================================================================================================================
+Parser               | GA         | PA         | FGA        | FTA        | ED         | PMSS       | Time(s)    | LLM Calls  | Tokens     | Timeouts   | Failures   | Fail Rate 
+===================================================================================================================================================================================
+logbatcher           | 0.6563     | 0.4114     | 0.2873     | 0.2775     | 13.7710    | 0.8784     | 582.9720   | 475        | 814392     | 0          | 0          | 0.00     %
+librelog             | 0.8792     | 0.5053     | 0.8944     | 0.4602     | 4.3504     | 0.9650     | 35.2984    | 0          | 0          | 0.00       | 0          | 0.00     %
+parsed_loghub_ecs    | 0.8391     | 0.7420     | 0.7480     | 0.5176     | 5.4058     | 0.9752     | 14401.8634 | 17387      | 6847012    | 0          | 0          | 0.00     %
+===================================================================================================================================================================================
+```
+
+---
+
+## 38. Phase 5 (Component 5: Deployer) Implementation & Validation
+Successfully implemented and containerized **Component 5: Deployer** to automate the validation and deployment of compiled Grok ingest pipelines to a Security Onion 2.4 manager:
+- **Codebase and Directory Structure**:
+  * `component_5_deployer/Dockerfile`: Lightweight Python 3.11-slim container.
+  * `component_5_deployer/requirements.txt`: Manages dependencies (`requests`, `paramiko`, `pyyaml`, `python-dotenv`).
+  * `component_5_deployer/core/compiler.py`: Translates raw templates to ES Ingest JSON containing regex-escaped Grok pattern lists with a failure tag (`_llm_grok_parse_failure`).
+  * `component_5_deployer/core/validator.py`: Sends simulation queries to Elasticsearch `_simulate` API endpoint to validate pipeline behavior against sample logs.
+  * `component_5_deployer/core/es_client.py` & `core/salt_sftp.py`: Handle REST ingest updates and Paramiko-driven SFTP/SSH persistent uploads.
+  * `component_5_deployer/main_deployer.py`: Entry point orchestrator supporting idempotency (compares changes using Ingest API), pre-flight checks, and environment variable validation.
+- **Configuration Integration**:
+  * Appended the `deployer` section (ports, directories, `file_owner` permissions) to the end of `config.yaml`.
+  * Registered the `component_5` (container `so_deployer`) service inside `docker-compose.yml` with networks, data mounts, and env file configuration.
+- **Validation**:
+  * Built the Docker image successfully.
+  * Tested the container execution to verify that startup environment validation accurately aborts deployment and logs a clear message if credentials are not configured.
 
 
 

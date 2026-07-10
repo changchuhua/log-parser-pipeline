@@ -238,6 +238,8 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
                     "prompt_tokens": usage_stats.get("prompt_tokens", 0),
                     "completion_tokens": usage_stats.get("completion_tokens", 0),
                     "total_tokens": usage_stats.get("total_tokens", 0),
+                    "llm_timeouts": usage_stats.get("llm_timeouts", 0),
+                    "failed_invocations": usage_stats.get("failed_invocations", 0),
                     "history": history,
                     "model_used": model_name,
                     "method_used": "logparser-llm"
@@ -268,6 +270,25 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
             logger.info(f"Saved {len(merged_clusters)} templates to cache.")
         except Exception as e:
             logger.error(f"Error saving cache: {e}")
+
+def regex_to_standard_template(regex_str: str) -> str:
+    """Converts a regex template pattern string back to a standard log template containing <*>."""
+    if not isinstance(regex_str, str):
+        return ""
+    # 1. Replace (.*?) with <*>
+    template = regex_str.replace("(.*?)", "<*>")
+    # 2. Strip trailing $ anchor
+    if template.endswith("$"):
+        template = template[:-1]
+    # 3. Unescape special regex characters: \. \- \+ \? \* \^ \$ \( \) \[ \] \{ \} \| \\
+    special_chars = [
+        ("\\.", "."), ("\\-", "-"), ("\\+", "+"), ("\\?", "?"), ("\\*", "*"),
+        ("\\^", "^"), ("\\$", "$"), ("\\(", "("), ("\\)", ")"), ("\\[", "["),
+        ("\\]", "]"), ("\\{", "{"), ("\\}", "}"), ("\\|", "|"), ("\\\\", "\\")
+    ]
+    for esc, unesc in special_chars:
+        template = template.replace(esc, unesc)
+    return template
 
 def main():
     """Main routing controller that reads CLI arguments and invokes the chosen parser."""
@@ -487,6 +508,8 @@ def main():
                     "prompt_tokens": usage_stats.get("prompt_tokens", 0),
                     "completion_tokens": usage_stats.get("completion_tokens", 0),
                     "total_tokens": usage_stats.get("total_tokens", 0),
+                    "llm_timeouts": usage_stats.get("llm_timeouts", 0),
+                    "failed_invocations": usage_stats.get("failed_invocations", 0),
                     "history": getattr(parser_instance, 'history', []),
                     "model_used": model_name,
                     "method_used": "logbatcher"
@@ -631,12 +654,12 @@ def main():
         elapsed = time.perf_counter() - start_time
         logger.info(f"LibreLog finished parsing in {format_duration(elapsed)}.")
         
-        # Aggregate usage stats from all dataset parser instances
         total_invocations = 0
         total_prompt_tokens = 0
         total_completion_tokens = 0
         total_tokens_count = 0
-        model_name = "mock-model"
+        total_llm_timeouts = 0
+        total_failed_invocations = 0
         
         for ds, parser_inst in dataset_parsers.items():
             usage_stats = parser_inst.llm_client.get_usage()
@@ -644,6 +667,8 @@ def main():
             total_prompt_tokens += usage_stats.get("prompt_tokens", 0)
             total_completion_tokens += usage_stats.get("completion_tokens", 0)
             total_tokens_count += usage_stats.get("total_tokens", 0)
+            total_llm_timeouts += usage_stats.get("llm_timeouts", 0)
+            total_failed_invocations += usage_stats.get("failed_invocations", 0)
             model_name = parser_inst.llm_client.model_name
             
         profile_file = os.path.join(parsed_dir, 'librelog_profile.json')
@@ -659,6 +684,8 @@ def main():
                     "prompt_tokens": total_prompt_tokens,
                     "completion_tokens": total_completion_tokens,
                     "total_tokens": total_tokens_count,
+                    "llm_timeouts": total_llm_timeouts,
+                    "failed_invocations": total_failed_invocations,
                     "history": [],
                     "model_used": model_name,
                     "method_used": "librelog"
@@ -702,7 +729,7 @@ def main():
             writer.writerow(['LineId', 'Content', 'EventTemplate'])
             for log in logs_to_parse:
                 if log['id'] in parsed_results:
-                    writer.writerow([log['id'], log['message'], parsed_results[log['id']]])
+                    writer.writerow([log['id'], log['message'], regex_to_standard_template(parsed_results[log['id']])])
         logger.info("LibreLog pipeline finished successfully.")
 
 if __name__ == "__main__":
