@@ -69,7 +69,7 @@ graph TD
     LL <--> Ollama
     
     RouterMethod --> Parsed
-
+    
     %% Evaluation Engine
     subgraph Component 4: Evaluator
         Eval[evaluate_metrics.py]
@@ -88,6 +88,16 @@ graph TD
     Raw --> Eval
     Eval --> MetricCalculators
     MetricCalculators --> Report[data/evaluation_report.json]
+
+    %% Deployment Engine
+    subgraph Component 5: Deployer
+        Deploy[main_deployer.py]
+    end
+
+    Parsed --> Deploy
+    Report --> Deploy
+    Deploy --> SO_API[SO Elasticsearch API: Step A]
+    Deploy --> SO_Salt[SO SaltStack Directory: Step B]
 ```
 
 ---
@@ -123,6 +133,15 @@ The repository follows a modular, component-based layout. Each component is full
     - [Dockerfile](component_4_evaluator/Dockerfile)
     - [requirements.txt](component_4_evaluator/requirements.txt)
     - [evaluate_metrics.py](component_4_evaluator/evaluate_metrics.py): Evaluator orchestrator main script.
+  - **[component_5_deployer/](component_5_deployer)**: Component 5 (Grok Ingest Deployer).
+    - `core/`: Ingest compilation, validation, and SFTP transmission helper scripts.
+      - [compiler.py](component_5_deployer/core/compiler.py): Grok pattern compiler.
+      - [validator.py](component_5_deployer/core/validator.py): Elasticsearch simulation validator.
+      - [es_client.py](component_5_deployer/core/es_client.py): Elasticsearch Ingest API client.
+      - [salt_sftp.py](component_5_deployer/core/salt_sftp.py): SaltStack Paramiko SFTP deployer.
+    - [Dockerfile](component_5_deployer/Dockerfile)
+    - [requirements.txt](component_5_deployer/requirements.txt)
+    - [main_deployer.py](component_5_deployer/main_deployer.py): Deployer orchestrator script.
   - **[tests/](tests)**: Pipeline testing suites.
     - `mock_ollama/`: Independent mock server configuration.
     - [test_component_1.py](tests/test_component_1.py): Unit tests for Component 1.
@@ -151,9 +170,9 @@ Performs sequential log extraction from active Security Onion deployments:
 
 ### Component 3: The Unified Parser Router
 Routes standard ECS logs to one of three state-of-the-art parsing configurations:
-- **LogParser-LLM**: Implements an in-memory prefix tree (`PrefixTree`) strict/loose router. If a log cannot be routed, it generates a dynamic K-Shot in-context learning prompt (ICL) pulling similar examples from a seed pool, queries the Ollama endpoint to predict the template, and inserts it back into the routing tree.
-- **LogBatcher**: Executes zero-shot diverse parsing. Groups logs based on length clusters (`LengthCluster`), samples a diverse batch using a **Determinantal Point Process (DPP) Sampler** on log cosine embeddings, queries the Ollama endpoint for the batch template, and uses a *Match & Prune* cache loop to apply the template back to matching candidates.
-- **LibreLog**: Implements static regex filters for common variable blocks, queries a regex template cache, and processes fallback logs using an Ollama LLM parser augmented with reflection loops that generalize remaining variable structures.
+- **LogParser-LLM**: Implements an in-memory prefix tree (`PrefixTree`) strict/loose router. Features **Adaptive Few-Shot ICL** via dynamic local Jaccard similarity lookups, structured **JSON/ECS field mapping** for automatic ingestion classifications (such as mapping IP/File fields), and recursive **Prefix Tree LRU Pruning** of nodes older than 30 days to protect memory usage.
+- **LogBatcher**: Executes zero-shot diverse parsing. Integrates **DBSCAN Clustering** utilizing precomputed Jaccard distances for order-independent grouping. Samples diverse templates using a **DPP Sampler** on log cosine embeddings, caches templates via an `OrderedDict`-backed cache with **LRU Eviction**, and routes DBSCAN outlier logs (noise) to a **Quarantine DLQ** (`quarantine.jsonl`) to bypass LLM resources.
+- **LibreLog**: Implements static regex preprocessing, executes an initial **Drain Prefix Tree Grouping Pass** for log clustering, queries a dynamic regex template cache, and parses fallback logs using an Ollama LLM parser augmented with reflection loops. Features a custom **O(N) index-free filtering optimization** for fast processing and auto-conversion of regex patterns to standard `<*>` templates.
 
 ### Component 4: Metric Evaluation Service
 Processes output parser logs against ground truths and computes six core accuracy metrics:
@@ -165,6 +184,13 @@ Processes output parser logs against ground truths and computes six core accurac
 5. **Parsing Granularity Distance (PGD)**: Groups logs by generated template, maps to the modal oracle template, and calculates token-length distance:
    $$\text{PGD} = \text{mean}(|L_{gen} - L_{oracle}|)$$
 6. **Precomputed Silhouette Score (PMSS)**: Computes Silhouette Scores utilizing precomputed Levenshtein distance metrics. Evaluates only on unique templates $M$ and broadcasts results back to full log length $N$ to reduce computational complexity from $O(N^2)$ to $O(M^2)$.
+
+### Component 5: Grok Ingest Deployer
+Automates the compilation, validation, and deployment of pipeline configurations back to Security Onion:
+- **Grok Ingest Compilation & Escaping**: Translates template placeholder tags and ECS mappings into valid Grok expressions with raw regex characters escaped (`re.escape`) to prevent compilation issues, embedding an `on_failure` block to tag failures (`_llm_grok_parse_failure`).
+- **Pre-flight Ingest Simulation**: Validates the compiled pipeline JSON against Elasticsearch's `POST /_ingest/pipeline/_simulate` API using a real raw log extracted from the parsed output.
+- **Two-Pronged Deployment**: Deploys immediately via the Elasticsearch PUT API endpoint (Step A) and persistently via SFTP and SSH moves with parameterized file ownership configuration (Step B).
+- **Idempotency**: Queries the existing pipeline config first to check for changes and skip redundant redeployments.
 
 ---
 
