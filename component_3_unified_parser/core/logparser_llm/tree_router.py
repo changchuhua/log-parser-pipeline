@@ -6,6 +6,23 @@ for log routing decisions.
 
 import time
 import yaml
+import math
+
+def weighted_jaccard_similarity(tokens1, tokens2, decay_factor=0.15):
+    """Computes position-weighted Jaccard similarity with exponential decay."""
+    if not tokens1 or not tokens2:
+        return 0.0
+    L = min(len(tokens1), len(tokens2))
+    intersection_weight = 0.0
+    union_weight = 0.0
+    for i in range(L):
+        w_i = math.exp(-decay_factor * i)
+        if tokens1[i] == tokens2[i]:
+            intersection_weight += w_i
+        union_weight += w_i
+    if union_weight == 0:
+        return 0.0
+    return intersection_weight / union_weight
 
 def jaccard_similarity(tokens1, tokens2):
     """Computes Jaccard Similarity between two token sets.
@@ -54,7 +71,10 @@ class PrefixTree:
                 config = yaml.safe_load(f)
         except Exception:
             config = {}
-        self.loose_match_threshold = config.get('logparser_llm', {}).get('loose_match_threshold', 0.8)
+        lp_config = config.get('logparser_llm', {})
+        self.loose_match_threshold = lp_config.get('loose_match_threshold', 0.8)
+        self.use_positional_weighting = lp_config.get('use_positional_weighting', True)
+        self.decay_factor = lp_config.get('decay_factor', 0.15)
         self.root = Node(None)
         self.clusters = []  # List of templates
 
@@ -110,7 +130,11 @@ class PrefixTree:
                 static_template_tokens = [t for t in template_tokens if not (t.startswith('<') and t.endswith('>'))]
                 static_log_tokens = [log_tokens[i] for i, t in enumerate(template_tokens) if not (t.startswith('<') and t.endswith('>'))]
 
-                score = jaccard_similarity(static_template_tokens, static_log_tokens)
+                if self.use_positional_weighting:
+                    score = weighted_jaccard_similarity(static_template_tokens, static_log_tokens, self.decay_factor)
+                else:
+                    score = jaccard_similarity(static_template_tokens, static_log_tokens)
+
                 if score > best_score:
                     best_score = score
                     best_cluster = cluster
@@ -174,3 +198,37 @@ class PrefixTree:
                     node.last_matched = None
 
         traverse(self.root)
+
+    def prune_to_capacity(self, max_templates=1000):
+        """Evicts the least recently matched templates until tree size is within capacity limits."""
+        if len(self.clusters) <= max_templates:
+            return
+            
+        # 1. Sort active templates by last_matched leaf node timestamps (ascending order)
+        template_timestamps = []
+        for template in self.clusters:
+            tokens = template.split(' ')
+            current = self.root
+            for token in tokens:
+                if token in current.children:
+                    current = current.children[token]
+            
+            # Use current time as fallback if last_matched is not set
+            last_time = current.last_matched if current.last_matched is not None else 0.0
+            template_timestamps.append((template, last_time))
+            
+        # Sort by timestamp ascending (oldest first)
+        template_timestamps.sort(key=lambda x: x[1])
+        
+        # Evict oldest templates
+        num_to_evict = len(self.clusters) - max_templates
+        to_evict = [x[0] for x in template_timestamps[:num_to_evict]]
+        
+        for template in to_evict:
+            if template in self.clusters:
+                self.clusters.remove(template)
+                
+        # 2. Rebuild the tree with remaining templates
+        self.root = Node(None)
+        for template in self.clusters:
+            self.insert(template)

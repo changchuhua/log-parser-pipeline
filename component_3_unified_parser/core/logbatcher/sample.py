@@ -1,7 +1,7 @@
-"""Diversity sampling module for LogBatcher.
+"""Diversity and similarity sampling module for LogBatcher.
 
-Implements Random and Determinantal Point Process (DPP) samplers to pick diverse
-log subsets for LLM batch template query tasks.
+Implements Random, Determinantal Point Process (DPP) diversity, and Similarity (kNN) samplers
+to pick representative log subsets for LLM batch template query tasks.
 """
 
 import random
@@ -12,7 +12,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 logger = logging.getLogger(__name__)
 
 class Sampler:
-    """Base class for diverse log sampling algorithms."""
+    """Base class for log sampling algorithms."""
 
     def __init__(self, batch_size=10):
         """Initializes Sampler base.
@@ -128,11 +128,48 @@ class DPPSampler(Sampler):
 
         return [candidate_pool[i] for i in selected]
 
+class SimilarSampler(Sampler):
+    """Samples log items closest to the cluster medoid using Jaccard similarity."""
+
+    def sample(self, logs):
+        """Samples the medoid and the batch_size - 1 closest logs.
+
+        Args:
+            logs (list): List of logs in the cluster.
+
+        Returns:
+            list: Similar log subset.
+        """
+        if len(logs) <= self.batch_size:
+            return logs
+
+        # 1. Compute Jaccard distances between all pairs
+        token_sets = [set(log.get('message', '').split()) for log in logs]
+        N = len(logs)
+        distances = np.zeros((N, N))
+        
+        for i in range(N):
+            for j in range(i + 1, N):
+                s1, s2 = token_sets[i], token_sets[j]
+                union_len = len(s1.union(s2))
+                sim = len(s1.intersection(s2)) / union_len if union_len > 0 else 1.0
+                dist = 1.0 - sim
+                distances[i, j] = dist
+                distances[j, i] = dist
+
+        # Medoid minimizes the sum of distances to other members
+        row_sums = np.sum(distances, axis=1)
+        medoid_idx = np.argmin(row_sums)
+
+        # 2. Sort by distance to the medoid
+        sorted_indices = np.argsort(distances[medoid_idx])
+        return [logs[idx] for idx in sorted_indices[:self.batch_size]]
+
 def get_sampler(sampler_type, llm_client, batch_size=10):
     """Factory function returning the configured Sampler instance.
 
     Args:
-        sampler_type (str): Type of sampler ('DPPSampler' or 'RandomSampler').
+        sampler_type (str): Type of sampler ('DPPSampler', 'SimilarSampler', or 'RandomSampler').
         llm_client (OllamaClient): Connection client for embeddings.
         batch_size (int): Max sample size. Defaults to 10.
 
@@ -144,6 +181,8 @@ def get_sampler(sampler_type, llm_client, batch_size=10):
     """
     if sampler_type == "DPPSampler":
         return DPPSampler(llm_client, batch_size)
+    elif sampler_type == "SimilarSampler":
+        return SimilarSampler(batch_size)
     elif sampler_type == "RandomSampler":
         return RandomSampler(batch_size)
     else:

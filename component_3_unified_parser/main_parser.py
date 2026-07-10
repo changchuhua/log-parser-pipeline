@@ -202,12 +202,14 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
                 if (line_idx + 1) % 1000 == 0:
                     template_manager.calibrate()
                     tree_router.prune_inactive_templates()
+                    tree_router.prune_to_capacity(max_templates=1000)
                     
             except Exception as e:
                 logger.error(f"Error parsing line in {in_file}: {e}")
                 
         template_manager.calibrate()
         tree_router.prune_inactive_templates()
+        tree_router.prune_to_capacity(max_templates=1000)
         
         # Write outputs back in the original input order (only writing what was parsed)
         with open(out_file, 'w', encoding='utf-8') as f_out:

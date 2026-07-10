@@ -168,3 +168,28 @@ class TestLogBatcherDBSCAN(unittest.TestCase):
         self.assertEqual(cache.cache[1].template, "t1")
         self.assertEqual(cache.cache[1].ref_log, "raw1")
         self.assertEqual(cache.cache[1].frequency, 5)
+
+    def test_tfidf_cosine_clustering(self):
+        logs = [
+            {"message": "hello world"},
+            {"message": "hello world"},
+            {"message": "hello python"}
+        ]
+        clusterer = SimilarityCluster(logs, threshold=0.8, vectorizer_type="tfidf")
+        partitions = clusterer.get_partitions()
+
+        self.assertIsNotNone(clusterer.dist_matrix)
+        self.assertAlmostEqual(clusterer.dist_matrix[0, 1], 0.0)
+
+    def test_similar_sampler(self):
+        from component_3_unified_parser.core.logbatcher.sample import SimilarSampler
+        sampler = SimilarSampler(batch_size=2)
+        logs = [
+            {"message": "hello world"},
+            {"message": "hello world"},
+            {"message": "different log"}
+        ]
+        sampled = sampler.sample(logs)
+        self.assertEqual(len(sampled), 2)
+        self.assertEqual(sampled[0]["message"], "hello world")
+        self.assertEqual(sampled[1]["message"], "hello world")

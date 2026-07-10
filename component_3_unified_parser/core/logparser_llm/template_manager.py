@@ -52,7 +52,7 @@ class TemplateManager:
         self.merge_similarity_threshold = config.get('logparser_llm', {}).get('merge_similarity_threshold', 0.95)
         
     def calibrate(self):
-        """Merges overlapping clusters in PrefixTree and recalibrates root node children."""
+        """Merges overlapping clusters in PrefixTree by substituting mismatching tokens with <*>."""
         clusters = self.tree_router.clusters
         merged_clusters = []
         skip_indices = set()
@@ -63,6 +63,7 @@ class TemplateManager:
             
             base_template = clusters[i]
             base_tokens = base_template.split(' ')
+            current_merged_tokens = list(base_tokens)
             
             for j in range(i + 1, len(clusters)):
                 if j in skip_indices:
@@ -74,13 +75,21 @@ class TemplateManager:
                 if len(base_tokens) != len(compare_tokens):
                     continue
                     
-                sim = string_structural_similarity(base_tokens, compare_tokens)
+                sim = string_structural_similarity(current_merged_tokens, compare_tokens)
                 if sim >= self.merge_similarity_threshold:
+                    # Substitute mismatched tokens with <*>
+                    for k in range(len(current_merged_tokens)):
+                        if current_merged_tokens[k] != compare_tokens[k]:
+                            current_merged_tokens[k] = '<*>'
                     skip_indices.add(j)
             
-            merged_clusters.append(base_template)
+            merged_template = " ".join(current_merged_tokens)
+            merged_clusters.append(merged_template)
             
+        # Re-insert clean, deduplicated consolidated templates
+        unique_merged = list(set(merged_clusters))
+        
         self.tree_router.clusters = []
         self.tree_router.root.children = {}
-        for tmpl in merged_clusters:
+        for tmpl in unique_merged:
             self.tree_router.insert(tmpl)

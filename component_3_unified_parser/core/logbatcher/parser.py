@@ -51,6 +51,8 @@ class LogBatcher:
         self.cluster_type = lb_config.get('cluster', 'LengthCluster')
         self.sampler_type = lb_config.get('sampler', 'DPPSampler')
         self.similarity_threshold = lb_config.get('cluster_similarity_threshold', 0.8)
+        self.vectorizer_type = lb_config.get('vectorizer', 'binary')
+        self.use_dynamic_eps = lb_config.get('use_dynamic_eps', False)
 
         # Buffer parameters
         self.buffer_max_size = lb_config.get('buffer_max_size', 500)
@@ -138,7 +140,13 @@ class LogBatcher:
             return
 
         # 1. Cluster the micro-batch
-        clusterer = get_clusterer(self.cluster_type, micro_batch, self.similarity_threshold)
+        clusterer = get_clusterer(
+            self.cluster_type, 
+            micro_batch, 
+            self.similarity_threshold, 
+            self.vectorizer_type, 
+            self.use_dynamic_eps
+        )
         local_clusters = clusterer.get_partitions()
 
         # 2. Noise Quarantine Routing

@@ -460,8 +460,45 @@ Completed the architectural improvements for LibreLog alignment and transitioned
   * Added a `trap cleanup EXIT` hook inside `run_e2e.sh` to automatically run `docker-compose down --remove-orphans`, keeping host networks and processes clean.
   * Silenced compose deprecation warnings by removing the obsolete `version` key from `docker-compose.yml` and `docker-compose.test.yml`.
 
+---
 
+## 40. LogBatcher Enhancements (TF-IDF, SimilarSampler, & Dynamic EPS)
+Successfully implemented the approved LogBatcher enhancements to improve structural clustering and sampling diversity:
+- **TF-IDF + Cosine Distance Clustering**:
+  * Integrated TF-IDF log vectorization and Cosine distance matrix calculation inside `additional_cluster.py` as a toggleable option under `vectorizer: "tfidf"`. Kept `vectorizer: "binary"` (Jaccard) as the default to prevent variable hijacking.
+- **Similar (kNN) Sampler**:
+  * Implemented `SimilarSampler` inside `sample.py`, which computes set-based Jaccard distances on-the-fly, locates the cluster medoid, and selects the $K$ most similar logs. Keep `DPPSampler` (Diversity-focused) as the default.
+- **Dynamic DBSCAN Radius (`eps`)**:
+  * Added dynamic `eps` threshold scaling inside `additional_cluster.py` based on the standard deviation of token lengths within the buffered logs (enabled via `use_dynamic_eps: true`).
+- **Configuration Integration**:
+  * Documented the new options inside [config.yaml](file:///home/amilame/github/Practicum/log-parser-pipeline/config.yaml#L15-L21).
+- **Unit and E2E Tests**:
+  * Added `test_tfidf_cosine_clustering` and `test_similar_sampler` to [test_logbatcher_dbscan.py](file:///home/amilame/github/Practicum/log-parser-pipeline/tests/test_logbatcher_dbscan.py). Verified that all 35 unit tests and E2E tests execute successfully.
 
+---
 
+## 41. LogParser-LLM Positional Jaccard Weighting
+Implemented positional decay weighting in Jaccard loose matching to prevent false template merges on critical starting tokens:
+- **Weighted Jaccard Calculation**:
+  * Created `weighted_jaccard_similarity` in [tree_router.py](file:///home/amilame/github/Practicum/log-parser-pipeline/component_3_unified_parser/core/logparser_llm/tree_router.py#L9-L23) utilizing an exponential decay function ($w_i = e^{-\lambda \cdot i}$). This prioritizes matches at the root layer (early tokens) and discounts trailing parameters.
+- **Configurable Weighting Parameters**:
+  * Added `use_positional_weighting: true` and `decay_factor: 0.15` in [config.yaml](file:///home/amilame/github/Practicum/log-parser-pipeline/config.yaml#L10-L16).
+- **Loose Match Fallback Gating**:
+  * Configured `loose_match` to employ positional weighting by default, falling back to legacy bag-of-words set math if disabled.
+- **Verification**:
+  * Added `test_weighted_jaccard_positional` inside [test_logparser_llm_enhancements.py](file:///home/amilame/github/Practicum/log-parser-pipeline/tests/test_logparser_llm_enhancements.py#L62-L93). Verified all 36 unit tests pass, and the E2E script ran to completion.
 
+---
+
+## 42. LogParser-LLM Wildcard Node Merging & Capacity Pruning
+Successfully implemented proper wildcard substitution for template merging and capacity-based tree pruning:
+- **Proper Wildcard Node Merging**:
+  * Refactored `TemplateManager.calibrate()` in [template_manager.py](file:///home/amilame/github/Practicum/log-parser-pipeline/component_3_unified_parser/core/logparser_llm/template_manager.py#L54-L87) to identify mismatched tokens between templates exceeding `0.95` similarity and substitute them with `<*>` (e.g. merging `User admin logged in` and `User system logged in` into `User <*> logged in`) instead of simply discarding the duplicate.
+- **Capacity-based Prefix Tree Pruning**:
+  * Implemented `prune_to_capacity(max_templates=1000)` in [tree_router.py](file:///home/amilame/github/Practicum/log-parser-pipeline/component_3_unified_parser/core/logparser_llm/tree_router.py#L201-L235).
+  * Sorts active templates by `last_matched` timestamps and removes the least recently matched templates to fit within the capacity limit, cleaning up orphaned nodes recursively.
+- **Pipeline Integration**:
+  * Updated [main_parser.py](file:///home/amilame/github/Practicum/log-parser-pipeline/component_3_unified_parser/main_parser.py#L202-L211) to trigger capacity-based pruning both inside the parsing loop and at pipeline termination.
+- **Verification**:
+  * Added `test_wildcard_node_merging` and `test_capacity_pruning` to [test_logparser_llm_enhancements.py](file:///home/amilame/github/Practicum/log-parser-pipeline/tests/test_logparser_llm_enhancements.py#L94-L138). Verified all 38 unit tests pass, and the E2E script ran successfully.
 

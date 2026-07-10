@@ -1,27 +1,32 @@
 import numpy as np
 from sklearn.cluster import DBSCAN
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_distances
 from scipy.spatial.distance import pdist, squareform
 from .cluster import Cluster
 
 class SimilarityCluster(Cluster):
-    """Log partitioning using DBSCAN on a precomputed SciPy Jaccard distance matrix."""
+    """Log partitioning using DBSCAN with configurable vectorizer and dynamic eps."""
 
-    def __init__(self, logs, threshold=0.8):
+    def __init__(self, logs, threshold=0.8, vectorizer_type="binary", use_dynamic_eps=False):
         """Initializes the SimilarityCluster instance.
 
         Args:
             logs (list): List of logs.
-            threshold (float): Similarity threshold (minimum Jaccard similarity).
+            threshold (float): Similarity threshold (minimum Jaccard/Cosine similarity).
+            vectorizer_type (str): Type of vectorization ('binary' or 'tfidf').
+            use_dynamic_eps (bool): If True, adjust DBSCAN eps dynamically.
         """
         super().__init__(logs)
         self.threshold = threshold
+        self.vectorizer_type = vectorizer_type
+        self.use_dynamic_eps = use_dynamic_eps
         self.noise_logs = []
         self.dist_matrix = None
         self.log_to_idx = {id(log): idx for idx, log in enumerate(logs)}
 
     def get_partitions(self):
-        """Groups logs using DBSCAN with precomputed Jaccard distances.
+        """Groups logs using DBSCAN with precomputed distance matrix.
 
         Returns:
             list: List of log lists, representing local clusters.
@@ -31,28 +36,45 @@ class SimilarityCluster(Cluster):
 
         messages = [log.get('message', '') for log in self.logs]
 
-        # 1. Precompute Jaccard distance matrix using CountVectorizer + SciPy pdist
-        try:
-            vectorizer = CountVectorizer(binary=True, token_pattern=r'\S+')
-            binary_matrix = vectorizer.fit_transform(messages).toarray()
-            # SciPy pdist computes pairwise Jaccard distance (1.0 - Jaccard similarity)
-            self.dist_matrix = squareform(pdist(binary_matrix, metric='jaccard'))
-        except ValueError:
-            # Fallback for empty vocabulary (e.g. all empty strings or spaces)
-            N = len(messages)
-            self.dist_matrix = np.zeros((N, N))
-            for i in range(N):
-                for j in range(i + 1, N):
-                    d = 0.0 if messages[i] == messages[j] else 1.0
-                    self.dist_matrix[i, j] = d
-                    self.dist_matrix[j, i] = d
+        # 1. Compute distance matrix
+        if self.vectorizer_type == "tfidf":
+            try:
+                vectorizer = TfidfVectorizer(token_pattern=r'\S+')
+                tfidf_matrix = vectorizer.fit_transform(messages)
+                self.dist_matrix = cosine_distances(tfidf_matrix)
+            except ValueError:
+                N = len(messages)
+                self.dist_matrix = np.zeros((N, N))
+        else:  # Default binary (CountVectorizer + Jaccard)
+            try:
+                vectorizer = CountVectorizer(binary=True, token_pattern=r'\S+')
+                binary_matrix = vectorizer.fit_transform(messages).toarray()
+                self.dist_matrix = squareform(pdist(binary_matrix, metric='jaccard'))
+            except ValueError:
+                # Fallback for empty vocabulary
+                N = len(messages)
+                self.dist_matrix = np.zeros((N, N))
+                for i in range(N):
+                    for j in range(i + 1, N):
+                        d = 0.0 if messages[i] == messages[j] else 1.0
+                        self.dist_matrix[i, j] = d
+                        self.dist_matrix[j, i] = d
 
-        # 2. Configure and run precomputed DBSCAN
-        eps = 1.0 - self.threshold
+        # 2. Determine eps
+        if self.use_dynamic_eps:
+            token_lengths = [len(m.split()) for m in messages]
+            std_dev = np.std(token_lengths) if len(token_lengths) > 1 else 0
+            # Scale eps based on standard deviation of token lengths
+            dynamic_eps = (1.0 - self.threshold) * (1.0 + 0.1 * std_dev)
+            eps = min(max(dynamic_eps, 0.05), 0.5)
+        else:
+            eps = 1.0 - self.threshold
+
+        # 3. DBSCAN clustering
         db = DBSCAN(eps=eps, min_samples=2, metric='precomputed')
         labels = db.fit_predict(self.dist_matrix)
 
-        # 3. Group logs by cluster labels
+        # 4. Group logs by cluster labels
         cluster_map = {}
         for idx, label in enumerate(labels):
             log = self.logs[idx]
