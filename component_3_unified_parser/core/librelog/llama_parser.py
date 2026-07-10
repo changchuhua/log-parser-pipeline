@@ -73,7 +73,9 @@ class LogParser:
         return 1 - similarity
     
     def jaccard_distance(self, x, y):
-        return textdistance.jaccard.normalized_distance(x.split(), y.split())
+        tokens_x = re.findall(r"\w+|[^\w\s]", x)
+        tokens_y = re.findall(r"\w+|[^\w\s]", y)
+        return textdistance.jaccard.normalized_distance(tokens_x, tokens_y)
 
     def min_distance(self, c_set, t_set):
         D = []
@@ -125,19 +127,25 @@ class LogParser:
     def generate_prompt_with_log_list(self, log_list, dic=False):
         trimmed_list_log = self.adaptive_random_sampling(log_list, self.regex_sample, dic=dic)
         
-        # Format llama-3 style prompt for execution
-        prompt = (
-            "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
-            "You will be provided with a list of logs. You must identify and abstract all the dynamic variables in logs with '<*>' and output ONE static log template that matches all the logs. Print the input logs' template delimited by backticks.<|eot_id|>"
-            "<|start_header_id|>user<|end_header_id|>\n\n"
-            "Log list: [\"try to connected to host: 172.16.254.1, finished.\", \"try to connected to host: 173.16.254.2, finished.\"]<|eot_id|>"
-            "<|start_header_id|>assistant<|end_header_id|>\n\n"
-            "`try to connected to host: <*>, finished.`<|eot_id|>"
-            "<|start_header_id|>user<|end_header_id|>\n\n"
-            f"Log list: {trimmed_list_log}<|eot_id|>"
-            "<|start_header_id|>assistant<|end_header_id|>\n\n"
-        )
-        return prompt, trimmed_list_log
+        messages = [
+            {
+                "role": "system", 
+                "content": "You will be provided with a list of logs. You must identify and abstract all the dynamic variables in logs with '<*>' and output ONE static log template that matches all the logs. Print the input logs' template delimited by backticks."
+            },
+            {
+                "role": "user", 
+                "content": "Log list: [\"try to connected to host: 172.16.254.1, finished.\", \"try to connected to host: 173.16.254.2, finished.\"]"
+            },
+            {
+                "role": "assistant", 
+                "content": "`try to connected to host: <*>, finished.`"
+            },
+            {
+                "role": "user", 
+                "content": f"Log list: {trimmed_list_log}"
+            }
+        ]
+        return messages, trimmed_list_log
 
     def check_pre_logs(self, log_list, dic=False):
         if dic:

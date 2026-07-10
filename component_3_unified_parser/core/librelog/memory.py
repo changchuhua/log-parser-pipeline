@@ -4,8 +4,14 @@ Retains log template assignments and returns matching candidates based on group
 routing and token Jaccard similarity.
 """
 
+import re
+
+def tokenize_log(text):
+    """Splits text into alphanumeric words and individual punctuation marks, ignoring spaces."""
+    return re.findall(r"\w+|[^\w\s]", text)
+
 def jaccard_similarity(str1, str2):
-    """Computes token Jaccard similarity of two space-separated string messages.
+    """Computes token Jaccard similarity of two string messages using punctuation-splitting tokenization.
 
     Args:
         str1 (str): First string.
@@ -14,8 +20,8 @@ def jaccard_similarity(str1, str2):
     Returns:
         float: Computed similarity (0.0 to 1.0).
     """
-    tokens1 = str1.split()
-    tokens2 = str2.split()
+    tokens1 = tokenize_log(str1)
+    tokens2 = tokenize_log(str2)
     set1 = set(tokens1)
     set2 = set(tokens2)
     if not set1 and not set2:

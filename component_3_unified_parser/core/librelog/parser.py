@@ -13,6 +13,19 @@ from .llama_parser import LogParser as LlamaParser
 
 logger = logging.getLogger(__name__)
 
+GLOBAL_VARIABLE_RULES = [
+    # 1. ISO/System Timestamps
+    r"\b\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?\b",
+    # 2. Hexadecimal Addresses / Memory Pointers
+    r"\b0[xX][a-fA-F0-9]+\b",
+    # 3. UUIDs
+    r"\b[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\b",
+    # 4. Standard IPv4 / IPv6 Addresses
+    r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+    # 5. Generic Numbers (Integers and Floating Points)
+    r"\b\d+(?:\.\d+)?\b"
+]
+
 DATASET_REGEXES = {
     "HDFS": [r"blk_-?\d+", r"(\d+\.){3}\d+(:\d+)?"],
     "Hadoop": [r"(\d+\.){3}\d+"],
@@ -52,11 +65,12 @@ DATASET_SETTINGS = {
 }
 
 class DummyMemory:
+    """Mock/Stub memory object mimicking real memory database for warm cache starts."""
     def __init__(self):
         self.memory = []
 
 class LibreLogParser:
-    """LibreLog hybrid template parsing system using regex, memory lookup, and LLMs."""
+    """Unified parser router implementation of LibreLog framework."""
 
     def __init__(self, dataset_name='default', config_path='/app/config.yaml'):
         """Initializes the LibreLogParser.
@@ -69,7 +83,7 @@ class LibreLogParser:
         settings = DATASET_SETTINGS.get(dataset_name, {"st": 0.5, "depth": 4})
         self.st = settings["st"]
         self.depth = settings["depth"]
-        self.rex = DATASET_REGEXES.get(dataset_name, [])
+        self.rex = GLOBAL_VARIABLE_RULES + DATASET_REGEXES.get(dataset_name, [])
 
         self.llm_client = OllamaClient(config_path)
         self.regex_manager = RegexTemplateManager()

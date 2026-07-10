@@ -444,6 +444,23 @@ Successfully implemented and containerized **Component 5: Deployer** to automate
   * Built the Docker image successfully.
   * Tested the container execution to verify that startup environment validation accurately aborts deployment and logs a clear message if credentials are not configured.
 
+---
+
+## 39. LibreLog Alignment & Chat completions API Transition
+Completed the architectural improvements for LibreLog alignment and transitioned the unified parser framework to a model-agnostic chat interface:
+- **Punctuation-Boundary Tokenization**:
+  * Refactored `jaccard_similarity` in `memory.py` and `jaccard_distance` in `llama_parser.py` to use boundary-splitting tokenization (`re.findall(r"\w+|[^\w\s]", text)`), isolating conjoined punctuation (e.g. `core.12378` $\rightarrow$ `['core', '.', '12378']`).
+- **Global Pre-Masking & Literal Abstraction**:
+  * Implemented `GLOBAL_VARIABLE_RULES` inside `parser.py` (pre-masking timestamps, IPs, UUIDs, hex values, and numbers) and prepended them to the prefix-tree grouping pass, avoiding grouping explosions.
+- **Chat completions API Migration**:
+  * Refactored `OllamaClient.generate_completion` to accept message lists and query `/api/chat` with `"think": false` to bypass verbose reasoning blocks.
+  * Updated LibreLog, LogBatcher, and LogParser-LLM to construct role-based message dictionaries (`system`, `user`, `assistant`).
+  * Validated 150+ live LLM completions on `gemma4:26b` with a 100% success rate, reducing token counts by 97.5% per request.
+- **Automated Container Cleanup & Obsolete Warnings**:
+  * Added a `trap cleanup EXIT` hook inside `run_e2e.sh` to automatically run `docker-compose down --remove-orphans`, keeping host networks and processes clean.
+  * Silenced compose deprecation warnings by removing the obsolete `version` key from `docker-compose.yml` and `docker-compose.test.yml`.
+
+
 
 
 

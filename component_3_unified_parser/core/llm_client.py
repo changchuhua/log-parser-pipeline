@@ -151,13 +151,13 @@ class OllamaClient:
                 if attempt == 1:
                     raise e
         
-    def generate_completion(self, prompt, temperature=0.0):
-        """Generates a text completion for a given prompt.
+    def generate_completion(self, messages, temperature=0.0):
+        """Generates a text completion for a given list of role-based messages.
 
         Retries the request once in case of a timeout or server error.
 
         Args:
-            prompt (str): Prompt to query the model.
+            messages (list): List of dicts, e.g. [{"role": "system", "content": "..."}]
             temperature (float): Model temperature setting. Defaults to 0.0.
 
         Returns:
@@ -170,10 +170,10 @@ class OllamaClient:
         base_url_clean = self.base_url or ""
         if base_url_clean.endswith('/v1'):
             base_url_clean = base_url_clean[:-3]
-        url = f"{base_url_clean}/api/generate"
+        url = f"{base_url_clean}/api/chat"
         payload = {
             "model": self.model_name,
-            "prompt": prompt,
+            "messages": messages,
             "stream": False,
             "think": False,
             "options": {
@@ -183,7 +183,7 @@ class OllamaClient:
         }
         for attempt in range(2):
             try:
-                resp = requests.post(url, json=payload, timeout=300)
+                resp = requests.post(url, json=payload, timeout=self.timeout)
                 resp.raise_for_status()
                 data = resp.json()
                 
@@ -196,12 +196,12 @@ class OllamaClient:
                 self.invocations += 1
                 
                 response_text = None
-                if 'response' in data:
+                if 'message' in data and 'content' in data['message']:
+                    response_text = data['message']['content']
+                elif 'response' in data:
                     response_text = data['response']
                 elif 'choices' in data and len(data['choices']) > 0:
                     response_text = data['choices'][0]['message']['content']
-                elif 'message' in data and 'content' in data['message']:
-                    response_text = data['message']['content']
                 
                 if response_text is not None:
                     self._log_debug("generate", payload, response_data={"response": response_text, "eval_count": data.get('eval_count', 0)})

@@ -128,13 +128,16 @@ class LLMExtractor:
             "The allowed semantic categories are: Location Indicator (<LOI>), Object ID (<OID>), and Time/Date/Activity (<TDA>). "
             "You MUST output a valid JSON object containing the normalized template string "
             "where variables are replaced by their category tokens, and a list of extracted variables.\n"
-            "CRITICAL: Do NOT include any markdown code blocks, introductory text, conversational preamble, or explanation. Output ONLY the raw JSON object.\n\n"
+            "CRITICAL: Do NOT include any markdown code blocks, introductory text, conversational preamble, or explanation. Output ONLY the raw JSON object."
         )
 
         if demonstrations:
-            sys_prompt += f"Examples:\n{demonstrations}\n"
+            sys_prompt += f"\n\nExamples:\n{demonstrations}"
 
-        prompt = sys_prompt + f"Log: {log_message}\nOutput:"
+        messages = [
+            {"role": "system", "content": sys_prompt},
+            {"role": "user", "content": f"Log: {log_message}\nOutput:"}
+        ]
 
         ECS_MAPPING = {
             "<LOI>": "source.ip",
@@ -143,7 +146,7 @@ class LLMExtractor:
         }
 
         try:
-            response = self.llm_client.generate_completion(prompt).strip()
+            response = self.llm_client.generate_completion(messages).strip()
             # Clean markdown code blocks if the LLM output wrapped them
             if response.startswith("```"):
                 lines = response.split("\n")

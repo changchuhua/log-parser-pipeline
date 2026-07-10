@@ -18,6 +18,13 @@ if ! command -v docker compose &> /dev/null; then
     COMPOSE_CMD="docker-compose"
 fi
 
+# Register cleanup trap to automatically remove test containers, networks, and orphans on exit
+cleanup() {
+    echo "[*] Cleaning up test containers and networks..."
+    $COMPOSE_CMD -f docker-compose.test.yml down --remove-orphans
+}
+trap cleanup EXIT
+
 echo "[*] Launching E2E integration test using $COMPOSE_CMD..."
 $COMPOSE_CMD -f docker-compose.test.yml up --build --abort-on-container-exit
 
