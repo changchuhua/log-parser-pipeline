@@ -6,6 +6,11 @@ import shutil
 from unittest.mock import patch, MagicMock
 from component_3_unified_parser.main_parser import run_logparser_llm
 
+# Explicit imports to ensure core submodules are loaded before unittest.mock.patch decorators are evaluated
+import core.librelog.parser
+import core.logbatcher.parser
+import core.logparser_llm.llm_extractor
+
 class TestComponent3Persist(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory for cache testing
