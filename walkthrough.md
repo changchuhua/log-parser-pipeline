@@ -502,3 +502,18 @@ Successfully implemented proper wildcard substitution for template merging and c
 - **Verification**:
   * Added `test_wildcard_node_merging` and `test_capacity_pruning` to [test_logparser_llm_enhancements.py](file:///home/amilame/github/Practicum/log-parser-pipeline/tests/test_logparser_llm_enhancements.py#L94-L138). Verified all 38 unit tests pass, and the E2E script ran successfully.
 
+---
+
+## 43. LogParser-LLM Dynamic Category Toggle (3 vs 10 Categories)
+Implemented a configurable toggle for variable-aware prompt categorizations:
+- **Dynamic Variable Categorizations**:
+  * Added `categories_mode` (3 or 10) in [config.yaml](file:///home/amilame/github/Practicum/log-parser-pipeline/config.yaml#L16).
+  * Refactored [llm_extractor.py](file:///home/amilame/github/Practicum/log-parser-pipeline/component_3_unified_parser/core/logparser_llm/llm_extractor.py#L131-L182) to dynamically adjust the few-shot template instruction prompts and output mappings (incorporating the 10 variables described in Figure 4 of the research paper: `<TDA>`, `<LOI>`, `<OID>`, `<USR>`, `<POR>`, `<STA>`, `<VER>`, `<PRO>`, `<NUM>`, and `<COM>`).
+- **Comprehensive ECS Mapping**:
+  * Configured dynamic `ECS_MAPPING` to map all 10 categories to their respective standard security/SIEM fields (e.g. `<USR>` $\rightarrow$ `user.name`, `<POR>` $\rightarrow$ `source.port`, `<STA>` $\rightarrow$ `event.outcome`).
+- **Toggle Verification & Evaluation**:
+  * Added `test_categories_mode_toggle` in [test_logparser_llm_enhancements.py](file:///home/amilame/github/Practicum/log-parser-pipeline/tests/test_logparser_llm_enhancements.py#L141-L168).
+  * Executed comparison testing, confirming that Mode 10 yields far superior log abstraction granularity (isolating port, component, user, and status fields correctly) compared to Mode 3. 
+  * Configured `categories_mode: 10` as the default production setting.
+
+

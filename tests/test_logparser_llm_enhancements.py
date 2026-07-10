@@ -137,3 +137,30 @@ class TestLogParserLLMEnhancements(unittest.TestCase):
         self.assertNotIn("t1", tree.clusters)
         self.assertIn("t2", tree.clusters)
         self.assertIn("t3", tree.clusters)
+
+    def test_categories_mode_toggle(self):
+        from component_3_unified_parser.core.logparser_llm.llm_extractor import LLMExtractor
+        import tempfile
+        import yaml
+        import os
+        
+        # Test categories_mode = 3
+        with tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False) as f:
+            yaml.dump({'logparser_llm': {'categories_mode': 3}}, f)
+            config_name_3 = f.name
+            
+        tree = PrefixTree()
+        extractor_3 = LLMExtractor(tree, config_path=config_name_3)
+        self.assertEqual(extractor_3.categories_mode, 3)
+        
+        # Test categories_mode = 10
+        with tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False) as f:
+            yaml.dump({'logparser_llm': {'categories_mode': 10}}, f)
+            config_name_10 = f.name
+            
+        extractor_10 = LLMExtractor(tree, config_path=config_name_10)
+        self.assertEqual(extractor_10.categories_mode, 10)
+        
+        # Cleanup
+        os.remove(config_name_3)
+        os.remove(config_name_10)

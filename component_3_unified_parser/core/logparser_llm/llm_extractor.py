@@ -69,8 +69,9 @@ class LLMExtractor:
         except Exception:
             config = {}
         self.k_shots = config.get('logparser_llm', {}).get('k_shots', 3)
+        self.categories_mode = int(config.get('logparser_llm', {}).get('categories_mode', 3))
         self.template_pool = []
-
+        
         # Load Template Pool from the existing LogBatcher cache file if available
         cache_file = '/app/data/cache/logbatcher_cache.json'
         if not os.path.exists(cache_file):
@@ -90,11 +91,18 @@ class LLMExtractor:
 
         # Fallback seed examples if template pool is empty to ensure always functioning shot retrieval
         if not self.template_pool:
-            self.template_pool = [
-                {"template": "User <LOI> logged in", "ref_log": "User admin logged in"},
-                {"template": "mice: PS/2 mouse device common for all mice", "ref_log": "mice: PS/2 mouse device common for all mice"},
-                {"template": "bindcache: failed init IPS: <TDA> (<OID>)", "ref_log": "bindcache: failed init IPS: 0x5 (Out of memory)"}
-            ]
+            if self.categories_mode == 10:
+                self.template_pool = [
+                    {"template": "User <USR> logged in from <LOI>", "ref_log": "User admin logged in from 1.2.3.4"},
+                    {"template": "mice: PS/2 mouse device version <VER>", "ref_log": "mice: PS/2 mouse device version v1.2.3"},
+                    {"template": "bindcache: failed init IPS on port <POR>: <STA> (<OID>)", "ref_log": "bindcache: failed init IPS on port 8080: failure (Out of memory)"}
+                ]
+            else:
+                self.template_pool = [
+                    {"template": "User <LOI> logged in", "ref_log": "User admin logged in"},
+                    {"template": "mice: PS/2 mouse device common for all mice", "ref_log": "mice: PS/2 mouse device common for all mice"},
+                    {"template": "bindcache: failed init IPS: <TDA> (<OID>)", "ref_log": "bindcache: failed init IPS: 0x5 (Out of memory)"}
+                ]
 
     def get_template(self, log_message, log_record=None):
         """Retrieves template and extracts ECS fields using dynamic Jaccard-based K-shot prompting.
@@ -123,13 +131,49 @@ class LLMExtractor:
             }
             demonstrations += f"Log: {ref_log}\nOutput: {json.dumps(ex_json)}\n\n"
 
-        sys_prompt = (
-            "As a log parser, your task is to analyze logs and identify dynamic variables. "
-            "The allowed semantic categories are: Location Indicator (<LOI>), Object ID (<OID>), and Time/Date/Activity (<TDA>). "
-            "You MUST output a valid JSON object containing the normalized template string "
-            "where variables are replaced by their category tokens, and a list of extracted variables.\n"
-            "CRITICAL: Do NOT include any markdown code blocks, introductory text, conversational preamble, or explanation. Output ONLY the raw JSON object."
-        )
+        if self.categories_mode == 10:
+            sys_prompt = (
+                "As a log parser, your task is to analyze logs and identify dynamic variables. "
+                "The allowed semantic categories are:\n"
+                "1. <TDA>: Time, date, or activity events\n"
+                "2. <LOI>: Location Indicator (e.g. IP address, hostname, URI)\n"
+                "3. <OID>: Object Identifier (e.g. Filepath, UUID, hash, session ID)\n"
+                "4. <USR>: User Information (e.g. username, email, account ID)\n"
+                "5. <POR>: Port number\n"
+                "6. <STA>: Status codes, execution outcomes, or states\n"
+                "7. <VER>: Version info (software version, OS release)\n"
+                "8. <PRO>: Network protocol (e.g. TCP, UDP, HTTP)\n"
+                "9. <NUM>: General numeric value\n"
+                "10. <COM>: System command, component name, or process label\n\n"
+                "You MUST output a valid JSON object containing the normalized template string "
+                "where variables are replaced by their category tokens, and a list of extracted variables.\n"
+                "CRITICAL: Do NOT include any markdown code blocks, introductory text, conversational preamble, or explanation. Output ONLY the raw JSON object."
+            )
+            ECS_MAPPING = {
+                "<TDA>": "event.ingested",
+                "<LOI>": "source.ip",
+                "<OID>": "file.path",
+                "<USR>": "user.name",
+                "<POR>": "source.port",
+                "<STA>": "event.outcome",
+                "<VER>": "service.version",
+                "<PRO>": "network.transport",
+                "<NUM>": "event.duration",
+                "<COM>": "process.name"
+            }
+        else:
+            sys_prompt = (
+                "As a log parser, your task is to analyze logs and identify dynamic variables. "
+                "The allowed semantic categories are: Location Indicator (<LOI>), Object ID (<OID>), and Time/Date/Activity (<TDA>). "
+                "You MUST output a valid JSON object containing the normalized template string "
+                "where variables are replaced by their category tokens, and a list of extracted variables.\n"
+                "CRITICAL: Do NOT include any markdown code blocks, introductory text, conversational preamble, or explanation. Output ONLY the raw JSON object."
+            )
+            ECS_MAPPING = {
+                "<LOI>": "source.ip",
+                "<OID>": "file.path",
+                "<TDA>": "event.ingested"
+            }
 
         if demonstrations:
             sys_prompt += f"\n\nExamples:\n{demonstrations}"
@@ -138,12 +182,6 @@ class LLMExtractor:
             {"role": "system", "content": sys_prompt},
             {"role": "user", "content": f"Log: {log_message}\nOutput:"}
         ]
-
-        ECS_MAPPING = {
-            "<LOI>": "source.ip",
-            "<OID>": "file.path",
-            "<TDA>": "event.ingested"
-        }
 
         try:
             response = self.llm_client.generate_completion(messages).strip()

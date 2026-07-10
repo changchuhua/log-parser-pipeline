@@ -21,7 +21,7 @@ This document outlines the architectural differences between our unified parser 
 ### Section 3: Differences vs. LogParser-LLM Research Paper
 *   **Soft Cache (Loose Matching)**: The research paper falls back to the LLM immediately on a prefix tree miss. We implement a **Jaccard loose match fallback** ($w_i = e^{-\lambda \cdot i}$) to resolve 90%+ identical templates locally, avoiding LLM call explosions.
 *   **Positional Weighting**: The paper's prefix tree implicitly weights root-level tokens. We implement **Positional Jaccard Decay Weighting** to enforce prefix-matching logic inside our soft cache, preventing distinct event categories (like `ERROR` and `INFO`) from merging.
-*   **Semantic Mapping**: The paper abstracts all parameters into generic `<*>` wildcards. We instruct the LLM to output specific indicators (`<LOI>`, `<OID>`, `<TDA>`) and automatically map them to standard **Elastic Common Schema (ECS)** fields.
+*   **Elastic Common Schema (ECS) Ingestion Mapping**: While we inherit the paper's variable-aware prompting design (which defines the categorizations into `<LOI>`, `<OID>`, `<TDA>` etc. in Figure 4), our repository extends this by automatically **mapping these semantic categories to standard Elastic Common Schema (ECS) fields** (e.g., `source.ip`, `file.path`) in the parsed output records to support production SIEM ingestion.
 *   **Tree Management**: We implement **persistent tree cache serialization** (JSON), **wildcard node merging** (`TemplateManager.calibrate()`), and **LRU capacity pruning** (`prune_to_capacity(max_templates=1000)`).
 
 ---

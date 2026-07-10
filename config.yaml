@@ -13,6 +13,7 @@ logparser_llm:
   use_positional_weighting: true  # Apply decay weighting to Jaccard loose match
   decay_factor: 0.15              # Decay coefficient lambda
   merge_similarity_threshold: 0.95
+  categories_mode: 10             # Toggle between 3 or 10 dynamic categories
   embedding_model: "nomic-embed-text"
 logbatcher:
   batch_size: 5
