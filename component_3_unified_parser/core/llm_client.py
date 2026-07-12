@@ -15,23 +15,20 @@ class OllamaClient:
     """Client for querying an Ollama or OpenAI-compatible LLM endpoint."""
 
     def __init__(self, config_path='/app/config.yaml'):
-        """Initializes the OllamaClient with config parameters or env variables.
-
-        Args:
-            config_path (str): Path to the centralized YAML configuration.
-        """
+        if not os.path.exists(config_path) and config_path == '/app/config.yaml':
+            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'config.yaml')
         try:
             with open(config_path, 'r') as f:
                 config = yaml.safe_load(f)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Could not load config from {config_path}: {e}")
             config = {}
             
-        self.base_url = os.environ.get('OLLAMA_API_BASE')
-        if not self.base_url:
-            logger.warning("OLLAMA_API_BASE environment variable is not configured!")
-
-        # Resolve model choice dynamically via environment or config fallback
-        model_choice = os.environ.get('OLLAMA_MODEL') or config.get('llm', {}).get('model_name', 'llama3')
+        llm_config = config.get('llm', {})
+        self.base_url = os.environ.get('OLLAMA_API_BASE') or llm_config.get('api_base', 'http://localhost:11434/api')
+        self.embed_url = os.environ.get('OLLAMA_EMBED_BASE') or self.base_url
+        
+        model_choice = os.environ.get('OLLAMA_MODEL') or llm_config.get('model_name', 'qwen')
         model_map = {
             'gemma': 'gemma4:26b',
             'deepseek': 'deepseek-r1:32b',
@@ -113,11 +110,19 @@ class OllamaClient:
         if text in self.embedding_cache:
             return self.embedding_cache[text]
 
-        url = f"{self.base_url}/embeddings"
-        payload = {
-            "model": self.embedding_model,
-            "input": text
-        }
+        is_openai = self.embed_url.endswith('/v1')
+        if is_openai:
+            url = f"{self.embed_url}/embeddings"
+            payload = {
+                "model": self.embedding_model,
+                "input": text
+            }
+        else:
+            url = f"{self.embed_url}/embeddings"
+            payload = {
+                "model": self.embedding_model,
+                "prompt": text
+            }
         for attempt in range(2):
             try:
                 resp = requests.post(url, json=payload, timeout=300)
@@ -168,19 +173,30 @@ class OllamaClient:
             KeyError: If response JSON lacks expected completion keys.
         """
         base_url_clean = self.base_url or ""
-        if base_url_clean.endswith('/v1'):
-            base_url_clean = base_url_clean[:-3]
-        url = f"{base_url_clean}/api/chat"
-        payload = {
-            "model": self.model_name,
-            "messages": messages,
-            "stream": False,
-            "think": False,
-            "options": {
+        is_openai_compat = base_url_clean.endswith('/v1')
+        
+        if is_openai_compat:
+            url = f"{base_url_clean}/chat/completions"
+            payload = {
+                "model": self.model_name,
+                "messages": messages,
                 "temperature": temperature,
-                "num_predict": 128
+                "max_tokens": 128
             }
-        }
+        else:
+            if base_url_clean.endswith('/api'):
+                base_url_clean = base_url_clean[:-4]
+            url = f"{base_url_clean}/api/chat"
+            payload = {
+                "model": self.model_name,
+                "messages": messages,
+                "stream": False,
+                "think": False,
+                "options": {
+                    "temperature": temperature,
+                    "num_predict": 128
+                }
+            }
         for attempt in range(2):
             try:
                 resp = requests.post(url, json=payload, timeout=self.timeout)
@@ -188,8 +204,8 @@ class OllamaClient:
                 data = resp.json()
                 
                 # Accumulate token usage if present
-                p_tokens = data.get('prompt_eval_count', 0)
-                c_tokens = data.get('eval_count', 0)
+                p_tokens = data.get('prompt_eval_count', 0) or data.get('usage', {}).get('prompt_tokens', 0)
+                c_tokens = data.get('eval_count', 0) or data.get('usage', {}).get('completion_tokens', 0)
                 self.prompt_tokens += p_tokens
                 self.completion_tokens += c_tokens
                 self.total_tokens += p_tokens + c_tokens

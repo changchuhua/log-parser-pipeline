@@ -6,14 +6,16 @@ extractor:
   batch_size: 5000
   lookback_time: now-24h
 llm:
-  model_name: llama3
+  api_base: "http://ollama:11434/api"
 logparser_llm:
   k_shots: 3
   loose_match_threshold: 0.8
-  use_positional_weighting: true  # Apply decay weighting to Jaccard loose match
+  categories_mode: "paper_10"     # Options: "ecs_10", "paper_10", "ecs_3"
+  calibration_file: "data/cache/calibration_seed.json" # Provide 32 ground-truth examples here to enable LogParser-LLM-C
+  icl_selection_strategy: "similarity" # Options: "similarity", "diversity"
+  loose_match_metric: "positional_uniform" # Options: "positional_decay", "positional_uniform", "jaccard"
   decay_factor: 0.15              # Decay coefficient lambda
   merge_similarity_threshold: 0.95
-  categories_mode: 10             # Toggle between 3 or 10 dynamic categories
   embedding_model: "nomic-embed-text"
 logbatcher:
   batch_size: 5
@@ -21,6 +23,7 @@ logbatcher:
   cluster: "LengthCluster"        # "LengthCluster" or "SimilarityCluster"
   vectorizer: "binary"           # "binary" (Jaccard) or "tfidf" (Cosine)
   use_dynamic_eps: false         # scale DBSCAN eps dynamically
+  noise_max_retries: 2           # max re-queues for noise logs before regex pre-mask
   embedding_model: "nomic-embed-text"
 librelog:
   similarity_threshold: 0.85

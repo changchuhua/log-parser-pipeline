@@ -39,6 +39,8 @@ def load_config(config_path='/app/config.yaml'):
     Returns:
         dict: YAML configuration dictionary.
     """
+    if not os.path.exists(config_path) and config_path == '/app/config.yaml':
+        config_path = 'config.yaml'
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 

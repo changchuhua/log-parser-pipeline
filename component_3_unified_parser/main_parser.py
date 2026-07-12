@@ -12,7 +12,6 @@ import yaml
 import logging
 import sys
 import time
-import os
 
 # Align search path for import resolution of core.* modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -60,10 +59,14 @@ def load_config(config_path='/app/config.yaml'):
     Returns:
         dict: central YAML configuration.
     """
+    if not os.path.exists(config_path) and config_path == '/app/config.yaml':
+        config_path = 'config.yaml'
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
-def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=False, cache_dir='data/cache', time_limit=None):
+
+
+def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=False, cache_dir='data/cache', time_limit=None, icl_selection_strategy=None):
     """Executes the LogParser-LLM parsing pipeline.
 
     Utilizes prefix trees for log routing and queries LLM context
@@ -92,7 +95,7 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
             except Exception as e:
                 logger.error(f"Error loading cache: {e}")
 
-    llm_extractor = LLMExtractor(tree_router)
+    llm_extractor = LLMExtractor(tree_router, icl_selection_strategy=icl_selection_strategy)
     template_manager = TemplateManager(tree_router)
     
     os.makedirs(output_dir, exist_ok=True)
@@ -301,9 +304,12 @@ def main():
     write_cache_env = os.environ.get('WRITE_CACHE', 'false').lower() == 'true'
     llm_debug_env = os.environ.get('LLM_DEBUG', 'false').lower() == 'true'
     
+    icl_strategy_env = os.environ.get('ICL_SELECTION_STRATEGY', None)
+    
     parser.add_argument('--use-cache', action='store_true', default=use_cache_env, help='Use cached templates from previous runs')
     parser.add_argument('--write-cache', action='store_true', default=write_cache_env, help='Write templates to cache on exit')
     parser.add_argument('--time-limit', type=float, default=None, help='Maximum execution duration in seconds')
+    parser.add_argument('--icl-selection-strategy', type=str, default=icl_strategy_env, choices=['similarity', 'diversity'], help='ICL selection strategy')
     parser.add_argument('--llm-debug', action='store_true', default=llm_debug_env, help='Enable raw LLM requests/responses/errors logging to llm_debug.jsonl')
     args = parser.parse_args()
     
@@ -311,6 +317,7 @@ def main():
         os.environ['LLM_DEBUG'] = 'true'
     
     config = load_config()
+    
     input_dir = config.get('directories', {}).get('output_dir', 'data/processed')
     parsed_dir = 'data/parsed'
     os.makedirs(parsed_dir, exist_ok=True)
@@ -324,7 +331,7 @@ def main():
         return
         
     if args.method == 'logparser-llm':
-        run_logparser_llm(input_files, parsed_dir, use_cache=args.use_cache, write_cache=args.write_cache, cache_dir=cache_dir, time_limit=args.time_limit)
+        run_logparser_llm(input_files, parsed_dir, use_cache=args.use_cache, write_cache=args.write_cache, cache_dir=cache_dir, time_limit=args.time_limit, icl_selection_strategy=args.icl_selection_strategy)
     elif args.method == 'logbatcher':
         import csv
         output_csv = os.path.join(parsed_dir, 'logbatcher_output.csv')

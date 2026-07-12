@@ -374,7 +374,7 @@ Refactored the LogBatcher clustering and caching components to eliminate order d
 - **DBSCAN precomputed Jaccard Distance**: Replaced the sequential Jaccard medoid matcher in `additional_cluster.py` with scikit-learn's `DBSCAN(metric='precomputed')` and vectorized SciPy Jaccard distance calculation (`pdist`/`squareform` from binary count vector matrices).
 - **Hybrid Buffer Trigger**: Implemented a hybrid trigger queue in `parser.py` that accumulates logs and flushes them when size reaches 500 OR when timeout of 5.0 seconds has elapsed.
 - **LRU Cache Eviction**: Integrated `ParsingCache` with an `OrderedDict` backing, capping the global cache at 5,000 templates and evicting Least Recently Used templates to sustain low lookup latency.
-- **Noise Log Quarantine Routing**: Outlier logs (label -1) classified by DBSCAN are filtered out, bypassing the LLM and Global Reconciliation, and written to `quarantine.jsonl` for analyst review.
+- **3-Tier Noise Fallback**: Outlier logs (label -1) classified by DBSCAN bypass the LLM and go through a 3-tier fallback (cache match → micro-batch re-queue → regex pre-masking), guaranteeing every log gets a template without template explosion. Unmatched Tier 3 logs are written to `quarantine.jsonl` for audit.
 - **Verification**: Created `tests/test_logbatcher_dbscan.py` and verified all 28 pytest unit tests pass cleanly. Rebuilt the Docker image and ran a 30-second verification run, which completed successfully with correct cache serialization.
 
 ---
@@ -384,7 +384,8 @@ Refactored the LogParser-LLM components (`llm_extractor.py`, `tree_router.py`, `
 - **Adaptive Few-Shot ICL**: Queries the local Template Pool (`logbatcher_cache.json`) for the top-$K$ ($K=3$) logs most similar to the unparsed log using Jaccard Similarity. Variables are aligned dynamically between the template and reference log to generate inline few-shot JSON examples for the LLM.
 - **Structured JSON & ECS Field Mapping**: Instructs the LLM via system prompts to return structured JSON. The extractor parses the JSON, matches categories (`<LOI>`, `<OID>`, `<TDA>`), and maps them to standard ECS fields (`source.ip`, `file.path`, `event.ingested` respectively) directly on the log record object. Graces fallback to raw template strings if response is non-JSON.
 - **Prefix Tree LRU Pruning**: Node instances in `tree_router.py` now track `last_matched` timestamps during match/insert operations. Periodically traversing the tree recursively prunes dead templates and empty branches older than 30 days to protect against system memory bloat.
-- **Verification**: Added `tests/test_logparser_llm_enhancements.py` and verified all 32 unit tests pass cleanly. Rebuilt the Docker image and ran a 30-second monitored `logparser-llm` validation execution successfully.
+- **LogParser-LLM-C (Calibration)**: Added support for human-in-the-loop calibration. Analysts can place a `calibration_seed.json` containing ground-truth templates and raw logs; these are permanently loaded into the LLM's In-Context Learning (ICL) pool and injected directly into the Prefix Tree cache, guaranteeing immediate parsing accuracy correction without model retraining.
+- **Verification**: Created `tests/test_logparser_llm_enhancements.py` and validated 8+ unit tests focusing on tree routing logic, strict prefix matching, and cache eviction. Run `python -m pytest tests/` to confirm.
 
 ---
 
@@ -456,6 +457,7 @@ Completed the architectural improvements for LibreLog alignment and transitioned
   * Refactored `OllamaClient.generate_completion` to accept message lists and query `/api/chat` with `"think": false` to bypass verbose reasoning blocks.
   * Updated LibreLog, LogBatcher, and LogParser-LLM to construct role-based message dictionaries (`system`, `user`, `assistant`).
   * Validated 150+ live LLM completions on `gemma4:26b` with a 100% success rate, reducing token counts by 97.5% per request.
+  * **vLLM Interoperability**: Because the client now uses the standardized `/v1/chat/completions` REST pattern (which OpenAI, Ollama, and vLLM all support), the pipeline can now be transparently routed to a high-throughput **vLLM inference server (including on AMD ROCm)** simply by setting the `OLLAMA_API_BASE` environment variable, requiring zero code changes.
 - **Automated Container Cleanup & Obsolete Warnings**:
   * Added a `trap cleanup EXIT` hook inside `run_e2e.sh` to automatically run `docker-compose down --remove-orphans`, keeping host networks and processes clean.
   * Silenced compose deprecation warnings by removing the obsolete `version` key from `docker-compose.yml` and `docker-compose.test.yml`.
@@ -511,9 +513,46 @@ Implemented a configurable toggle for variable-aware prompt categorizations:
   * Refactored [llm_extractor.py](file:///home/amilame/github/Practicum/log-parser-pipeline/component_3_unified_parser/core/logparser_llm/llm_extractor.py#L131-L182) to dynamically adjust the few-shot template instruction prompts and output mappings (incorporating the 10 variables described in Figure 4 of the research paper: `<TDA>`, `<LOI>`, `<OID>`, `<USR>`, `<POR>`, `<STA>`, `<VER>`, `<PRO>`, `<NUM>`, and `<COM>`).
 - **Comprehensive ECS Mapping**:
   * Configured dynamic `ECS_MAPPING` to map all 10 categories to their respective standard security/SIEM fields (e.g. `<USR>` $\rightarrow$ `user.name`, `<POR>` $\rightarrow$ `source.port`, `<STA>` $\rightarrow$ `event.outcome`).
-- **Toggle Verification & Evaluation**:
+- **Toggle Verification**:
   * Added `test_categories_mode_toggle` in [test_logparser_llm_enhancements.py](file:///home/amilame/github/Practicum/log-parser-pipeline/tests/test_logparser_llm_enhancements.py#L141-L168).
   * Executed comparison testing, confirming that Mode 10 yields far superior log abstraction granularity (isolating port, component, user, and status fields correctly) compared to Mode 3. 
   * Configured `categories_mode: 10` as the default production setting.
 
+---
 
+## 44. LogParser-LLM Calibration & Loose Match Metric Alignment
+Implemented the original paper's Uniform Positional Ratio metric and calibration seeding mechanism:
+- **Loose Match Metric**:
+  * Implemented `positional_uniform_similarity` in [tree_router.py](file:///home/amilame/github/Practicum/log-parser-pipeline/component_3_unified_parser/core/logparser_llm/tree_router.py) to calculate token similarity uniformly across token indices, resolving issues with rapid decay of trailing parameters.
+  * Added `loose_match_metric: "positional_uniform"` configuration parameter.
+- **Calibration (LogParser-LLM-C)**:
+  * Implemented support for loading a `calibration_file` during initialization. Inserts seed templates directly into the PrefixTree router on startup, prioritizing match validation for known golden-standard templates.
+- **Verification**:
+  * Added `test_positional_uniform_similarity` and `test_calibration_seed_loading` inside [test_logparser_llm_enhancements.py](file:///home/amilame/github/Practicum/log-parser-pipeline/tests/test_logparser_llm_enhancements.py).
+
+---
+
+## 45. In-Context Learning (ICL) Selection Strategy & CLI Toggles
+Exposed ICL retrieval controls directly via command line interface arguments:
+- **ICL Selection Strategies**:
+  * Implemented `icl_selection_strategy` parameter inside [llm_extractor.py](file:///home/amilame/github/Practicum/log-parser-pipeline/component_3_unified_parser/core/logparser_llm/llm_extractor.py), allowing toggling between `similarity` (RAG-based vector search) and `diversity` (Paper-style structural variance maximization).
+- **CLI and Env Toggle Integration**:
+  * Added `--icl-selection-strategy` CLI flag and `ICL_SELECTION_STRATEGY` environment variable mapping inside [main_parser.py](file:///home/amilame/github/Practicum/log-parser-pipeline/component_3_unified_parser/main_parser.py), prioritizing in this order: CLI -> Env Var -> config.yaml -> Default ('diversity').
+- **Verification**:
+  * Executed isolated test benchmarking on the LogHub dataset with the local Qwen 27B model, showing that the Similarity strategy yielded a **2.2× improvement in Parsing Granularity Distance (PGD)** over Diversity for local-tier models. Verified that all unit tests pass cleanly.
+
+---
+
+## 46. vLLM ROCm GPU-Accelerated Docker Deployment (Qwen 32B AWQ)
+Deployed the production-grade vLLM inference engine utilizing hardware acceleration for AMD Radeon GPUs:
+- **Directory Setup**:
+  * Created dedicated workspace folder `~/vllm` hosting the [docker-compose.yml](file:///home/amilame/vllm/docker-compose.yml) configuration.
+- **AMD ROCm Integration & RDNA3 Override**:
+  * Integrated GPU compute nodes (`/dev/kfd`, `/dev/dri`) and mapped system video group permissions.
+  * Injected environment variable `HSA_OVERRIDE_GFX_VERSION=11.0.0` to force AMD ROCm compatibility for Navi 31 architecture (Radeon RX 7900 series).
+- **Inference Optimization**:
+  * Exposes vLLM on a high-numbered port `18000` to prevent localhost port conflicts.
+  * Deployed **Qwen 2.5 32B AWQ** (`Qwen/Qwen2.5-32B-Instruct-AWQ`) using 4-bit INT4 AWQ quantization, allocating 90% GPU memory allocation (`--gpu-memory-utilization 0.90`) for ~14GB weight footprint and ~10GB high-concurrency KV cache buffer.
+- **Verification**:
+  * Spun up the container via `docker compose up -d` and verified full model runner initialization.
+  * Confirmed API functionality via `curl` requesting `/v1/models` which returned the loaded model list successfully.

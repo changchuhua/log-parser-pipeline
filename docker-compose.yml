@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     image: component_1_dataset_gen
     container_name: dataset_generator
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro
@@ -19,6 +20,7 @@ services:
       dockerfile: Dockerfile
     image: component_2_so_extractor
     container_name: so_extractor
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro
@@ -33,6 +35,7 @@ services:
       dockerfile: Dockerfile
     image: component_3_unified_parser
     container_name: unified_parser
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro
@@ -49,6 +52,7 @@ services:
       dockerfile: Dockerfile
     image: component_4_evaluator
     container_name: evaluator
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro
@@ -63,6 +67,7 @@ services:
       dockerfile: Dockerfile
     image: component_5_deployer
     container_name: so_deployer
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro

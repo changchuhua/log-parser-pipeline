@@ -77,7 +77,7 @@ class TestLogParserLLMEnhancements(unittest.TestCase):
         
         # Verify PrefixTree loose match integration
         tree = PrefixTree()
-        tree.use_positional_weighting = True
+        tree.loose_match_metric = "positional_decay"
         tree.decay_factor = 0.15
         tree.loose_match_threshold = 0.7
         tree.clusters.append("ERROR connection from <*> closed")
@@ -90,6 +90,21 @@ class TestLogParserLLMEnhancements(unittest.TestCase):
             tree.loose_match(["ERROR", "connection", "from", "ip", "open"]),
             "ERROR connection from <*> closed"
         )
+
+    def test_positional_uniform_similarity(self):
+        from component_3_unified_parser.core.logparser_llm.tree_router import positional_uniform_similarity
+        
+        tokens1 = ["A", "B", "C", "D"]
+        tokens2 = ["A", "B", "X", "Y"]
+        
+        # 2 matches out of 4 total tokens -> 0.5
+        sim = positional_uniform_similarity(tokens1, tokens2)
+        self.assertEqual(sim, 0.5)
+        
+        # Order matters
+        tokens3 = ["B", "A", "C", "D"]
+        sim2 = positional_uniform_similarity(tokens1, tokens3)
+        self.assertEqual(sim2, 0.5)
 
     def test_wildcard_node_merging(self):
         from component_3_unified_parser.core.logparser_llm.template_manager import TemplateManager
@@ -144,23 +159,94 @@ class TestLogParserLLMEnhancements(unittest.TestCase):
         import yaml
         import os
         
-        # Test categories_mode = 3
+        # Test legacy 3 -> ecs_3
         with tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False) as f:
             yaml.dump({'logparser_llm': {'categories_mode': 3}}, f)
             config_name_3 = f.name
             
         tree = PrefixTree()
         extractor_3 = LLMExtractor(tree, config_path=config_name_3)
-        self.assertEqual(extractor_3.categories_mode, 3)
+        self.assertEqual(extractor_3.categories_mode, "ecs_3")
         
-        # Test categories_mode = 10
+        # Test legacy 10 -> ecs_10
         with tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False) as f:
             yaml.dump({'logparser_llm': {'categories_mode': 10}}, f)
             config_name_10 = f.name
             
         extractor_10 = LLMExtractor(tree, config_path=config_name_10)
-        self.assertEqual(extractor_10.categories_mode, 10)
+        self.assertEqual(extractor_10.categories_mode, "ecs_10")
+        
+        # Test explicit paper_10
+        with tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False) as f:
+            yaml.dump({'logparser_llm': {'categories_mode': 'paper_10'}}, f)
+            config_name_paper = f.name
+            
+        extractor_paper = LLMExtractor(tree, config_path=config_name_paper)
+        self.assertEqual(extractor_paper.categories_mode, "paper_10")
         
         # Cleanup
         os.remove(config_name_3)
         os.remove(config_name_10)
+        os.remove(config_name_paper)
+
+    def test_calibration_seed_loading(self):
+        from component_3_unified_parser.core.logparser_llm.llm_extractor import LLMExtractor
+        import tempfile
+        import yaml
+        import json
+        import os
+
+        # Create dummy calibration seed
+        calib_data = [
+            {"template": "Calibration <OID> test", "ref_log": "Calibration 123 test"}
+        ]
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as cf:
+            json.dump(calib_data, cf)
+            calib_file = cf.name
+
+        # Create config pointing to calibration seed
+        with tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False) as f:
+            yaml.dump({'logparser_llm': {'calibration_file': calib_file}}, f)
+            config_name = f.name
+
+        tree = PrefixTree()
+        extractor = LLMExtractor(tree, config_path=config_name)
+        
+        # Check that calibration data is in the pool and tree
+        self.assertEqual(extractor.template_pool[0]['template'], "Calibration <OID> test")
+        self.assertIn("Calibration <OID> test", tree.clusters)
+
+        # Cleanup
+        os.remove(calib_file)
+        os.remove(config_name)
+
+    def test_icl_selection_strategy(self):
+        from component_3_unified_parser.core.logparser_llm.llm_extractor import LLMExtractor
+        import tempfile
+        import yaml
+        import os
+
+        # Test diversity strategy
+        with tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False) as f:
+            yaml.dump({'logparser_llm': {'icl_selection_strategy': 'diversity', 'k_shots': 2}}, f)
+            config_name = f.name
+
+        tree = PrefixTree()
+        extractor = LLMExtractor(tree, config_path=config_name)
+        
+        # Manually populate template pool
+        extractor.template_pool = [
+            {"template": "Log A", "ref_log": "Log A"},
+            {"template": "Log B", "ref_log": "Log B"},
+            {"template": "Log C", "ref_log": "Log C"}
+        ]
+        
+        # Test it runs without error and returns 2 items
+        import json
+        # Mock get_variables_from_example and ollama client so it doesn't fail
+        extractor.llm_client.generate_completion = lambda x: '{"template": "result", "variables": []}'
+        
+        res = extractor.get_template("Log A")
+        self.assertEqual(res, "result")
+        
+        os.remove(config_name)

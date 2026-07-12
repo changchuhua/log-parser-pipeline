@@ -24,6 +24,16 @@ def weighted_jaccard_similarity(tokens1, tokens2, decay_factor=0.15):
         return 0.0
     return intersection_weight / union_weight
 
+def positional_uniform_similarity(tokens1, tokens2):
+    """Computes simple positional matching ratio from the original paper."""
+    if not tokens1 or not tokens2:
+        return 0.0
+    L = min(len(tokens1), len(tokens2))
+    if L == 0:
+        return 0.0
+    match_count = sum(1 for i in range(L) if tokens1[i] == tokens2[i])
+    return match_count / L
+
 def jaccard_similarity(tokens1, tokens2):
     """Computes Jaccard Similarity between two token sets.
 
@@ -73,7 +83,11 @@ class PrefixTree:
             config = {}
         lp_config = config.get('logparser_llm', {})
         self.loose_match_threshold = lp_config.get('loose_match_threshold', 0.8)
-        self.use_positional_weighting = lp_config.get('use_positional_weighting', True)
+        metric = lp_config.get('loose_match_metric', None)
+        if metric is not None:
+            self.loose_match_metric = metric
+        else:
+            self.loose_match_metric = "positional_decay" if lp_config.get('use_positional_weighting', True) else "jaccard"
         self.decay_factor = lp_config.get('decay_factor', 0.15)
         self.root = Node(None)
         self.clusters = []  # List of templates
@@ -130,8 +144,10 @@ class PrefixTree:
                 static_template_tokens = [t for t in template_tokens if not (t.startswith('<') and t.endswith('>'))]
                 static_log_tokens = [log_tokens[i] for i, t in enumerate(template_tokens) if not (t.startswith('<') and t.endswith('>'))]
 
-                if self.use_positional_weighting:
+                if self.loose_match_metric == "positional_decay":
                     score = weighted_jaccard_similarity(static_template_tokens, static_log_tokens, self.decay_factor)
+                elif self.loose_match_metric == "positional_uniform":
+                    score = positional_uniform_similarity(static_template_tokens, static_log_tokens)
                 else:
                     score = jaccard_similarity(static_template_tokens, static_log_tokens)
 

@@ -130,6 +130,7 @@ class TestLogBatcherDBSCAN(unittest.TestCase):
         parser.cluster_type = "SimilarityCluster"
         parser.similarity_threshold = 0.99
         parser.buffer_max_size = 500
+        parser.noise_max_retries = 0  # Skip re-queue, go straight to Tier 3 regex pre-mask
 
         logs = [
             {"id": "1", "message": "hello world"},
@@ -139,10 +140,13 @@ class TestLogBatcherDBSCAN(unittest.TestCase):
         # Since threshold is 0.99 and min_samples=2, DBSCAN treats them as noise (label -1)
         results = parser.parse(logs)
 
-        # Output results should not contain them (they bypass LLM and Reconciliation)
-        self.assertEqual(len(results), 0)
+        # With 3-tier noise handling, all noise logs now get regex-masked templates
+        self.assertEqual(len(results), 2)
+        # "hello world" has no regex-matchable variables, so template equals the raw message
+        self.assertEqual(results[0]['template'], "hello world")
+        self.assertEqual(results[1]['template'], "different message entirely")
 
-        # They should be written to the quarantine.jsonl file
+        # Tier 3 logs are still written to quarantine file for audit
         self.assertTrue(os.path.exists(self.quarantine_file))
         with open(self.quarantine_file, 'r') as qf:
             lines = [json.loads(line.strip()) for line in qf]

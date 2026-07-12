@@ -1,183 +1,73 @@
 {
     "summary": {
-        "logbatcher": {
-            "FGA": 0.2087725263515811,
-            "PA": 0.284338123143614,
-            "PMSS": 0.9122,
-            "FTA": 0.31235955056179776,
-            "GA": 0.6327366139519949,
-            "Time_s": 251.2687523880013,
-            "LLM_Calls": 143,
-            "Tokens": 330508,
-            "llm_timeouts": 0,
-            "failed_invocations": 0,
-            "failure_rate": 0.0
-        },
-        "librelog": {
-            "FGA": 0.9454545454545454,
-            "PA": 0.5529091262891613,
-            "PMSS": 0.996,
-            "FTA": 0.54,
-            "GA": 0.9606538237011092,
-            "Time_s": 180.62657467900135,
-            "LLM_Calls": 405,
-            "Tokens": 93999,
-            "llm_timeouts": 0,
-            "failed_invocations": 0,
-            "failure_rate": 0.0
-        },
         "parsed_loghub_ecs": {
-            "FGA": 1.0,
-            "PA": 1.0,
-            "PMSS": 0.0,
-            "FTA": 1.0,
-            "GA": 1.0,
-            "Time_s": 0.013145092001650482,
-            "LLM_Calls": 1,
-            "Tokens": 0,
+            "FGA": 0.8846153846153846,
+            "PA": 0.35294117647058826,
+            "PMSS": 0.38235294117647056,
+            "FTA": 0.38461538461538464,
+            "GA": 0.8823529411764706,
+            "Time_s": 184.02716912199685,
+            "LLM_Calls": 53,
+            "Tokens": 31004,
             "llm_timeouts": 0,
             "failed_invocations": 0,
             "failure_rate": 0.0
         }
     },
     "correlation_matrix": {
-        "pmss_fga": -0.5,
-        "pmss_fta": -0.5,
-        "fga_fta": 1.0
+        "pmss_fga": 0.0,
+        "pmss_fta": 0.0,
+        "fga_fta": 0.0
     },
     "visualizations": {
         "radar_chart": {
-            "logbatcher": {
-                "FGA": 0.2087725263515811,
-                "PA": 0.284338123143614,
-                "PMSS": 0.9122,
-                "FTA": 0.31235955056179776
-            },
-            "librelog": {
-                "FGA": 0.9454545454545454,
-                "PA": 0.5529091262891613,
-                "PMSS": 0.996,
-                "FTA": 0.54
-            },
             "parsed_loghub_ecs": {
-                "FGA": 1.0,
-                "PA": 1.0,
-                "PMSS": 0.0,
-                "FTA": 1.0
+                "FGA": 0.8846153846153846,
+                "PA": 0.35294117647058826,
+                "PMSS": 0.38235294117647056,
+                "FTA": 0.38461538461538464
             }
         },
         "scatter_plot": {
-            "logbatcher": {
-                "effectiveness": {
-                    "PMSS": 0.9122,
-                    "FGA": 0.2087725263515811
-                },
-                "efficiency": {
-                    "Time_s": 251.2687523880013,
-                    "Tokens": 330508
-                }
-            },
-            "librelog": {
-                "effectiveness": {
-                    "PMSS": 0.996,
-                    "FGA": 0.9454545454545454
-                },
-                "efficiency": {
-                    "Time_s": 180.62657467900135,
-                    "Tokens": 93999
-                }
-            },
             "parsed_loghub_ecs": {
                 "effectiveness": {
-                    "PMSS": 0.0,
-                    "FGA": 1.0
+                    "PMSS": 0.38235294117647056,
+                    "FGA": 0.8846153846153846
                 },
                 "efficiency": {
-                    "Time_s": 0.013145092001650482,
-                    "Tokens": 0
+                    "Time_s": 184.02716912199685,
+                    "Tokens": 31004
                 }
             }
         },
         "grouped_bar_chart_sensitivity": {
-            "logbatcher": {
-                "raw": {
-                    "PA": 0.284338123143614,
-                    "FTA": 0.31235955056179776
-                },
-                "spaced": {
-                    "PA": 0.284338123143614,
-                    "FTA": 0.31235955056179776
-                },
-                "lowercase": {
-                    "PA": 0.284338123143614,
-                    "FTA": 0.31235955056179776
-                },
-                "regex_clean": {
-                    "PA": 0.284338123143614,
-                    "FTA": 0.31235955056179776
-                }
-            },
-            "librelog": {
-                "raw": {
-                    "PA": 0.5529091262891613,
-                    "FTA": 0.54
-                },
-                "spaced": {
-                    "PA": 0.5529091262891613,
-                    "FTA": 0.54
-                },
-                "lowercase": {
-                    "PA": 0.5529091262891613,
-                    "FTA": 0.54
-                },
-                "regex_clean": {
-                    "PA": 0.5587468379062074,
-                    "FTA": 0.5733333333333334
-                }
-            },
             "parsed_loghub_ecs": {
                 "raw": {
-                    "PA": 1.0,
-                    "FTA": 1.0
+                    "PA": 0.35294117647058826,
+                    "FTA": 0.38461538461538464
                 },
                 "spaced": {
-                    "PA": 1.0,
-                    "FTA": 1.0
+                    "PA": 0.35294117647058826,
+                    "FTA": 0.38461538461538464
                 },
                 "lowercase": {
-                    "PA": 1.0,
-                    "FTA": 1.0
+                    "PA": 0.35294117647058826,
+                    "FTA": 0.38461538461538464
                 },
                 "regex_clean": {
-                    "PA": 1.0,
-                    "FTA": 1.0
+                    "PA": 0.35294117647058826,
+                    "FTA": 0.38461538461538464
                 }
             }
         },
         "correlation_heatmap": {
-            "logbatcher": {
-                "PMSS": 0.9122,
-                "FGA": 0.2087725263515811,
-                "FTA": 0.31235955056179776
-            },
-            "librelog": {
-                "PMSS": 0.996,
-                "FGA": 0.9454545454545454,
-                "FTA": 0.54
-            },
             "parsed_loghub_ecs": {
-                "PMSS": 0.0,
-                "FGA": 1.0,
-                "FTA": 1.0
+                "PMSS": 0.38235294117647056,
+                "FGA": 0.8846153846153846,
+                "FTA": 0.38461538461538464
             }
         },
         "line_graph_cache_scalability": {
-            "logbatcher": {
-                "history": []
-            },
-            "librelog": {
-                "history": []
-            },
             "parsed_loghub_ecs": {
                 "history": [
                     {
@@ -187,13 +77,328 @@
                     },
                     {
                         "log_volume": 2,
-                        "llm_invocations": 1,
-                        "cache_hits": 1
+                        "llm_invocations": 2,
+                        "cache_hits": 0
                     },
                     {
                         "log_volume": 3,
-                        "llm_invocations": 1,
+                        "llm_invocations": 3,
+                        "cache_hits": 0
+                    },
+                    {
+                        "log_volume": 4,
+                        "llm_invocations": 4,
+                        "cache_hits": 0
+                    },
+                    {
+                        "log_volume": 5,
+                        "llm_invocations": 5,
+                        "cache_hits": 0
+                    },
+                    {
+                        "log_volume": 6,
+                        "llm_invocations": 5,
+                        "cache_hits": 1
+                    },
+                    {
+                        "log_volume": 7,
+                        "llm_invocations": 6,
+                        "cache_hits": 1
+                    },
+                    {
+                        "log_volume": 8,
+                        "llm_invocations": 7,
+                        "cache_hits": 1
+                    },
+                    {
+                        "log_volume": 9,
+                        "llm_invocations": 8,
+                        "cache_hits": 1
+                    },
+                    {
+                        "log_volume": 10,
+                        "llm_invocations": 9,
+                        "cache_hits": 1
+                    },
+                    {
+                        "log_volume": 11,
+                        "llm_invocations": 10,
+                        "cache_hits": 1
+                    },
+                    {
+                        "log_volume": 12,
+                        "llm_invocations": 11,
+                        "cache_hits": 1
+                    },
+                    {
+                        "log_volume": 13,
+                        "llm_invocations": 12,
+                        "cache_hits": 1
+                    },
+                    {
+                        "log_volume": 14,
+                        "llm_invocations": 13,
+                        "cache_hits": 1
+                    },
+                    {
+                        "log_volume": 15,
+                        "llm_invocations": 13,
                         "cache_hits": 2
+                    },
+                    {
+                        "log_volume": 16,
+                        "llm_invocations": 14,
+                        "cache_hits": 2
+                    },
+                    {
+                        "log_volume": 17,
+                        "llm_invocations": 15,
+                        "cache_hits": 2
+                    },
+                    {
+                        "log_volume": 18,
+                        "llm_invocations": 16,
+                        "cache_hits": 2
+                    },
+                    {
+                        "log_volume": 19,
+                        "llm_invocations": 17,
+                        "cache_hits": 2
+                    },
+                    {
+                        "log_volume": 20,
+                        "llm_invocations": 18,
+                        "cache_hits": 2
+                    },
+                    {
+                        "log_volume": 21,
+                        "llm_invocations": 18,
+                        "cache_hits": 3
+                    },
+                    {
+                        "log_volume": 22,
+                        "llm_invocations": 19,
+                        "cache_hits": 3
+                    },
+                    {
+                        "log_volume": 23,
+                        "llm_invocations": 20,
+                        "cache_hits": 3
+                    },
+                    {
+                        "log_volume": 24,
+                        "llm_invocations": 21,
+                        "cache_hits": 3
+                    },
+                    {
+                        "log_volume": 25,
+                        "llm_invocations": 22,
+                        "cache_hits": 3
+                    },
+                    {
+                        "log_volume": 26,
+                        "llm_invocations": 23,
+                        "cache_hits": 3
+                    },
+                    {
+                        "log_volume": 27,
+                        "llm_invocations": 23,
+                        "cache_hits": 4
+                    },
+                    {
+                        "log_volume": 28,
+                        "llm_invocations": 23,
+                        "cache_hits": 5
+                    },
+                    {
+                        "log_volume": 29,
+                        "llm_invocations": 23,
+                        "cache_hits": 6
+                    },
+                    {
+                        "log_volume": 30,
+                        "llm_invocations": 24,
+                        "cache_hits": 6
+                    },
+                    {
+                        "log_volume": 31,
+                        "llm_invocations": 24,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 32,
+                        "llm_invocations": 25,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 33,
+                        "llm_invocations": 26,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 34,
+                        "llm_invocations": 27,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 35,
+                        "llm_invocations": 28,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 36,
+                        "llm_invocations": 29,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 37,
+                        "llm_invocations": 30,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 38,
+                        "llm_invocations": 31,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 39,
+                        "llm_invocations": 32,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 40,
+                        "llm_invocations": 33,
+                        "cache_hits": 7
+                    },
+                    {
+                        "log_volume": 41,
+                        "llm_invocations": 33,
+                        "cache_hits": 8
+                    },
+                    {
+                        "log_volume": 42,
+                        "llm_invocations": 34,
+                        "cache_hits": 8
+                    },
+                    {
+                        "log_volume": 43,
+                        "llm_invocations": 35,
+                        "cache_hits": 8
+                    },
+                    {
+                        "log_volume": 44,
+                        "llm_invocations": 36,
+                        "cache_hits": 8
+                    },
+                    {
+                        "log_volume": 45,
+                        "llm_invocations": 37,
+                        "cache_hits": 8
+                    },
+                    {
+                        "log_volume": 46,
+                        "llm_invocations": 38,
+                        "cache_hits": 8
+                    },
+                    {
+                        "log_volume": 47,
+                        "llm_invocations": 38,
+                        "cache_hits": 9
+                    },
+                    {
+                        "log_volume": 48,
+                        "llm_invocations": 38,
+                        "cache_hits": 10
+                    },
+                    {
+                        "log_volume": 49,
+                        "llm_invocations": 38,
+                        "cache_hits": 11
+                    },
+                    {
+                        "log_volume": 50,
+                        "llm_invocations": 39,
+                        "cache_hits": 11
+                    },
+                    {
+                        "log_volume": 51,
+                        "llm_invocations": 40,
+                        "cache_hits": 11
+                    },
+                    {
+                        "log_volume": 52,
+                        "llm_invocations": 41,
+                        "cache_hits": 11
+                    },
+                    {
+                        "log_volume": 53,
+                        "llm_invocations": 42,
+                        "cache_hits": 11
+                    },
+                    {
+                        "log_volume": 54,
+                        "llm_invocations": 43,
+                        "cache_hits": 11
+                    },
+                    {
+                        "log_volume": 55,
+                        "llm_invocations": 44,
+                        "cache_hits": 11
+                    },
+                    {
+                        "log_volume": 56,
+                        "llm_invocations": 45,
+                        "cache_hits": 11
+                    },
+                    {
+                        "log_volume": 57,
+                        "llm_invocations": 45,
+                        "cache_hits": 12
+                    },
+                    {
+                        "log_volume": 58,
+                        "llm_invocations": 46,
+                        "cache_hits": 12
+                    },
+                    {
+                        "log_volume": 59,
+                        "llm_invocations": 47,
+                        "cache_hits": 12
+                    },
+                    {
+                        "log_volume": 60,
+                        "llm_invocations": 48,
+                        "cache_hits": 12
+                    },
+                    {
+                        "log_volume": 61,
+                        "llm_invocations": 49,
+                        "cache_hits": 12
+                    },
+                    {
+                        "log_volume": 62,
+                        "llm_invocations": 50,
+                        "cache_hits": 12
+                    },
+                    {
+                        "log_volume": 63,
+                        "llm_invocations": 51,
+                        "cache_hits": 12
+                    },
+                    {
+                        "log_volume": 64,
+                        "llm_invocations": 51,
+                        "cache_hits": 13
+                    },
+                    {
+                        "log_volume": 65,
+                        "llm_invocations": 52,
+                        "cache_hits": 13
+                    },
+                    {
+                        "log_volume": 66,
+                        "llm_invocations": 53,
+                        "cache_hits": 13
                     }
                 ]
             }

@@ -171,8 +171,8 @@ Performs sequential log extraction from active Security Onion deployments:
 ### Component 3: The Unified Parser Router
 Routes standard ECS logs to one of three state-of-the-art parsing configurations:
 - **LogParser-LLM**: Implements an in-memory prefix tree (`PrefixTree`) strict/loose router. Features **Adaptive Few-Shot ICL** via dynamic local Jaccard similarity lookups, structured **JSON/ECS field mapping** for automatic ingestion classifications (such as mapping IP/File fields), and recursive **Prefix Tree LRU Pruning** of nodes older than 30 days to protect memory usage.
-- **LogBatcher**: Executes zero-shot diverse parsing. Integrates **DBSCAN Clustering** utilizing precomputed Jaccard distances for order-independent grouping. Samples diverse templates using a **DPP Sampler** on log cosine embeddings, caches templates via an `OrderedDict`-backed cache with **LRU Eviction**, and routes DBSCAN outlier logs (noise) to a **Quarantine DLQ** (`quarantine.jsonl`) to bypass LLM resources.
-- **LibreLog**: Implements static regex preprocessing, executes an initial **Drain Prefix Tree Grouping Pass** for log clustering, queries a dynamic regex template cache, and parses fallback logs using an Ollama LLM parser augmented with reflection loops. Features a custom **O(N) index-free filtering optimization** for fast processing and auto-conversion of regex patterns to standard `<*>` templates.
+- **LogBatcher**: Executes zero-shot diverse parsing. Integrates **DBSCAN Clustering** utilizing precomputed Jaccard distances for order-independent grouping. Samples diverse templates using a **DPP Sampler** on log cosine embeddings, caches templates via an `OrderedDict`-backed cache with **LRU Eviction**. Outlier logs (noise) are handled via a **3-Tier Fallback** (cache match → micro-batch re-queue → regex pre-masking) to prevent template explosion without incurring LLM cost.
+- **LibreLog**: Implements static regex preprocessing, executes an initial **Drain Prefix Tree Grouping Pass** for log clustering, queries a high-performance O(1) `DummyMemory` cache alongside a dynamic O(log N) `RegexManager`, and parses fallback logs using an Ollama LLM parser augmented with reflection loops. Features a custom **O(N) index-free filtering optimization** for fast processing and auto-conversion of regex patterns to standard `<*>` templates.
 
 ### Component 4: Metric Evaluation Service
 Processes output parser logs against ground truths and computes six core accuracy metrics:
@@ -219,6 +219,14 @@ Configures credentials and networking nodes (placeholders provided):
 - `TAILSCALE_NODE`: Tailscale device domain or IP.
 - `TS_USER`: Tailscale connection user name.
 - `OLLAMA_API_BASE`: Ollama base URL override.
+
+### vLLM Integration (High-Throughput Mode)
+While the pipeline defaults to Ollama, it is fully compatible with **vLLM** (which supports PagedAttention and continuous batching natively on CUDA or AMD ROCm). Because vLLM exposes an OpenAI-compatible API and our client is decoupled, no code changes are required to switch backends. Simply point the environment variables to a vLLM server:
+```bash
+export OLLAMA_API_BASE="http://<vllm-ip>:8000/v1"
+export OLLAMA_MODEL="<vllm-hosted-model-name>"
+```
+This drop-in replacement significantly accelerates batch-prompting components like LibreLog.
 
 ### Dev Compose vs. E2E Test Compose
 

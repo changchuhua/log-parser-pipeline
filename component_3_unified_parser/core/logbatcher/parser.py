@@ -4,6 +4,7 @@ Implements zero-shot diverse parsing routing using partition clusterers,
 diversity samplers (DPP), and post-process match and prune logic.
 """
 
+import re
 import time
 import yaml
 import json
@@ -19,6 +20,33 @@ from .parsing_base import ParsingBase
 from .postprocess import match_and_prune
 
 logger = logging.getLogger(__name__)
+
+# Regex patterns for pre-masking obvious variables in noise logs (no LLM needed)
+VARIABLE_PATTERNS = [
+    r'\b\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?\b',
+    r'\b0[xX][a-fA-F0-9]+\b',
+    r'\b[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\b',
+    r'\b(?:\d{1,3}\.){3}\d{1,3}\b',
+    r'\b\d+(?:\.\d+)?\b',
+]
+
+def _regex_premask(message):
+    """Replaces obvious variable tokens with <*> using regex patterns.
+
+    Provides a cheap template approximation for noise logs without LLM cost.
+
+    Args:
+        message (str): Raw log message.
+
+    Returns:
+        str: Pre-masked template string.
+    """
+    masked = message
+    for pattern in VARIABLE_PATTERNS:
+        masked = re.sub(pattern, '<*>', masked)
+    # Collapse consecutive <*> tokens separated by spaces
+    masked = re.sub(r'<\*>\s*(?:<\*>\s*)+', '<*> ', masked).strip()
+    return masked
 
 def jaccard_similarity(tokens1, tokens2):
     """Calculates Jaccard similarity between two token lists."""
@@ -65,6 +93,11 @@ class LogBatcher:
         self.cache = ParsingCache(max_size=5000)
         self.sampler = get_sampler(self.sampler_type, self.llm_client, self.batch_size)
         self.parsing_base = ParsingBase(self.llm_client)
+
+        # Noise log re-queue state
+        self.noise_max_retries = lb_config.get('noise_max_retries', 2)
+        self._noise_retry_counts = {}  # log_id → retry count
+        self._noise_buffer = []        # noise logs awaiting re-queue into next micro-batch
 
     def parse(self, log_list, time_limit=None, start_time=None):
         """Parses a list of logs using a hybrid buffer DBSCAN clustering architecture.
@@ -139,6 +172,11 @@ class LogBatcher:
             logger.warning("Time limit exceeded. Skipping micro-batch.")
             return
 
+        # 0. Prepend any noise logs buffered from the previous micro-batch
+        if self._noise_buffer:
+            micro_batch = self._noise_buffer + micro_batch
+            self._noise_buffer = []
+
         # 1. Cluster the micro-batch
         clusterer = get_clusterer(
             self.cluster_type, 
@@ -149,17 +187,56 @@ class LogBatcher:
         )
         local_clusters = clusterer.get_partitions()
 
-        # 2. Noise Quarantine Routing
-        # Outlier logs (label -1) are filtered out, bypassing the LLM and Global Reconciliation entirely.
+        # 2. 3-Tier Noise Log Handling
+        # Outlier logs (DBSCAN label -1) go through: cache match → re-queue → regex pre-mask
         noise_logs = getattr(clusterer, 'noise_logs', [])
         if noise_logs:
-            logger.info(f"Quarantining {len(noise_logs)} noise logs to {quarantine_path}...")
-            try:
-                with open(quarantine_path, 'a', encoding='utf-8') as qf:
-                    for log in noise_logs:
-                        qf.write(json.dumps(log) + '\n')
-            except Exception as e:
-                logger.error(f"Error writing to quarantine.jsonl: {e}")
+            quarantine_written = []
+            cache_matched_count = 0
+            requeued_count = 0
+            for log in noise_logs:
+                msg = log.get('message', '')
+                log_id = log['id']
+
+                # Tier 1: Cache match (free)
+                cached_template = match_log(self.cache, msg)
+                if cached_template:
+                    parsed_results[log_id] = cached_template
+                    counters['cache_hits'] += 1
+                    counters['log_volume'] += 1
+                    cache_matched_count += 1
+                    continue
+
+                # Tier 2: Re-queue into next micro-batch (max retries)
+                retries = self._noise_retry_counts.get(log_id, 0)
+                if retries < self.noise_max_retries:
+                    self._noise_retry_counts[log_id] = retries + 1
+                    self._noise_buffer.append(log)
+                    requeued_count += 1
+                    continue
+
+                # Tier 3: Regex pre-masking (cheap, no LLM)
+                masked_template = _regex_premask(msg)
+                parsed_results[log_id] = masked_template
+                counters['log_volume'] += 1
+                quarantine_written.append(log)
+
+                # Clean up retry tracking for this log
+                self._noise_retry_counts.pop(log_id, None)
+
+            logger.info(f"Noise handling: {len(noise_logs)} noise logs → "
+                       f"{cache_matched_count} cache-matched, "
+                       f"{requeued_count} re-queued, "
+                       f"{len(quarantine_written)} regex-masked")
+
+            # Write Tier 3 logs to quarantine file for audit
+            if quarantine_written:
+                try:
+                    with open(quarantine_path, 'a', encoding='utf-8') as qf:
+                        for log in quarantine_written:
+                            qf.write(json.dumps(log) + '\n')
+                except Exception as e:
+                    logger.error(f"Error writing to quarantine.jsonl: {e}")
 
         # 3. Process each local cluster in queue
         queue = list(local_clusters)
