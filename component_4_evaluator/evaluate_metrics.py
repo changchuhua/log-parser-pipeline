@@ -467,11 +467,122 @@ def generate_html_report(viz_data, output_path='data/report.html'):
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
 
+def load_profile_metrics(parsed_dir, parser_name):
+    prof_metrics = {
+        'Time(s)': 0.0,
+        'LLM Invocations': 0,
+        'Total Tokens': 0,
+        'history': [],
+        'model_used': 'unknown-model',
+        'method_used': 'unknown-method',
+        'llm_timeouts': 0,
+        'failed_invocations': 0,
+        'failure_rate': 0.0
+    }
+    profile_file = os.path.join(parsed_dir, f"{parser_name}_profile.json")
+    if os.path.exists(profile_file):
+        try:
+            with open(profile_file, 'r', encoding='utf-8') as pf_file:
+                prof_data = json.load(pf_file)
+                prof_metrics['Time(s)'] = prof_data.get('time_taken_seconds', 0.0)
+                prof_metrics['LLM Invocations'] = prof_data.get('llm_invocations', 0)
+                prof_metrics['Total Tokens'] = prof_data.get('total_tokens', 0)
+                prof_metrics['history'] = prof_data.get('history', [])
+                prof_metrics['model_used'] = prof_data.get('model_used', 'unknown-model')
+                prof_metrics['method_used'] = prof_data.get('method_used', 'unknown-method')
+                prof_metrics['llm_timeouts'] = prof_data.get('llm_timeouts', 0)
+                prof_metrics['failed_invocations'] = prof_data.get('failed_invocations', 0)
+                
+                total_attempts = prof_metrics['LLM Invocations'] + prof_metrics['llm_timeouts'] + prof_metrics['failed_invocations']
+                prof_metrics['failure_rate'] = (prof_metrics['llm_timeouts'] + prof_metrics['failed_invocations']) / total_attempts if total_attempts > 0 else 0.0
+        except Exception as e:
+            logger.error(f"Error loading profile for {parser_name}: {e}")
+    return prof_metrics
+
+
+def compute_metrics_for_pair(df_gt_aligned_raw, df_parsed_aligned_raw):
+    metrics = {}
+    
+    # 1. Spaced alignment (default comparison)
+    logger.info("Applying standard 'spaced' alignment/normalization...")
+    df_gt_std, df_parsed_std = apply_sensitivity_correction(df_gt_aligned_raw, df_parsed_aligned_raw, 'spaced')
+    
+    logger.info("Computing PMSS (Precomputed Metric Silhouette Score)...")
+    pmss_score = calculate_pmss(df_parsed_std)
+    metrics['PMSS'] = float(pmss_score)
+    logger.info(f"PMSS score: {pmss_score:.4f}")
+    
+    if not df_gt_std.empty:
+        logger.info("Computing Group Accuracy (GA & FGA)...")
+        ga_score, fga_score = calculate_ga(df_gt_std, df_parsed_std)
+        metrics['GA'] = float(ga_score)
+        metrics['FGA'] = float(fga_score)
+        logger.info(f"GA: {ga_score:.4f} | FGA: {fga_score:.4f}")
+        
+        logger.info("Computing Parsing Accuracy (PA)...")
+        pa_score = calculate_pa(df_gt_std, df_parsed_std)
+        metrics['PA'] = float(pa_score)
+        logger.info(f"PA: {pa_score:.4f}")
+        
+        logger.info("Computing FTA (Few-shot Template Accuracy)...")
+        fta_score = calculate_fta(df_gt_std, df_parsed_std)
+        metrics['FTA'] = float(fta_score)
+        logger.info(f"FTA: {fta_score:.4f}")
+        
+        logger.info("Computing Edit Distance (ED & NED)...")
+        ed_score, ned_score = calculate_ed(df_gt_std, df_parsed_std)
+        metrics['ED'] = float(ed_score)
+        metrics['NED'] = float(ned_score)
+        logger.info(f"ED: {ed_score:.4f} | NED: {ned_score:.4f}")
+        
+        logger.info("Computing GGD & PGD...")
+        ggd_score = calculate_ggd(df_gt_std, df_parsed_std)
+        metrics['GGD'] = float(ggd_score)
+        
+        pgd_score = calculate_pgd(df_gt_std, df_parsed_std)
+        metrics['PGD'] = float(pgd_score)
+        logger.info(f"GGD: {ggd_score:.4f} | PGD: {pgd_score:.4f}")
+    else:
+        metrics['GA'] = 0.0
+        metrics['FGA'] = 0.0
+        metrics['PA'] = 0.0
+        metrics['FTA'] = 0.0
+        metrics['ED'] = 0.0
+        metrics['NED'] = 0.0
+        metrics['GGD'] = 0.0
+        metrics['PGD'] = 0.0
+        
+    # 2. Sensitivity corrections
+    logger.info("Applying and evaluating sensitivity corrections...")
+    sensitivity = {}
+    for lvl in ['raw', 'spaced', 'lowercase', 'regex_clean']:
+        logger.info(f"Evaluating sensitivity correction level: '{lvl}'...")
+        if not df_parsed_aligned_raw.empty:
+            gt_lvl, parsed_lvl = apply_sensitivity_correction(df_gt_aligned_raw, df_parsed_aligned_raw, lvl)
+            pa_lvl = calculate_pa(gt_lvl, parsed_lvl)
+            fta_lvl = calculate_fta(gt_lvl, parsed_lvl)
+        else:
+            pa_lvl = 0.0
+            fta_lvl = 0.0
+        sensitivity[lvl] = {
+            'PA': float(pa_lvl),
+            'FTA': float(fta_lvl)
+        }
+        logger.info(f"Correction Level '{lvl}' - PA: {pa_lvl:.4f} | FTA: {fta_lvl:.4f}")
+    metrics['sensitivity'] = sensitivity
+    return metrics
+
+
 def main():
     """Main orchestrator that aligns outputs and executes metric calculations."""
     config = load_config()
-    raw_dir = 'data/raw'
-    parsed_dir = 'data/parsed'
+    directories = config.get('directories', {})
+    dataset_name = directories.get('dataset_name', 'loghub')
+    
+    raw_base = directories.get('input_dir', 'data/raw')
+    raw_dir = os.path.join(raw_base, dataset_name)
+    
+    parsed_dir = os.path.join('data/parsed', dataset_name)
     
     # Retrieve nrows limit from centralized config
     nrows = config.get('evaluator', {}).get('nrows', None)
@@ -532,111 +643,40 @@ def main():
             else:
                 df_parsed_aligned_raw = df_parsed[['LineId', 'Content', 'EventTemplate']]
                 
-            metrics = {}
+            prof_metrics = load_profile_metrics(parsed_dir, parser_name)
             
-            # 1. Spaced alignment (default default comparison)
-            logger.info("Applying standard 'spaced' alignment/normalization...")
-            df_gt_std, df_parsed_std = apply_sensitivity_correction(df_gt_aligned_raw, df_parsed_aligned_raw, 'spaced')
+            if dataset_name == 'loghub' and not df_parsed_aligned_raw.empty:
+                # Segment sub-datasets based on LineId prefixes
+                # LineId is prefix_id (e.g. "Apache_123")
+                sub_datasets = sorted(list(df_parsed_aligned_raw['LineId'].apply(lambda x: str(x).split('_')[0]).unique()))
+                
+                if len(sub_datasets) > 1 or (len(sub_datasets) == 1 and sub_datasets[0] != parser_name):
+                    logger.info(f"LogHub dataset detected. Evaluating {len(sub_datasets)} sub-datasets individually...")
+                    
+                    # 1. Overall evaluation
+                    logger.info("Computing Overall evaluation metrics...")
+                    overall_metrics = compute_metrics_for_pair(df_gt_aligned_raw, df_parsed_aligned_raw)
+                    overall_metrics.update(prof_metrics)
+                    report[f"{parser_name}_Overall"] = overall_metrics
+                    
+                    # 2. Per sub-dataset evaluation
+                    for sub_ds in sub_datasets:
+                        logger.info(f"Evaluating sub-dataset: {sub_ds}...")
+                        df_gt_sub = df_gt_aligned_raw[df_gt_aligned_raw['LineId'].str.startswith(sub_ds + '_')]
+                        df_parsed_sub = df_parsed_aligned_raw[df_parsed_aligned_raw['LineId'].str.startswith(sub_ds + '_')]
+                        
+                        if df_gt_sub.empty or df_parsed_sub.empty:
+                            logger.warning(f"Sub-dataset {sub_ds} is empty. Skipping.")
+                            continue
+                            
+                        sub_metrics = compute_metrics_for_pair(df_gt_sub, df_parsed_sub)
+                        sub_metrics.update(prof_metrics)
+                        report[f"{parser_name}_{sub_ds}"] = sub_metrics
+                    continue
             
-            logger.info("Computing PMSS (Precomputed Metric Silhouette Score)...")
-            pmss_score = calculate_pmss(df_parsed_std)
-            metrics['PMSS'] = float(pmss_score)
-            logger.info(f"PMSS score: {pmss_score:.4f}")
-            
-            if not df_gt_std.empty:
-                logger.info("Computing Group Accuracy (GA & FGA)...")
-                ga_score, fga_score = calculate_ga(df_gt_std, df_parsed_std)
-                metrics['GA'] = float(ga_score)
-                metrics['FGA'] = float(fga_score)
-                logger.info(f"GA: {ga_score:.4f} | FGA: {fga_score:.4f}")
-                
-                logger.info("Computing Parsing Accuracy (PA)...")
-                pa_score = calculate_pa(df_gt_std, df_parsed_std)
-                metrics['PA'] = float(pa_score)
-                logger.info(f"PA: {pa_score:.4f}")
-                
-                logger.info("Computing FTA (Few-shot Template Accuracy)...")
-                fta_score = calculate_fta(df_gt_std, df_parsed_std)
-                metrics['FTA'] = float(fta_score)
-                logger.info(f"FTA: {fta_score:.4f}")
-                
-                logger.info("Computing Edit Distance (ED & NED)...")
-                ed_score, ned_score = calculate_ed(df_gt_std, df_parsed_std)
-                metrics['ED'] = float(ed_score)
-                metrics['NED'] = float(ned_score)
-                logger.info(f"ED: {ed_score:.4f} | NED: {ned_score:.4f}")
-                
-                logger.info("Computing GGD & PGD...")
-                ggd_score = calculate_ggd(df_gt_std, df_parsed_std)
-                metrics['GGD'] = float(ggd_score)
-                
-                pgd_score = calculate_pgd(df_gt_std, df_parsed_std)
-                metrics['PGD'] = float(pgd_score)
-                logger.info(f"GGD: {ggd_score:.4f} | PGD: {pgd_score:.4f}")
-            else:
-                metrics['GA'] = 0.0
-                metrics['FGA'] = 0.0
-                metrics['PA'] = 0.0
-                metrics['FTA'] = 0.0
-                metrics['ED'] = 0.0
-                metrics['NED'] = 0.0
-                metrics['GGD'] = 0.0
-                metrics['PGD'] = 0.0
-                
-            # 2. Sensitivity corrections
-            logger.info("Applying and evaluating sensitivity corrections...")
-            sensitivity = {}
-            for lvl in ['raw', 'spaced', 'lowercase', 'regex_clean']:
-                logger.info(f"Evaluating sensitivity correction level: '{lvl}'...")
-                if not df_parsed_aligned_raw.empty:
-                    gt_lvl, parsed_lvl = apply_sensitivity_correction(df_gt_aligned_raw, df_parsed_aligned_raw, lvl)
-                    pa_lvl = calculate_pa(gt_lvl, parsed_lvl)
-                    fta_lvl = calculate_fta(gt_lvl, parsed_lvl)
-                else:
-                    pa_lvl = 0.0
-                    fta_lvl = 0.0
-                sensitivity[lvl] = {
-                    'PA': float(pa_lvl),
-                    'FTA': float(fta_lvl)
-                }
-                logger.info(f"Correction Level '{lvl}' - PA: {pa_lvl:.4f} | FTA: {fta_lvl:.4f}")
-            metrics['sensitivity'] = sensitivity
-            
-            # 3. Load profile and cumulative history
-            time_score = 0.0
-            llm_invocations = 0
-            total_tokens = 0
-            history = []
-            model_used = "unknown-model"
-            method_used = "unknown-method"
-            llm_timeouts = 0
-            failed_invocations = 0
-            profile_file = os.path.join(parsed_dir, f"{parser_name}_profile.json")
-            if os.path.exists(profile_file):
-                try:
-                    with open(profile_file, 'r', encoding='utf-8') as pf_file:
-                        prof_data = json.load(pf_file)
-                        time_score = prof_data.get('time_taken_seconds', 0.0)
-                        llm_invocations = prof_data.get('llm_invocations', 0)
-                        total_tokens = prof_data.get('total_tokens', 0)
-                        history = prof_data.get('history', [])
-                        model_used = prof_data.get('model_used', model_used)
-                        method_used = prof_data.get('method_used', method_used)
-                        llm_timeouts = prof_data.get('llm_timeouts', 0)
-                        failed_invocations = prof_data.get('failed_invocations', 0)
-                except Exception as e:
-                    logger.error(f"Error loading profile for {parser_name}: {e}")
-            metrics['Time(s)'] = time_score
-            metrics['LLM Invocations'] = llm_invocations
-            metrics['Total Tokens'] = total_tokens
-            metrics['history'] = history
-            metrics['model_used'] = model_used
-            metrics['method_used'] = method_used
-            metrics['llm_timeouts'] = llm_timeouts
-            metrics['failed_invocations'] = failed_invocations
-            total_attempts = llm_invocations + llm_timeouts + failed_invocations
-            metrics['failure_rate'] = (llm_timeouts + failed_invocations) / total_attempts if total_attempts > 0 else 0.0
-            
+            # Default single dataset evaluation
+            metrics = compute_metrics_for_pair(df_gt_aligned_raw, df_parsed_aligned_raw)
+            metrics.update(prof_metrics)
             report[parser_name] = metrics
             
         except Exception as e:
@@ -753,7 +793,7 @@ def main():
     for parser, met in report.items():
         model_used = met.get('model_used', 'unknown-model')
         method_used = met.get('method_used', 'unknown-method')
-        archive_dir = os.path.join('data/archive', model_used, method_used)
+        archive_dir = os.path.join('data/archive', dataset_name, model_used, method_used)
         try:
             os.makedirs(archive_dir, exist_ok=True)
             shutil.copy(report_file, os.path.join(archive_dir, f"evaluation_report_{run_timestamp}.json"))

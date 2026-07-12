@@ -119,32 +119,68 @@ def process_botsv3(input_file, output_file):
     logger.info(f"Processed BOTSv3 data and saved to {output_file}")
 
 
+import yaml
+
+def load_config(config_path='config.yaml'):
+    if not os.path.exists(config_path) and os.path.exists('/app/config.yaml'):
+        config_path = '/app/config.yaml'
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            return yaml.safe_load(f)
+    return {}
+
 def main():
     """Main execution function that parses CLI args and runs standardization routines."""
+    config = load_config()
+    directories = config.get('directories', {})
+    dataset_name = directories.get('dataset_name', 'loghub')
+    
+    # Resolve default directories
+    raw_base = directories.get('input_dir', 'data/raw')
+    processed_base = directories.get('output_dir', 'data/processed')
+    
+    default_input_dir = os.path.join(raw_base, dataset_name)
+    default_out_dir = os.path.join(processed_base, dataset_name)
+
     parser = argparse.ArgumentParser(description="Transform datasets to ECS JSONL format")
     parser.add_argument('--loghub', type=str, help='Path to LogHub CSV file')
     parser.add_argument('--botsv3', type=str, help='Path to BOTSv3 CSV file')
-    parser.add_argument('--out-dir', type=str, default='data/', help='Output directory for ECS JSONL files')
+    parser.add_argument('--out-dir', type=str, default=None, help='Output directory for ECS JSONL files')
     
     args = parser.parse_args()
     
-    os.makedirs(args.out_dir, exist_ok=True)
+    out_dir = args.out_dir or default_out_dir
+    os.makedirs(out_dir, exist_ok=True)
     
     processed = False
     
-    if args.loghub and os.path.exists(args.loghub):
-        out_file = os.path.join(args.out_dir, 'loghub_ecs.jsonl')
-        process_loghub(args.loghub, out_file)
+    # If no CLI paths provided, fallback to dataset_name default directory
+    loghub_path = args.loghub
+    botsv3_path = args.botsv3
+    
+    if not loghub_path and not botsv3_path:
+        if dataset_name == 'loghub':
+            loghub_path = default_input_dir
+        elif dataset_name == 'botsv3':
+            # Check if there is a botsv3 csv in the default directory
+            csvs = glob.glob(os.path.join(default_input_dir, '*.csv'))
+            if csvs:
+                botsv3_path = csvs[0]
+            else:
+                botsv3_path = os.path.join(default_input_dir, 'botsv3.csv')
+    
+    if loghub_path and os.path.exists(loghub_path):
+        out_file = os.path.join(out_dir, 'loghub_ecs.jsonl')
+        process_loghub(loghub_path, out_file)
         processed = True
         
-    if args.botsv3 and os.path.exists(args.botsv3):
-        out_file = os.path.join(args.out_dir, 'botsv3_ecs.jsonl')
-        process_botsv3(args.botsv3, out_file)
+    if botsv3_path and os.path.exists(botsv3_path):
+        out_file = os.path.join(out_dir, 'botsv3_ecs.jsonl')
+        process_botsv3(botsv3_path, out_file)
         processed = True
         
     if not processed:
-        logger.error("No valid input files provided. Please pass --loghub or --botsv3 with valid paths.")
-        logger.error("Example: python transform_to_ecs.py --loghub data/loghub.csv --botsv3 data/botsv3.csv")
+        logger.error(f"No valid input files found in {default_input_dir} or provided via CLI.")
 
 if __name__ == "__main__":
     main()

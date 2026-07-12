@@ -1,4 +1,5 @@
 directories:
+  dataset_name: "loghub"
   input_dir: data/raw
   output_dir: data/processed
   cache_dir: data/cache

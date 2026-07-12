@@ -1,0 +1,36 @@
+{
+    "parsed_loghub_ecs_Overall": {
+        "PMSS": 0.9629629629629629,
+        "GA": 1.0,
+        "FGA": 1.0,
+        "PA": 0.9814814814814815,
+        "FTA": 0.8888888888888888,
+        "ED": 0.07407407407407407,
+        "NED": 0.9979979979979979,
+        "GGD": 0.0,
+        "PGD": 0.0,
+        "Time(s)": 28.05777715899967,
+        "LLM Invocations": 9,
+        "Total Tokens": 5238,
+        "llm_timeouts": 0,
+        "failed_invocations": 0,
+        "failure_rate": 0.0
+    },
+    "parsed_loghub_ecs_Apache": {
+        "PMSS": 0.9629629629629629,
+        "GA": 1.0,
+        "FGA": 1.0,
+        "PA": 0.9814814814814815,
+        "FTA": 0.8888888888888888,
+        "ED": 0.07407407407407407,
+        "NED": 0.9979979979979979,
+        "GGD": 0.0,
+        "PGD": 0.0,
+        "Time(s)": 28.05777715899967,
+        "LLM Invocations": 9,
+        "Total Tokens": 5238,
+        "llm_timeouts": 0,
+        "failed_invocations": 0,
+        "failure_rate": 0.0
+    }
+}

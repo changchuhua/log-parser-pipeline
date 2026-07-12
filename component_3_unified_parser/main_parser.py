@@ -254,6 +254,7 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
 
     if write_cache:
         try:
+            os.makedirs(cache_dir, exist_ok=True)
             cache_file = os.path.join(cache_dir, 'logparser_llm_cache.json')
             existing_clusters = []
             if os.path.exists(cache_file):
@@ -317,12 +318,17 @@ def main():
         os.environ['LLM_DEBUG'] = 'true'
     
     config = load_config()
+    directories = config.get('directories', {})
+    dataset_name = directories.get('dataset_name', 'loghub')
     
-    input_dir = config.get('directories', {}).get('output_dir', 'data/processed')
-    parsed_dir = 'data/parsed'
+    input_base = directories.get('output_dir', 'data/processed')
+    input_dir = os.path.join(input_base, dataset_name)
+    
+    parsed_dir = os.path.join('data/parsed', dataset_name)
     os.makedirs(parsed_dir, exist_ok=True)
     
-    cache_dir = config.get('directories', {}).get('cache_dir', 'data/cache')
+    cache_base = directories.get('cache_dir', 'data/cache')
+    cache_dir = os.path.join(cache_base, dataset_name)
     
     input_files = glob.glob(os.path.join(input_dir, '*.jsonl'))
     
