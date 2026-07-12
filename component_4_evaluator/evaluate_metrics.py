@@ -477,7 +477,11 @@ def load_profile_metrics(parsed_dir, parser_name):
         'method_used': 'unknown-method',
         'llm_timeouts': 0,
         'failed_invocations': 0,
-        'failure_rate': 0.0
+        'failure_rate': 0.0,
+        'cache_hits': 0,
+        'log_volume': 0,
+        'cache_hit_rate': 0.0,
+        'throughput_pps': 0.0
     }
     profile_file = os.path.join(parsed_dir, f"{parser_name}_profile.json")
     if os.path.exists(profile_file):
@@ -492,6 +496,23 @@ def load_profile_metrics(parsed_dir, parser_name):
                 prof_metrics['method_used'] = prof_data.get('method_used', 'unknown-method')
                 prof_metrics['llm_timeouts'] = prof_data.get('llm_timeouts', 0)
                 prof_metrics['failed_invocations'] = prof_data.get('failed_invocations', 0)
+                
+                c_hits = prof_data.get('cache_hits', 0)
+                l_vol = prof_data.get('log_volume', 0)
+                
+                # Backwards compatibility fallback from history
+                if c_hits == 0 or l_vol == 0:
+                    history = prof_metrics['history']
+                    if history:
+                        c_hits = history[-1].get('cache_hits', 0)
+                        l_vol = history[-1].get('log_volume', 0)
+                
+                prof_metrics['cache_hits'] = c_hits
+                prof_metrics['log_volume'] = l_vol
+                prof_metrics['cache_hit_rate'] = (c_hits / l_vol) if l_vol > 0 else 0.0
+                
+                t_taken = prof_metrics['Time(s)']
+                prof_metrics['throughput_pps'] = (l_vol / t_taken) if t_taken > 0.0 else 0.0
                 
                 total_attempts = prof_metrics['LLM Invocations'] + prof_metrics['llm_timeouts'] + prof_metrics['failed_invocations']
                 prof_metrics['failure_rate'] = (prof_metrics['llm_timeouts'] + prof_metrics['failed_invocations']) / total_attempts if total_attempts > 0 else 0.0
@@ -743,6 +764,8 @@ def main():
             "Time_s": met['Time(s)'],
             "LLM_Calls": met['LLM Invocations'],
             "Tokens": met['Total Tokens'],
+            "cache_hit_rate": met.get('cache_hit_rate', 0.0),
+            "throughput_pps": met.get('throughput_pps', 0.0),
             "llm_timeouts": met.get('llm_timeouts', 0),
             "failed_invocations": met.get('failed_invocations', 0),
             "failure_rate": met.get('failure_rate', 0.0)
@@ -804,12 +827,14 @@ def main():
         except Exception as e:
             logger.error(f"Error archiving report files for {parser}: {e}")
     
-    table_str = "\n" + "="*179 + "\n"
-    table_str += f"{'Parser':<20} | {'GA':<10} | {'PA':<10} | {'FGA':<10} | {'FTA':<10} | {'ED':<10} | {'PMSS':<10} | {'Time(s)':<10} | {'LLM Calls':<10} | {'Tokens':<10} | {'Timeouts':<10} | {'Failures':<10} | {'Fail Rate':<10}\n"
-    table_str += "="*179 + "\n"
+    table_str = "\n" + "="*209 + "\n"
+    table_str += f"{'Parser':<25} | {'GA':<8} | {'PA':<8} | {'FGA':<8} | {'FTA':<8} | {'ED':<8} | {'PMSS':<8} | {'Time(s)':<8} | {'LLM Calls':<10} | {'Tokens':<8} | {'Cache Hit %':<12} | {'Throughput':<12} | {'Timeouts':<8} | {'Failures':<8} | {'Fail Rate':<9}\n"
+    table_str += "="*209 + "\n"
     for parser, met in report.items():
-        table_str += f"{parser:<20} | {met['GA']:<10.4f} | {met['PA']:<10.4f} | {met['FGA']:<10.4f} | {met['FTA']:<10.4f} | {met['ED']:<10.4f} | {met['PMSS']:<10.4f} | {met['Time(s)']:<10.4f} | {met['LLM Invocations']:<10} | {met['Total Tokens']:<10} | {met.get('llm_timeouts', 0):<10} | {met.get('failed_invocations', 0):<10} | {met.get('failure_rate', 0.0)*100:<9.2f}%\n"
-    table_str += "="*179
+        cache_hit_pct = met.get('cache_hit_rate', 0.0) * 100
+        throughput = met.get('throughput_pps', 0.0)
+        table_str += f"{parser:<25} | {met['GA']:<8.4f} | {met['PA']:<8.4f} | {met['FGA']:<8.4f} | {met['FTA']:<8.4f} | {met['ED']:<8.4f} | {met['PMSS']:<8.4f} | {met['Time(s)']:<8.2f} | {met['LLM Invocations']:<10} | {met['Total Tokens']:<8} | {cache_hit_pct:<11.2f}% | {throughput:<10.2f} l/s | {met.get('llm_timeouts', 0):<8} | {met.get('failed_invocations', 0):<8} | {met.get('failure_rate', 0.0)*100:<8.2f}%\n"
+    table_str += "="*209
     logger.info(table_str)
 
 if __name__ == "__main__":

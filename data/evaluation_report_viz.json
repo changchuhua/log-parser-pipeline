@@ -9,6 +9,8 @@
             "Time_s": 28.05777715899967,
             "LLM_Calls": 9,
             "Tokens": 5238,
+            "cache_hit_rate": 0.8363636363636363,
+            "throughput_pps": 1.960240816238662,
             "llm_timeouts": 0,
             "failed_invocations": 0,
             "failure_rate": 0.0
@@ -22,6 +24,8 @@
             "Time_s": 28.05777715899967,
             "LLM_Calls": 9,
             "Tokens": 5238,
+            "cache_hit_rate": 0.8363636363636363,
+            "throughput_pps": 1.960240816238662,
             "llm_timeouts": 0,
             "failed_invocations": 0,
             "failure_rate": 0.0

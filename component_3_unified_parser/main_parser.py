@@ -245,6 +245,8 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
                     "total_tokens": usage_stats.get("total_tokens", 0),
                     "llm_timeouts": usage_stats.get("llm_timeouts", 0),
                     "failed_invocations": usage_stats.get("failed_invocations", 0),
+                    "cache_hits": cache_hits,
+                    "log_volume": len(logs_to_parse),
                     "history": history,
                     "model_used": model_name,
                     "method_used": "logparser-llm"
@@ -515,6 +517,8 @@ def main():
             model_name = "mock-model"
         else:
             model_name = model_name.replace(':', '-')
+        batcher_history = getattr(parser_instance, 'history', [])
+        cache_hits = batcher_history[-1].get('cache_hits', 0) if batcher_history else 0
         try:
             with open(profile_file, 'w', encoding='utf-8') as pf:
                 json.dump({
@@ -525,7 +529,9 @@ def main():
                     "total_tokens": usage_stats.get("total_tokens", 0),
                     "llm_timeouts": usage_stats.get("llm_timeouts", 0),
                     "failed_invocations": usage_stats.get("failed_invocations", 0),
-                    "history": getattr(parser_instance, 'history', []),
+                    "cache_hits": cache_hits,
+                    "log_volume": len(logs_to_parse),
+                    "history": batcher_history,
                     "model_used": model_name,
                     "method_used": "logbatcher"
                 }, pf, indent=4)
@@ -701,6 +707,8 @@ def main():
                     "total_tokens": total_tokens_count,
                     "llm_timeouts": total_llm_timeouts,
                     "failed_invocations": total_failed_invocations,
+                    "cache_hits": cache_hits,
+                    "log_volume": total_logs,
                     "history": [],
                     "model_used": model_name,
                     "method_used": "librelog"
