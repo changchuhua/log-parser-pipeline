@@ -1,26 +1,20 @@
 # Log Parser Pipeline
 
-An advanced, containerized data-engineering pipeline for log ingestion, standardization, extraction, LLM-based template parsing, and automated mathematical evaluation.
+An advanced, containerized data-engineering pipeline for log ingestion, standardization, LLM-based template parsing, and automated evaluation against ground truth.
 
 ---
 
-## 1. System Overview & Architecture
-
-This pipeline processes raw security log datasets, transforms them into standardized schemas matching the **Elastic Common Schema (ECS)**, extracts active dead-letter-queue (DLQ) and unmapped logs directly from a **Security Onion** deployment, routes those logs through advanced large language model (LLM) parser routers, and evaluates the parsing accuracy against ground truth using standard and custom metrics.
-
-### System Architecture Flow
+## 1. System Architecture
 
 ```mermaid
 graph TD
-    %% Input Sources
     subgraph Data Sources
-        LogHub[Raw LogHub 2.0 Logs]
-        BOTS[Raw Splunk BOTSv3 Logs]
+        LogHub[LogHub 2.0 CSVs]
+        BOTS[Splunk BOTSv3 Logs]
         SO_DLQ[Security Onion DLQ via SSH]
-        SO_ES[Security Onion Elasticsearch via Scroll API]
+        SO_ES[Security Onion Elasticsearch]
     end
 
-    %% Ingestion & Standardization
     subgraph Component 1: Dataset Gen
         Ingest[transform_to_ecs.py]
     end
@@ -29,14 +23,13 @@ graph TD
         Extract[extract_so_logs.py]
     end
 
-    %% Shared Storage
-    subgraph Shared Storage
-        Raw[data/raw/]
-        Processed[data/processed/*.jsonl]
-        Parsed[data/parsed/]
+    subgraph "Shared Storage (data/{dataset_name}/)"
+        Raw["data/raw/{dataset_name}/"]
+        Processed["data/processed/{dataset_name}/*.jsonl"]
+        Parsed["data/parsed/{dataset_name}/"]
+        Cache["data/cache/{dataset_name}/"]
     end
 
-    %% Routing Ingestion
     LogHub --> Ingest
     BOTS --> Ingest
     SO_DLQ --> Extract
@@ -45,243 +38,253 @@ graph TD
     Ingest --> Processed
     Extract --> Processed
     
-    %% Parsing Engine
     subgraph Component 3: Unified Parser
         Parser[main_parser.py]
         
-        subgraph RouterMethod[Router Methods]
-            LP_LLM[LogParser-LLM: Tree Router + ICL]
-            LB[LogBatcher: DPP Sampler + Match-and-Prune Cache]
-            LL[LibreLog: Cache + Pre-processing + Reflection]
+        subgraph Methods
+            LP_LLM[LogParser-LLM]
+            LB[LogBatcher]
+            LL[LibreLog]
         end
     end
 
     Processed --> Parser
-    Parser --> RouterMethod
+    Parser --> Methods
     
-    %% LLM Interface
-    subgraph Inference Interface
-        Ollama[Ollama Client / Mock Ollama]
+    subgraph Inference
+        Ollama["Ollama (native /api)"]
     end
     
-    LP_LLM <--> Ollama
-    LB <--> Ollama
-    LL <--> Ollama
+    Methods <--> Ollama
+    Methods --> Parsed
+    Methods --> Cache
     
-    RouterMethod --> Parsed
-    
-    %% Evaluation Engine
     subgraph Component 4: Evaluator
         Eval[evaluate_metrics.py]
-        
-        subgraph MetricCalculators[Metric Calculators]
-            GA[Grouping Accuracy]
-            PA[Parsing Accuracy]
-            ED[Edit Distance]
-            GGD[Group Granularity Distance]
-            PGD[Parsing Granularity Distance]
-            PMSS[Optimized Silhouette Score]
-        end
+        Metrics["GA | PA | FTA | ED | GGD | PGD | PMSS"]
     end
     
     Parsed --> Eval
     Raw --> Eval
-    Eval --> MetricCalculators
-    MetricCalculators --> Report[data/evaluation_report.json]
+    Eval --> Metrics
+    Metrics --> Report["data/evaluation_report.json"]
 
-    %% Deployment Engine
     subgraph Component 5: Deployer
         Deploy[main_deployer.py]
     end
 
     Parsed --> Deploy
-    Report --> Deploy
-    Deploy --> SO_API[SO Elasticsearch API: Step A]
-    Deploy --> SO_Salt[SO SaltStack Directory: Step B]
+    Deploy --> SO_API[SO Elasticsearch API]
+    Deploy --> SO_Salt[SO SaltStack SFTP]
 ```
 
 ---
 
-## 2. Directory Layout & Repository Topology
+## 2. Directory Layout
 
-The repository follows a modular, component-based layout. Each component is fully containerized with its own `Dockerfile` and dependency requirements.
-
-- **[log-parser-pipeline/](.)**
-  - **[.github/workflows/ci.yml](.github/workflows/ci.yml)**: GitHub Actions CI/CD workflow configuration.
-  - **[component_1_dataset_gen/](component_1_dataset_gen)**: Component 1 (Dataset Ingestion & ECS translation).
-    - [Dockerfile](component_1_dataset_gen/Dockerfile)
-    - [requirements.txt](component_1_dataset_gen/requirements.txt)
-    - [transform_to_ecs.py](component_1_dataset_gen/transform_to_ecs.py): Ingestion and standardization entrypoint.
-  - **[component_2_so_extractor/](component_2_so_extractor)**: Component 2 (Security Onion Extractor).
-    - [Dockerfile](component_2_so_extractor/Dockerfile)
-    - [requirements.txt](component_2_so_extractor/requirements.txt)
-    - [extract_so_logs.py](component_2_so_extractor/extract_so_logs.py): DLQ and Elasticsearch Scroll extraction script.
-  - **[component_3_unified_parser/](component_3_unified_parser)**: Component 3 (Unified Router Parser).
-    - `core/`: Sub-modules containing LLM, prefix trees, length clusters, samplers, and matching logic.
-      - [llm_client.py](component_3_unified_parser/core/llm_client.py): Robust Ollama API helper class.
-    - [Dockerfile](component_3_unified_parser/Dockerfile)
-    - [requirements.txt](component_3_unified_parser/requirements.txt)
-    - [main_parser.py](component_3_unified_parser/main_parser.py): Router engine entrypoint.
-  - **[component_4_evaluator/](component_4_evaluator)**: Component 4 (Metrics evaluation suite).
-    - `metrics/`: Math calculator libraries.
-      - [ED_calculator.py](component_4_evaluator/metrics/ED_calculator.py): Levenshtein distance metrics.
-      - [GA_calculator.py](component_4_evaluator/metrics/GA_calculator.py): Grouping accuracy calculator.
-      - [GD_calculator.py](component_4_evaluator/metrics/GD_calculator.py): GGD & PGD calculators.
-      - [oracle_correction.py](component_4_evaluator/metrics/oracle_correction.py): Oracle whitespace alignment normalizer.
-      - [PA_calculator.py](component_4_evaluator/metrics/PA_calculator.py): Token parsing accuracy calculator.
-      - [PMSS_calculator.py](component_4_evaluator/metrics/PMSS_calculator.py): Precomputed silhouette metric scorer.
-    - [Dockerfile](component_4_evaluator/Dockerfile)
-    - [requirements.txt](component_4_evaluator/requirements.txt)
-    - [evaluate_metrics.py](component_4_evaluator/evaluate_metrics.py): Evaluator orchestrator main script.
-  - **[component_5_deployer/](component_5_deployer)**: Component 5 (Grok Ingest Deployer).
-    - `core/`: Ingest compilation, validation, and SFTP transmission helper scripts.
-      - [compiler.py](component_5_deployer/core/compiler.py): Grok pattern compiler.
-      - [validator.py](component_5_deployer/core/validator.py): Elasticsearch simulation validator.
-      - [es_client.py](component_5_deployer/core/es_client.py): Elasticsearch Ingest API client.
-      - [salt_sftp.py](component_5_deployer/core/salt_sftp.py): SaltStack Paramiko SFTP deployer.
-    - [Dockerfile](component_5_deployer/Dockerfile)
-    - [requirements.txt](component_5_deployer/requirements.txt)
-    - [main_deployer.py](component_5_deployer/main_deployer.py): Deployer orchestrator script.
-  - **[tests/](tests)**: Pipeline testing suites.
-    - `mock_ollama/`: Independent mock server configuration.
-    - [test_component_1.py](tests/test_component_1.py): Unit tests for Component 1.
-    - [test_component_2.py](tests/test_component_2.py): SSH and scroll mocked network tests.
-    - [test_component_3_client.py](tests/test_component_3_client.py): Completion/embedding unit tests.
-    - [test_component_4.py](tests/test_component_4.py): Metric mathematical accuracy checks.
-  - **[config.yaml](config.yaml)**: Central configuration parameters.
-  - **[docker-compose.yml](docker-compose.yml)**: Dev and production orchestration compose file.
-  - **[docker-compose.test.yml](docker-compose.test.yml)**: Automated E2E integration test compose file.
-  - **[pytest.ini](pytest.ini)**: Local system path mapping config.
-  - **[run_e2e.sh](run_e2e.sh)**: End-to-end local container validation entrypoint.
+```
+log-parser-pipeline/
+├── component_1_dataset_gen/          # ECS standardization
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── transform_to_ecs.py
+├── component_2_so_extractor/         # Security Onion extraction
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── extract_so_logs.py
+├── component_3_unified_parser/       # LLM-based parsing engine
+│   ├── core/
+│   │   ├── llm_client.py             # Ollama API client (native /api + /v1 compat)
+│   │   ├── logparser_llm/            # Prefix tree, ICL, tree router
+│   │   ├── logbatcher/               # DBSCAN clustering, DPP sampling
+│   │   └── librelog/                 # Drain grouping, regex manager, reflection
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── main_parser.py
+├── component_4_evaluator/            # Metrics evaluation suite
+│   ├── metrics/
+│   │   ├── GA_calculator.py          # Grouping Accuracy
+│   │   ├── PA_calculator.py          # Parsing Accuracy
+│   │   ├── FTA_calculator.py         # Few-shot Template Accuracy
+│   │   ├── ED_calculator.py          # Edit Distance (Levenshtein)
+│   │   ├── GD_calculator.py          # GGD & PGD calculators
+│   │   ├── PMSS_calculator.py        # Precomputed Silhouette Score
+│   │   └── oracle_correction.py      # Whitespace/sensitivity normalizer
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── evaluate_metrics.py
+├── component_5_deployer/             # Grok ingest deployer
+│   ├── core/
+│   │   ├── compiler.py               # Grok pattern compiler
+│   │   ├── validator.py              # Ingest pipeline simulator
+│   │   ├── es_client.py              # Elasticsearch API client
+│   │   └── salt_sftp.py              # SaltStack SFTP deployer
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── main_deployer.py
+├── tests/                            # Unit & integration tests
+│   ├── mock_ollama/                  # Mock LLM server for E2E tests
+│   ├── test_component_*.py
+│   └── test_logparser_llm_enhancements.py
+├── data/
+│   ├── raw/{dataset_name}/           # Ground truth CSVs
+│   ├── processed/{dataset_name}/     # Standardized ECS JSONL
+│   ├── parsed/{dataset_name}/        # Parser output + profiles
+│   ├── cache/{dataset_name}/         # Template caches
+│   └── archive/{dataset_name}/       # Historical evaluation reports
+├── config.yaml                       # Central pipeline configuration
+├── .env                              # Runtime environment variables
+├── docker-compose.yml                # Dev/production compose
+├── docker-compose.test.yml           # E2E integration test compose
+├── run_e2e.sh                        # E2E test runner script
+└── pytest.ini
+```
 
 ---
 
-## 3. Component Deep-Dives
+## 3. Components
 
-### Component 1: Ingestion & ECS Standardization
-Converts heterogeneous datasets into a uniform JSON Lines format matching the **Elastic Common Schema (ECS)**.
-- **LogHub-2.0**: Extracts `Date` and `Time` columns into `@timestamp`, `Content` into `message`, `Level` into `log.level`, `Component` into `log.logger`, and `LineId` into `event.id`.
-- **Splunk BOTSv3**: Extracts `_time` into `@timestamp`, `_raw` into `message`, `sourcetype` into `event.dataset`, and `host` into `host.name`.
+### Component 1: Dataset Ingestion & ECS Standardization
+Converts heterogeneous log datasets into uniform ECS-formatted JSON Lines files. Reads `dataset_name` from `config.yaml` to automatically resolve input/output directories.
+
+| Source | Mapping |
+|---|---|
+| **LogHub 2.0** | `Date`+`Time` → `@timestamp`, `Content` → `message`, `Level` → `log.level`, `Component` → `log.logger`, `LineId` → `event.id` (prefixed with dataset name) |
+| **Splunk BOTSv3** | `_time` → `@timestamp`, `_raw` → `message`, `sourcetype` → `event.dataset`, `host` → `host.name` |
+
+When multiple source CSVs are present (e.g. 14 LogHub datasets), logs are shuffled per-dataset and interleaved round-robin to simulate realistic mixed-source ingestion.
 
 ### Component 2: Security Onion Extractor
-Performs sequential log extraction from active Security Onion deployments:
-- **Task A (Dead Letter Queue)**: Uses a secure `paramiko` SSH connection over a Tailscale device node to stream and write raw outputs from `/nsm/logstash/dead_letter_queue/main/*` to `so_dlq_logs.jsonl`.
-- **Task B (Unmapped Logs)**: Initiates an Elasticsearch `_search?scroll=2m` API query over HTTPS targeting logs where `_exists_:message AND NOT _exists_:event.category` while excluding noisy performance monitoring categories. Iterates through the scroll loop to extract the raw `_source` properties.
+Extracts logs from live Security Onion deployments:
+- **DLQ Extraction**: SSH via Paramiko over Tailscale to stream dead letter queue files.
+- **Unmapped Logs**: Elasticsearch Scroll API queries for logs missing `event.category`.
 
-### Component 3: The Unified Parser Router
-Routes standard ECS logs to one of three state-of-the-art parsing configurations:
-- **LogParser-LLM**: Implements an in-memory prefix tree (`PrefixTree`) strict/loose router. Features **Adaptive Few-Shot ICL** via dynamic local Jaccard similarity lookups, structured **JSON/ECS field mapping** for automatic ingestion classifications (such as mapping IP/File fields), and recursive **Prefix Tree LRU Pruning** of nodes older than 30 days to protect memory usage.
-- **LogBatcher**: Executes zero-shot diverse parsing. Integrates **DBSCAN Clustering** utilizing precomputed Jaccard distances for order-independent grouping. Samples diverse templates using a **DPP Sampler** on log cosine embeddings, caches templates via an `OrderedDict`-backed cache with **LRU Eviction**. Outlier logs (noise) are handled via a **3-Tier Fallback** (cache match → micro-batch re-queue → regex pre-masking) to prevent template explosion without incurring LLM cost.
-- **LibreLog**: Implements static regex preprocessing, executes an initial **Drain Prefix Tree Grouping Pass** for log clustering, queries a high-performance O(1) `DummyMemory` cache alongside a dynamic O(log N) `RegexManager`, and parses fallback logs using an Ollama LLM parser augmented with reflection loops. Features a custom **O(N) index-free filtering optimization** for fast processing and auto-conversion of regex patterns to standard `<*>` templates.
+### Component 3: Unified Parser
+Routes ECS logs through one of three parsing methods (selected via `--method` flag):
 
-### Component 4: Metric Evaluation Service
-Processes output parser logs against ground truths and computes six core accuracy metrics:
-1. **Grouping Accuracy (GA)**: Determines whether parsed clusters partition logs identically to ground truth clusters.
-2. **Parsing Accuracy (PA)**: Checks token-level regex similarities to assert whether individual variables are masked correctly.
-3. **Edit Distance (ED/NED)**: Averages the Levenshtein distance change between parsed and oracle templates.
-4. **Group Granularity Distance (GGD)**: Computes the ratio of generated unique templates to oracle templates:
-   $$\text{GGD} = \frac{|N_{generated} - N_{oracle}|}{N_{oracle}}$$
-5. **Parsing Granularity Distance (PGD)**: Groups logs by generated template, maps to the modal oracle template, and calculates token-length distance:
-   $$\text{PGD} = \text{mean}(|L_{gen} - L_{oracle}|)$$
-6. **Precomputed Silhouette Score (PMSS)**: Computes Silhouette Scores utilizing precomputed Levenshtein distance metrics. Evaluates only on unique templates $M$ and broadcasts results back to full log length $N$ to reduce computational complexity from $O(N^2)$ to $O(M^2)$.
+| Method | Architecture | Key Features |
+|---|---|---|
+| **LogParser-LLM** | Sequential prefix tree router | Strict/loose matching with configurable similarity metrics (`positional_uniform`, `positional_decay`, `jaccard`), adaptive few-shot ICL via embedding similarity, variable-aware prompting with 10 token categories, LRU tree pruning |
+| **LogBatcher** | Batch clustering + DPP sampling | DBSCAN with precomputed Jaccard distances, DPP diversity sampling for representative batch queries, `OrderedDict` LRU cache, 3-tier noise fallback (cache → re-queue → regex mask) |
+| **LibreLog** | Drain grouping + reflection | Drain prefix tree pre-grouping, O(1) `DummyMemory` cache + O(log N) `RegexManager`, LLM reflection loops for self-correction, auto-conversion of regex to `<*>` templates |
+
+### Component 4: Metric Evaluation
+Computes seven accuracy metrics against ground truth:
+
+| Metric | Description |
+|---|---|
+| **GA** (Grouping Accuracy) | Whether parsed clusters partition logs identically to ground truth |
+| **PA** (Parsing Accuracy) | Token-level accuracy of variable masking |
+| **FTA** (Few-shot Template Accuracy) | Proportion of correctly extracted unique templates |
+| **ED/NED** (Edit Distance) | Average Levenshtein distance between parsed and oracle templates |
+| **GGD** (Group Granularity Distance) | `\|N_generated - N_oracle\| / N_oracle` |
+| **PGD** (Parsing Granularity Distance) | Mean token-length distance between generated and modal oracle templates |
+| **PMSS** (Precomputed Silhouette Score) | Silhouette score on unique templates, broadcast to full log length — reduces complexity from O(N²) to O(M²) |
+
+**LogHub split evaluation**: When `dataset_name: "loghub"`, the evaluator automatically segments results by sub-dataset (Apache, BGL, HDFS, etc.) using the `LineId` prefix, reporting per-dataset and overall metrics.
 
 ### Component 5: Grok Ingest Deployer
-Automates the compilation, validation, and deployment of pipeline configurations back to Security Onion:
-- **Grok Ingest Compilation & Escaping**: Translates template placeholder tags and ECS mappings into valid Grok expressions with raw regex characters escaped (`re.escape`) to prevent compilation issues, embedding an `on_failure` block to tag failures (`_llm_grok_parse_failure`).
-- **Pre-flight Ingest Simulation**: Validates the compiled pipeline JSON against Elasticsearch's `POST /_ingest/pipeline/_simulate` API using a real raw log extracted from the parsed output.
-- **Two-Pronged Deployment**: Deploys immediately via the Elasticsearch PUT API endpoint (Step A) and persistently via SFTP and SSH moves with parameterized file ownership configuration (Step B).
-- **Idempotency**: Queries the existing pipeline config first to check for changes and skip redundant redeployments.
+Compiles parsed templates into Elasticsearch Grok ingest pipelines and deploys them:
+- Translates `<*>` placeholders into Grok expressions with proper escaping.
+- Pre-flight simulation via `/_ingest/pipeline/_simulate`.
+- Two-pronged deployment: Elasticsearch PUT API (immediate) + SFTP to SaltStack (persistent).
+- Idempotent: skips redundant redeployments.
 
 ---
 
-## 4. Configuration & Deployment Guide
+## 4. Configuration
 
-Centralized parameters are managed using `config.yaml` and `.env` in the root workspace.
+### `config.yaml`
+Central pipeline configuration. Key sections:
 
-### Centralized Config (`config.yaml`)
-Defines processing directories, batch thresholds, and LLM configuration details:
 ```yaml
 directories:
-  input_dir: data/raw
-  output_dir: data/processed
-extractor:
-  batch_size: 5000
-  lookback_time: now-24h
-llm:
-  model_name: llama3
-  base_url: http://host.docker.internal:11434/v1
+  dataset_name: "loghub"        # Options: "loghub", "botsv3", "custom"
+  input_dir: data/raw            # Base raw data directory
+  output_dir: data/processed     # Base processed output directory
+  cache_dir: data/cache          # Base cache directory
+
+logparser_llm:
+  icl_selection_strategy: "similarity"    # "similarity" or "diversity"
+  loose_match_metric: "positional_uniform" # "positional_uniform", "positional_decay", "jaccard"
+  categories_mode: "paper_10"             # "ecs_10", "paper_10", "ecs_3"
+
+logbatcher:
+  sampler: "DPPSampler"         # "DPPSampler" or "SimilarSampler"
+  vectorizer: "binary"          # "binary" (Jaccard) or "tfidf" (Cosine)
+
+evaluator:
+  nrows: 50000                  # Row limit per ground truth file (null for all)
 ```
 
-### Environment Settings (`.env`)
-Configures credentials and networking nodes (placeholders provided):
-- `SO_IP`: Security Onion deployment Elasticsearch IP.
-- `SO_USER` / `SO_PASS`: Security Onion HTTPS credentials.
-- `TAILSCALE_NODE`: Tailscale device domain or IP.
-- `TS_USER`: Tailscale connection user name.
-- `OLLAMA_API_BASE`: Ollama base URL override.
+All directory paths are dynamically resolved as `{base_dir}/{dataset_name}/`, so switching datasets requires only changing `dataset_name`.
 
-### vLLM Integration (High-Throughput Mode)
-While the pipeline defaults to Ollama, it is fully compatible with **vLLM** (which supports PagedAttention and continuous batching natively on CUDA or AMD ROCm). Because vLLM exposes an OpenAI-compatible API and our client is decoupled, no code changes are required to switch backends. Simply point the environment variables to a vLLM server:
-```bash
-export OLLAMA_API_BASE="http://<vllm-ip>:8000/v1"
-export OLLAMA_MODEL="<vllm-hosted-model-name>"
-```
-This drop-in replacement significantly accelerates batch-prompting components like LibreLog.
+### `.env`
+Runtime environment variables consumed by Docker Compose:
 
-### Dev Compose vs. E2E Test Compose
+| Variable | Default | Description |
+|---|---|---|
+| `OLLAMA_API_BASE` | `http://ollama:11434/api` | Ollama endpoint (use `/api` for native, `/v1` for OpenAI-compat) |
+| `OLLAMA_MODEL` | `qwen` | Model name passed to Ollama |
+| `OLLAMA_TIMEOUT` | `90` | Request timeout in seconds |
+| `USE_CACHE` | `false` | Load existing template cache on startup |
+| `WRITE_CACHE` | `true` | Save discovered templates to cache on exit |
+| `LLM_DEBUG` | `false` | Log raw LLM request/response payloads to `llm_debug.jsonl` |
 
 > [!IMPORTANT]
-> Choose the correct docker orchestration compose file based on your execution environment to prevent container networking failures.
+> Use the native `/api` endpoint (not `/v1`) to enable `"think": false` for reasoning models (Qwen, DeepSeek, Gemma). The `/v1` OpenAI-compat layer does not support this parameter, causing reasoning models to exhaust their token budget on thinking tokens before producing output.
 
-* **Dev Orchestration (`docker-compose.yml`)**: Used when running the live pipeline. Connects directly to external API networks (Security Onion, Tailscale SSH) and maps host-gateway connectivity to connect with local Ollama endpoints.
-* **Test Orchestration (`docker-compose.test.yml`)**: Used for automated testing. Spins up a local `mock_ollama` container to simulate API endpoints. Excludes the Security Onion extractor (Component 2) to prevent external connection hanging.
+### Docker Compose
 
----
+All components run via Docker Compose with host user mapping (`user: "${UID}:${GID}"`) to prevent root-owned output files.
 
-## 5. Automated E2E Testing & CI/CD
+```bash
+# Run the dataset generator
+docker compose run --rm component_1
 
-### The End-to-End Script (`run_e2e.sh`)
-Executes the E2E verification workflow:
-1. Writes standard mock datasets with ground truth templates (`dummy_loghub.csv`).
-2. Starts the docker-compose test file in isolated container namespaces:
-   ```bash
-   docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
-   ```
-3. Queries `mock_ollama` (app.py HTTP server simulating `/chat/completions` and `/embeddings`) to perform dummy completions.
-4. Asserts that Component 4 successfully runs evaluation calculations and writes the final results to `data/evaluation_report.json`.
+# Run the parser (25s test with cache write)
+docker compose run --rm component_3 python main_parser.py --method logparser-llm --time-limit 25 --write-cache
 
-### GitHub Actions CI/CD Pipeline
-Configured in `.github/workflows/ci.yml`. On every `push` and `pull_request` to `main`, it:
-- Provisions a Python 3.11 runner environment.
-- Installs necessary scientific computing and extraction packages (`pytest`, `pandas`, `scikit-learn`, `numpy`, `scipy`, `Levenshtein`, `paramiko`, `regex`, `python-dotenv`, `tqdm`).
-- Runs the pytest unit tests (`pytest tests/`).
-- Runs `./run_e2e.sh` to execute the full container integration test suite.
+# Run the evaluator
+docker compose run --rm component_4 python evaluate_metrics.py
+
+# Switch models dynamically
+docker compose run --rm -e OLLAMA_MODEL=gemma4:27b component_3 python main_parser.py --method logparser-llm
+```
 
 ---
 
-## 6. Production Hardening & Security Audit Summary
+## 5. Testing
 
-A security assessment identified several areas that require modification before deployment to a production environment:
+### E2E Integration Test (`run_e2e.sh`)
+1. Writes a mock `dummy_loghub.csv` with ground truth templates.
+2. Starts `docker-compose.test.yml` which spins up a `mock_ollama` container.
+3. Runs Components 1 → 3 → 4 in sequence.
+4. Asserts `data/evaluation_report.json` is generated successfully.
+
+```bash
+./run_e2e.sh
+```
+
+### Unit Tests
+```bash
+pytest tests/
+```
+
+### GitHub Actions CI
+On every push/PR to `main`: installs dependencies, runs `pytest tests/`, then runs `./run_e2e.sh`.
+
+---
+
+## 6. Production Security Notes
 
 > [!WARNING]
-> Review and apply these production security mitigations prior to exposing the pipeline services.
+> Review before exposing pipeline services to production.
 
-1. **Bypassed SSL Validation (`verify=False`)**
-   - *Risk*: `requests` calls bypass certificate verification for the Security Onion Elasticsearch endpoint, exposing basic credentials and log payloads to local network sniffing/sniffing attacks.
-   - *Mitigation*: Mount the Security Onion Root CA into the container and update the verification parameter: `verify='/app/certs/ca.crt'`.
-2. **Auto-Trusting SSH Host Keys (`AutoAddPolicy`)**
-   - *Risk*: Automatically trusting host signatures can lead to DNS spoofing or session hijackings by malicious hosts.
-   - *Mitigation*: Pre-populate and mount a secure `known_hosts` file into the container, loading it with `ssh.load_host_keys()` and setting the policy to `RejectPolicy()`.
-3. **Containers Running as Root User**
-   - *Risk*: The lack of a `USER` directive in the Dockerfiles means container breakout exploits could grant root command privileges on the host system.
-   - *Mitigation*: Define a non-root group and user inside each Dockerfile:
-     ```dockerfile
-     RUN groupadd -r appgroup && useradd -r -g appgroup -u 10001 appuser
-     USER appuser
-     ```
-4. **Permissive Port Bindings**
-   - *Risk*: Binding ports to `0.0.0.0` exposes services (like `mock_ollama`) to all external interfaces.
-   - *Mitigation*: Restrict binding interfaces to the loopback IP: `"127.0.0.1:11434:11434"`.
-5. **Shared Ingestion Write Access**
-   - *Risk*: Broad write access across the entire `./data` volume raises container security risks.
-   - *Mitigation*: Mount folders with specific permissions, mapping inputs (like `./data/processed`) to components 3 and 4 as read-only (`:ro`).
+| Issue | Risk | Mitigation |
+|---|---|---|
+| **SSL bypass** (`verify=False`) | Credentials exposed to network sniffing | Mount SO Root CA, set `verify='/app/certs/ca.crt'` |
+| **Auto-trust SSH keys** (`AutoAddPolicy`) | DNS spoofing / session hijacking | Pre-populate `known_hosts`, use `RejectPolicy()` |
+| **Root containers** | Container breakout → host root access | Add `USER appuser` directive in Dockerfiles |
+| **Permissive port bindings** | Services exposed on all interfaces | Bind to `127.0.0.1` only |
+| **Broad volume mounts** | Cross-container write escalation | Mount input dirs as read-only (`:ro`) |
