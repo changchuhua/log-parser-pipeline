@@ -29,3 +29,5 @@ data/evaluation_report*
 data/report.html
 
 report.pdf
+parser_implementation_comparison.md
+walkthrough.md
