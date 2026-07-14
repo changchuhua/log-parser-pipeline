@@ -1,31 +1,16 @@
 {
     "summary": {
-        "parsed_loghub_ecs_Overall": {
-            "FGA": 1.0,
-            "PA": 0.9814814814814815,
-            "PMSS": 0.9629629629629629,
-            "FTA": 0.8888888888888888,
-            "GA": 1.0,
-            "Time_s": 28.05777715899967,
-            "LLM_Calls": 9,
-            "Tokens": 5238,
-            "cache_hit_rate": 0.8363636363636363,
-            "throughput_pps": 1.960240816238662,
-            "llm_timeouts": 0,
-            "failed_invocations": 0,
-            "failure_rate": 0.0
-        },
-        "parsed_loghub_ecs_Apache": {
-            "FGA": 1.0,
-            "PA": 0.9814814814814815,
-            "PMSS": 0.9629629629629629,
-            "FTA": 0.8888888888888888,
-            "GA": 1.0,
-            "Time_s": 28.05777715899967,
-            "LLM_Calls": 9,
-            "Tokens": 5238,
-            "cache_hit_rate": 0.8363636363636363,
-            "throughput_pps": 1.960240816238662,
+        "librelog": {
+            "FGA": 0.0,
+            "PA": 0.0,
+            "PMSS": 0.005385432475911361,
+            "FTA": 0.0,
+            "GA": 0.0,
+            "Time_s": 7202.944673692999,
+            "LLM_Calls": 1318,
+            "Tokens": 1665526,
+            "cache_hit_rate": 0.0,
+            "throughput_pps": 289.195057628008,
             "llm_timeouts": 0,
             "failed_invocations": 0,
             "failure_rate": 0.0
@@ -38,649 +23,55 @@
     },
     "visualizations": {
         "radar_chart": {
-            "parsed_loghub_ecs_Overall": {
-                "FGA": 1.0,
-                "PA": 0.9814814814814815,
-                "PMSS": 0.9629629629629629,
-                "FTA": 0.8888888888888888
-            },
-            "parsed_loghub_ecs_Apache": {
-                "FGA": 1.0,
-                "PA": 0.9814814814814815,
-                "PMSS": 0.9629629629629629,
-                "FTA": 0.8888888888888888
+            "librelog": {
+                "FGA": 0.0,
+                "PA": 0.0,
+                "PMSS": 0.005385432475911361,
+                "FTA": 0.0
             }
         },
         "scatter_plot": {
-            "parsed_loghub_ecs_Overall": {
+            "librelog": {
                 "effectiveness": {
-                    "PMSS": 0.9629629629629629,
-                    "FGA": 1.0
+                    "PMSS": 0.005385432475911361,
+                    "FGA": 0.0
                 },
                 "efficiency": {
-                    "Time_s": 28.05777715899967,
-                    "Tokens": 5238
-                }
-            },
-            "parsed_loghub_ecs_Apache": {
-                "effectiveness": {
-                    "PMSS": 0.9629629629629629,
-                    "FGA": 1.0
-                },
-                "efficiency": {
-                    "Time_s": 28.05777715899967,
-                    "Tokens": 5238
+                    "Time_s": 7202.944673692999,
+                    "Tokens": 1665526
                 }
             }
         },
         "grouped_bar_chart_sensitivity": {
-            "parsed_loghub_ecs_Overall": {
+            "librelog": {
                 "raw": {
-                    "PA": 0.9814814814814815,
-                    "FTA": 0.8888888888888888
+                    "PA": 0.0,
+                    "FTA": 0.0
                 },
                 "spaced": {
-                    "PA": 0.9814814814814815,
-                    "FTA": 0.8888888888888888
+                    "PA": 0.0,
+                    "FTA": 0.0
                 },
                 "lowercase": {
-                    "PA": 0.9814814814814815,
-                    "FTA": 0.8888888888888888
+                    "PA": 0.0,
+                    "FTA": 0.0
                 },
                 "regex_clean": {
-                    "PA": 0.9814814814814815,
-                    "FTA": 0.8888888888888888
-                }
-            },
-            "parsed_loghub_ecs_Apache": {
-                "raw": {
-                    "PA": 0.9814814814814815,
-                    "FTA": 0.8888888888888888
-                },
-                "spaced": {
-                    "PA": 0.9814814814814815,
-                    "FTA": 0.8888888888888888
-                },
-                "lowercase": {
-                    "PA": 0.9814814814814815,
-                    "FTA": 0.8888888888888888
-                },
-                "regex_clean": {
-                    "PA": 0.9814814814814815,
-                    "FTA": 0.8888888888888888
+                    "PA": 0.0,
+                    "FTA": 0.0
                 }
             }
         },
         "correlation_heatmap": {
-            "parsed_loghub_ecs_Overall": {
-                "PMSS": 0.9629629629629629,
-                "FGA": 1.0,
-                "FTA": 0.8888888888888888
-            },
-            "parsed_loghub_ecs_Apache": {
-                "PMSS": 0.9629629629629629,
-                "FGA": 1.0,
-                "FTA": 0.8888888888888888
+            "librelog": {
+                "PMSS": 0.005385432475911361,
+                "FGA": 0.0,
+                "FTA": 0.0
             }
         },
         "line_graph_cache_scalability": {
-            "parsed_loghub_ecs_Overall": {
-                "history": [
-                    {
-                        "log_volume": 1,
-                        "llm_invocations": 1,
-                        "cache_hits": 0
-                    },
-                    {
-                        "log_volume": 2,
-                        "llm_invocations": 2,
-                        "cache_hits": 0
-                    },
-                    {
-                        "log_volume": 3,
-                        "llm_invocations": 3,
-                        "cache_hits": 0
-                    },
-                    {
-                        "log_volume": 4,
-                        "llm_invocations": 4,
-                        "cache_hits": 0
-                    },
-                    {
-                        "log_volume": 5,
-                        "llm_invocations": 4,
-                        "cache_hits": 1
-                    },
-                    {
-                        "log_volume": 6,
-                        "llm_invocations": 5,
-                        "cache_hits": 1
-                    },
-                    {
-                        "log_volume": 7,
-                        "llm_invocations": 5,
-                        "cache_hits": 2
-                    },
-                    {
-                        "log_volume": 8,
-                        "llm_invocations": 5,
-                        "cache_hits": 3
-                    },
-                    {
-                        "log_volume": 9,
-                        "llm_invocations": 5,
-                        "cache_hits": 4
-                    },
-                    {
-                        "log_volume": 10,
-                        "llm_invocations": 5,
-                        "cache_hits": 5
-                    },
-                    {
-                        "log_volume": 11,
-                        "llm_invocations": 5,
-                        "cache_hits": 6
-                    },
-                    {
-                        "log_volume": 12,
-                        "llm_invocations": 6,
-                        "cache_hits": 6
-                    },
-                    {
-                        "log_volume": 13,
-                        "llm_invocations": 6,
-                        "cache_hits": 7
-                    },
-                    {
-                        "log_volume": 14,
-                        "llm_invocations": 6,
-                        "cache_hits": 8
-                    },
-                    {
-                        "log_volume": 15,
-                        "llm_invocations": 6,
-                        "cache_hits": 9
-                    },
-                    {
-                        "log_volume": 16,
-                        "llm_invocations": 6,
-                        "cache_hits": 10
-                    },
-                    {
-                        "log_volume": 17,
-                        "llm_invocations": 6,
-                        "cache_hits": 11
-                    },
-                    {
-                        "log_volume": 18,
-                        "llm_invocations": 6,
-                        "cache_hits": 12
-                    },
-                    {
-                        "log_volume": 19,
-                        "llm_invocations": 6,
-                        "cache_hits": 13
-                    },
-                    {
-                        "log_volume": 20,
-                        "llm_invocations": 6,
-                        "cache_hits": 14
-                    },
-                    {
-                        "log_volume": 21,
-                        "llm_invocations": 6,
-                        "cache_hits": 15
-                    },
-                    {
-                        "log_volume": 22,
-                        "llm_invocations": 6,
-                        "cache_hits": 16
-                    },
-                    {
-                        "log_volume": 23,
-                        "llm_invocations": 6,
-                        "cache_hits": 17
-                    },
-                    {
-                        "log_volume": 24,
-                        "llm_invocations": 6,
-                        "cache_hits": 18
-                    },
-                    {
-                        "log_volume": 25,
-                        "llm_invocations": 6,
-                        "cache_hits": 19
-                    },
-                    {
-                        "log_volume": 26,
-                        "llm_invocations": 6,
-                        "cache_hits": 20
-                    },
-                    {
-                        "log_volume": 27,
-                        "llm_invocations": 6,
-                        "cache_hits": 21
-                    },
-                    {
-                        "log_volume": 28,
-                        "llm_invocations": 6,
-                        "cache_hits": 22
-                    },
-                    {
-                        "log_volume": 29,
-                        "llm_invocations": 6,
-                        "cache_hits": 23
-                    },
-                    {
-                        "log_volume": 30,
-                        "llm_invocations": 6,
-                        "cache_hits": 24
-                    },
-                    {
-                        "log_volume": 31,
-                        "llm_invocations": 6,
-                        "cache_hits": 25
-                    },
-                    {
-                        "log_volume": 32,
-                        "llm_invocations": 6,
-                        "cache_hits": 26
-                    },
-                    {
-                        "log_volume": 33,
-                        "llm_invocations": 6,
-                        "cache_hits": 27
-                    },
-                    {
-                        "log_volume": 34,
-                        "llm_invocations": 7,
-                        "cache_hits": 27
-                    },
-                    {
-                        "log_volume": 35,
-                        "llm_invocations": 7,
-                        "cache_hits": 28
-                    },
-                    {
-                        "log_volume": 36,
-                        "llm_invocations": 7,
-                        "cache_hits": 29
-                    },
-                    {
-                        "log_volume": 37,
-                        "llm_invocations": 7,
-                        "cache_hits": 30
-                    },
-                    {
-                        "log_volume": 38,
-                        "llm_invocations": 7,
-                        "cache_hits": 31
-                    },
-                    {
-                        "log_volume": 39,
-                        "llm_invocations": 7,
-                        "cache_hits": 32
-                    },
-                    {
-                        "log_volume": 40,
-                        "llm_invocations": 7,
-                        "cache_hits": 33
-                    },
-                    {
-                        "log_volume": 41,
-                        "llm_invocations": 7,
-                        "cache_hits": 34
-                    },
-                    {
-                        "log_volume": 42,
-                        "llm_invocations": 7,
-                        "cache_hits": 35
-                    },
-                    {
-                        "log_volume": 43,
-                        "llm_invocations": 7,
-                        "cache_hits": 36
-                    },
-                    {
-                        "log_volume": 44,
-                        "llm_invocations": 7,
-                        "cache_hits": 37
-                    },
-                    {
-                        "log_volume": 45,
-                        "llm_invocations": 7,
-                        "cache_hits": 38
-                    },
-                    {
-                        "log_volume": 46,
-                        "llm_invocations": 7,
-                        "cache_hits": 39
-                    },
-                    {
-                        "log_volume": 47,
-                        "llm_invocations": 7,
-                        "cache_hits": 40
-                    },
-                    {
-                        "log_volume": 48,
-                        "llm_invocations": 7,
-                        "cache_hits": 41
-                    },
-                    {
-                        "log_volume": 49,
-                        "llm_invocations": 7,
-                        "cache_hits": 42
-                    },
-                    {
-                        "log_volume": 50,
-                        "llm_invocations": 7,
-                        "cache_hits": 43
-                    },
-                    {
-                        "log_volume": 51,
-                        "llm_invocations": 7,
-                        "cache_hits": 44
-                    },
-                    {
-                        "log_volume": 52,
-                        "llm_invocations": 7,
-                        "cache_hits": 45
-                    },
-                    {
-                        "log_volume": 53,
-                        "llm_invocations": 8,
-                        "cache_hits": 45
-                    },
-                    {
-                        "log_volume": 54,
-                        "llm_invocations": 8,
-                        "cache_hits": 46
-                    },
-                    {
-                        "log_volume": 55,
-                        "llm_invocations": 9,
-                        "cache_hits": 46
-                    }
-                ]
-            },
-            "parsed_loghub_ecs_Apache": {
-                "history": [
-                    {
-                        "log_volume": 1,
-                        "llm_invocations": 1,
-                        "cache_hits": 0
-                    },
-                    {
-                        "log_volume": 2,
-                        "llm_invocations": 2,
-                        "cache_hits": 0
-                    },
-                    {
-                        "log_volume": 3,
-                        "llm_invocations": 3,
-                        "cache_hits": 0
-                    },
-                    {
-                        "log_volume": 4,
-                        "llm_invocations": 4,
-                        "cache_hits": 0
-                    },
-                    {
-                        "log_volume": 5,
-                        "llm_invocations": 4,
-                        "cache_hits": 1
-                    },
-                    {
-                        "log_volume": 6,
-                        "llm_invocations": 5,
-                        "cache_hits": 1
-                    },
-                    {
-                        "log_volume": 7,
-                        "llm_invocations": 5,
-                        "cache_hits": 2
-                    },
-                    {
-                        "log_volume": 8,
-                        "llm_invocations": 5,
-                        "cache_hits": 3
-                    },
-                    {
-                        "log_volume": 9,
-                        "llm_invocations": 5,
-                        "cache_hits": 4
-                    },
-                    {
-                        "log_volume": 10,
-                        "llm_invocations": 5,
-                        "cache_hits": 5
-                    },
-                    {
-                        "log_volume": 11,
-                        "llm_invocations": 5,
-                        "cache_hits": 6
-                    },
-                    {
-                        "log_volume": 12,
-                        "llm_invocations": 6,
-                        "cache_hits": 6
-                    },
-                    {
-                        "log_volume": 13,
-                        "llm_invocations": 6,
-                        "cache_hits": 7
-                    },
-                    {
-                        "log_volume": 14,
-                        "llm_invocations": 6,
-                        "cache_hits": 8
-                    },
-                    {
-                        "log_volume": 15,
-                        "llm_invocations": 6,
-                        "cache_hits": 9
-                    },
-                    {
-                        "log_volume": 16,
-                        "llm_invocations": 6,
-                        "cache_hits": 10
-                    },
-                    {
-                        "log_volume": 17,
-                        "llm_invocations": 6,
-                        "cache_hits": 11
-                    },
-                    {
-                        "log_volume": 18,
-                        "llm_invocations": 6,
-                        "cache_hits": 12
-                    },
-                    {
-                        "log_volume": 19,
-                        "llm_invocations": 6,
-                        "cache_hits": 13
-                    },
-                    {
-                        "log_volume": 20,
-                        "llm_invocations": 6,
-                        "cache_hits": 14
-                    },
-                    {
-                        "log_volume": 21,
-                        "llm_invocations": 6,
-                        "cache_hits": 15
-                    },
-                    {
-                        "log_volume": 22,
-                        "llm_invocations": 6,
-                        "cache_hits": 16
-                    },
-                    {
-                        "log_volume": 23,
-                        "llm_invocations": 6,
-                        "cache_hits": 17
-                    },
-                    {
-                        "log_volume": 24,
-                        "llm_invocations": 6,
-                        "cache_hits": 18
-                    },
-                    {
-                        "log_volume": 25,
-                        "llm_invocations": 6,
-                        "cache_hits": 19
-                    },
-                    {
-                        "log_volume": 26,
-                        "llm_invocations": 6,
-                        "cache_hits": 20
-                    },
-                    {
-                        "log_volume": 27,
-                        "llm_invocations": 6,
-                        "cache_hits": 21
-                    },
-                    {
-                        "log_volume": 28,
-                        "llm_invocations": 6,
-                        "cache_hits": 22
-                    },
-                    {
-                        "log_volume": 29,
-                        "llm_invocations": 6,
-                        "cache_hits": 23
-                    },
-                    {
-                        "log_volume": 30,
-                        "llm_invocations": 6,
-                        "cache_hits": 24
-                    },
-                    {
-                        "log_volume": 31,
-                        "llm_invocations": 6,
-                        "cache_hits": 25
-                    },
-                    {
-                        "log_volume": 32,
-                        "llm_invocations": 6,
-                        "cache_hits": 26
-                    },
-                    {
-                        "log_volume": 33,
-                        "llm_invocations": 6,
-                        "cache_hits": 27
-                    },
-                    {
-                        "log_volume": 34,
-                        "llm_invocations": 7,
-                        "cache_hits": 27
-                    },
-                    {
-                        "log_volume": 35,
-                        "llm_invocations": 7,
-                        "cache_hits": 28
-                    },
-                    {
-                        "log_volume": 36,
-                        "llm_invocations": 7,
-                        "cache_hits": 29
-                    },
-                    {
-                        "log_volume": 37,
-                        "llm_invocations": 7,
-                        "cache_hits": 30
-                    },
-                    {
-                        "log_volume": 38,
-                        "llm_invocations": 7,
-                        "cache_hits": 31
-                    },
-                    {
-                        "log_volume": 39,
-                        "llm_invocations": 7,
-                        "cache_hits": 32
-                    },
-                    {
-                        "log_volume": 40,
-                        "llm_invocations": 7,
-                        "cache_hits": 33
-                    },
-                    {
-                        "log_volume": 41,
-                        "llm_invocations": 7,
-                        "cache_hits": 34
-                    },
-                    {
-                        "log_volume": 42,
-                        "llm_invocations": 7,
-                        "cache_hits": 35
-                    },
-                    {
-                        "log_volume": 43,
-                        "llm_invocations": 7,
-                        "cache_hits": 36
-                    },
-                    {
-                        "log_volume": 44,
-                        "llm_invocations": 7,
-                        "cache_hits": 37
-                    },
-                    {
-                        "log_volume": 45,
-                        "llm_invocations": 7,
-                        "cache_hits": 38
-                    },
-                    {
-                        "log_volume": 46,
-                        "llm_invocations": 7,
-                        "cache_hits": 39
-                    },
-                    {
-                        "log_volume": 47,
-                        "llm_invocations": 7,
-                        "cache_hits": 40
-                    },
-                    {
-                        "log_volume": 48,
-                        "llm_invocations": 7,
-                        "cache_hits": 41
-                    },
-                    {
-                        "log_volume": 49,
-                        "llm_invocations": 7,
-                        "cache_hits": 42
-                    },
-                    {
-                        "log_volume": 50,
-                        "llm_invocations": 7,
-                        "cache_hits": 43
-                    },
-                    {
-                        "log_volume": 51,
-                        "llm_invocations": 7,
-                        "cache_hits": 44
-                    },
-                    {
-                        "log_volume": 52,
-                        "llm_invocations": 7,
-                        "cache_hits": 45
-                    },
-                    {
-                        "log_volume": 53,
-                        "llm_invocations": 8,
-                        "cache_hits": 45
-                    },
-                    {
-                        "log_volume": 54,
-                        "llm_invocations": 8,
-                        "cache_hits": 46
-                    },
-                    {
-                        "log_volume": 55,
-                        "llm_invocations": 9,
-                        "cache_hits": 46
-                    }
-                ]
+            "librelog": {
+                "history": []
             }
         }
     }

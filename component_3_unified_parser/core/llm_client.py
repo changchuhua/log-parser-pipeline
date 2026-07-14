@@ -107,6 +107,8 @@ class OllamaClient:
             requests.exceptions.RequestException: If the request fails twice.
             KeyError: If the expected keys are missing from the response JSON.
         """
+        # Truncate text to 4000 characters to prevent exceeding context window limit
+        text = text[:4000] if text else ""
         if text in self.embedding_cache:
             return self.embedding_cache[text]
 

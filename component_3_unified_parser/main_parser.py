@@ -246,7 +246,7 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
                     "llm_timeouts": usage_stats.get("llm_timeouts", 0),
                     "failed_invocations": usage_stats.get("failed_invocations", 0),
                     "cache_hits": cache_hits,
-                    "log_volume": len(logs_to_parse),
+                    "log_volume": total_lines,
                     "history": history,
                     "model_used": model_name,
                     "method_used": "logparser-llm"
@@ -718,6 +718,7 @@ def main():
         
         if args.write_cache:
             try:
+                os.makedirs(cache_dir, exist_ok=True)
                 cache_file = os.path.join(cache_dir, 'librelog_cache.json')
                 existing_entries = []
                 if os.path.exists(cache_file):

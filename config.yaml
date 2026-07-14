@@ -12,7 +12,7 @@ logparser_llm:
   k_shots: 3
   loose_match_threshold: 0.8
   categories_mode: "paper_10"     # Options: "ecs_10", "paper_10", "ecs_3"
-  calibration_file: "data/cache/calibration_seed.json" # Provide 32 ground-truth examples here to enable LogParser-LLM-C
+  calibration_file: "" # Provide 32 ground-truth examples here to enable LogParser-LLM-C
   icl_selection_strategy: "similarity" # Options: "similarity", "diversity"
   loose_match_metric: "positional_uniform" # Options: "positional_decay", "positional_uniform", "jaccard"
   decay_factor: 0.15              # Decay coefficient lambda
@@ -31,8 +31,10 @@ librelog:
   max_memory_size: 1000
   k_shots: 3
   enable_reflection: true
+  use_drain_backup: false
+  write_drain_backup: true
 evaluator:
-  nrows: 50000
+  nrows: null
 
 deployer:
   dry_run: false

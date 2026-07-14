@@ -3,18 +3,33 @@ import string
 from datetime import datetime
 
 
+import signal
+
+class RegexTimeoutException(Exception):
+    """Exception raised when regex matching execution budget is exceeded."""
+    pass
+
+def regex_timeout_handler(signum, frame):
+    """Signal handler raising RegexTimeoutException."""
+    raise RegexTimeoutException("Regex matching execution timed out")
+
 def verify_one_regex_to_match_whole_log(log, regex):
     log = log.replace(",", "")
     regex = regex.replace(",", "")
     regex = f'^{regex}$'
+    
+    old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)
     try:
+        signal.alarm(1)
         if re.search(regex, log):
-
             return True
         else:
             return False
-    except re.error as e:
+    except (RegexTimeoutException, re.error, Exception):
         return False
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
     
 
 def is_punctuation_or_space(s):

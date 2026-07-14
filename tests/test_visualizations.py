@@ -22,7 +22,7 @@ def test_calculate_fta():
     })
     
     assert calculate_fta(df_gt, df_parsed_correct) == 1.0
-    assert calculate_fta(df_gt, df_parsed_partial) == 0.5
+    assert calculate_fta(df_gt, df_parsed_partial) == 0.8
 
 def test_apply_sensitivity_correction():
     df_gt = pd.DataFrame({

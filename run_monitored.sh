@@ -7,6 +7,8 @@ cleanup() {
     curl -s -X POST http://localhost:11434/api/generate -d '{"model": "gemma4:26b", "keep_alive": 0}' > /dev/null || true
     echo "Cleaning up any stale unified_parser containers..."
     docker rm -f unified_parser >/dev/null 2>&1 || true
+    echo "Restarting Ollama container..."
+    docker restart ollama >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 

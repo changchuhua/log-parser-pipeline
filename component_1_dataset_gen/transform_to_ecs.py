@@ -101,18 +101,25 @@ def process_botsv3(input_file, output_file):
         input_file (str): Path to the raw Splunk BOTSv3 CSV file.
         output_file (str): Path to write the standardized ECS JSONL file.
     """
-    df = pd.read_csv(input_file)
+    usecols = ['_time', '_raw', 'sourcetype', 'host']
+    df = pd.read_csv(input_file, encoding='latin-1', usecols=usecols)
+    df = df.fillna('')
     
-    with open(output_file, 'w') as f:
-        for _, row in df.iterrows():
+    with open(output_file, 'w', encoding='utf-8') as f:
+        times = df['_time'].astype(str).tolist()
+        raws = df['_raw'].astype(str).tolist()
+        sourcetypes = df['sourcetype'].astype(str).tolist()
+        hosts = df['host'].astype(str).tolist()
+        
+        for t, r, s, h in zip(times, raws, sourcetypes, hosts):
             ecs_log = {
-                "@timestamp": str(row.get('_time', '')),
-                "message": str(row.get('_raw', '')),
+                "@timestamp": t,
+                "message": r,
                 "event": {
-                    "dataset": str(row.get('sourcetype', ''))
+                    "dataset": s
                 },
                 "host": {
-                    "name": str(row.get('host', ''))
+                    "name": h
                 }
             }
             f.write(json.dumps(ecs_log) + '\n')

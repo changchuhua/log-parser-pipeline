@@ -652,7 +652,7 @@ def main():
                 .str.replace(r'<(?!\*+>)[^>]+>', '<*>', regex=True)
             )
             
-            df_gt_aligned_raw = pd.DataFrame()
+            df_gt_aligned_raw = pd.DataFrame(columns=['LineId', 'Content', 'EventTemplate'])
             if not df_gt_raw.empty:
                 merged = pd.merge(df_gt_raw, df_parsed, on='LineId', suffixes=('_gt', '_parsed'))
                 

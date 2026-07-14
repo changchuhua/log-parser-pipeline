@@ -24,3 +24,8 @@ data/processed/
 data/parsed/
 report/
 data/cache
+data/backups
+data/evaluation_report*
+data/report.html
+
+report.pdf

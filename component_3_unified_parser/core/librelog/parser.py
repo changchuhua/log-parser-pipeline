@@ -6,6 +6,8 @@ and LLM-based template parsing with self-reflection.
 
 import time
 import logging
+import os
+import yaml
 from core.llm_client import OllamaClient
 from .grouping import LogParser as DrainParser
 from .regex_manager import RegexTemplateManager
@@ -97,6 +99,22 @@ class LibreLogParser:
         )
         self.memory = DummyMemory()
 
+        # Load Drain backup configurations from config.yaml
+        if not os.path.exists(config_path) and config_path == '/app/config.yaml':
+            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'config.yaml')
+        try:
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+        except Exception as e:
+            logger.warning(f"Could not load config from {config_path}: {e}")
+            config = {}
+        
+        librelog_config = config.get('librelog', {})
+        self.use_drain_backup = librelog_config.get('use_drain_backup', False)
+        self.write_drain_backup = librelog_config.get('write_drain_backup', False)
+        cache_dir = config.get('directories', {}).get('cache_dir', 'data/cache')
+        self.drain_backup_file = os.path.join(cache_dir, f'librelog_drain_backup_{self.dataset_name}.json')
+
     def parse(self, logs_to_parse, time_limit=None, start_time=None):
         """Parses list of logs using LibreLog's pipeline logic.
 
@@ -123,9 +141,29 @@ class LibreLogParser:
         raw_logs = [log['message'] for log in logs_to_parse]
 
         # 1. Drain tree grouping pass
-        logger.info(f"[{self.dataset_name}] Running Drain tree grouping pass on {len(raw_logs)} logs...")
-        tree_parser = DrainParser(rex=self.rex, depth=self.depth, st=self.st)
-        grouped_logs = tree_parser.parse(raw_logs)
+        import json
+        grouped_logs = None
+        if self.use_drain_backup and os.path.exists(self.drain_backup_file):
+            logger.info(f"[{self.dataset_name}] Loading Drain tree grouping from backup file {self.drain_backup_file}...")
+            try:
+                with open(self.drain_backup_file, 'r', encoding='utf-8') as dbf:
+                    grouped_logs = json.load(dbf)
+            except Exception as e:
+                logger.error(f"[{self.dataset_name}] Error loading Drain backup: {e}")
+
+        if grouped_logs is None:
+            logger.info(f"[{self.dataset_name}] Running Drain tree grouping pass on {len(raw_logs)} logs...")
+            tree_parser = DrainParser(rex=self.rex, depth=self.depth, st=self.st)
+            grouped_logs = tree_parser.parse(raw_logs)
+            
+            if self.write_drain_backup:
+                logger.info(f"[{self.dataset_name}] Writing Drain tree grouping to backup file {self.drain_backup_file}...")
+                try:
+                    os.makedirs(os.path.dirname(self.drain_backup_file), exist_ok=True)
+                    with open(self.drain_backup_file, 'w', encoding='utf-8') as dbf:
+                        json.dump(grouped_logs, dbf)
+                except Exception as e:
+                    logger.error(f"[{self.dataset_name}] Error writing Drain backup: {e}")
 
         # 2. Partition logs by EventId
         groups_dict = {}
@@ -192,6 +230,7 @@ class LibreLogParser:
             # Cache miss: run official Llama parser pipeline
             # llama_parser.parse returns res_list: [(Content, EventId/new_event, template), ...]
             try:
+                logger.info(f"[{self.dataset_name}] Cluster {eventid}: Cache miss. Invoking LLM parsing phase for {len(group_logs)} logs. Sample: '{logs_from_group[0][:150]}...'")
                 res_list = self.llama_parser.parse(group_logs, logs_from_group)
                 for content, _, template in res_list:
                     if message_to_ids[content]:
@@ -211,6 +250,7 @@ class LibreLogParser:
                         'template': template,
                         'group_key': gk_tuple
                     })
+                logger.info(f"[{self.dataset_name}] Cluster {eventid}: LLM parsing phase completed successfully. Generated {len(res_list)} template mappings.")
                 parsed_count += len(group_logs)
             except Exception as e:
                 logger.error(f"[{self.dataset_name}] LlamaParser error on cluster {eventid}: {e}")

@@ -7,9 +7,13 @@ from datetime import datetime
 import textdistance
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
+import logging
+
+logger = logging.getLogger(__name__)
 
 from core.llm_client import OllamaClient
-from .regex_manager import verify_one_regex_to_match_whole_log
+from .regex_manager import verify_one_regex_to_match_whole_log, RegexTimeoutException, regex_timeout_handler
+import signal
 
 def replace_bracketed_uppercase(text):
     pattern = r'<[A-Z_]+>'
@@ -25,13 +29,19 @@ def get_logs_from_group(group_list):
 def verify_one_regex(log, regex):
     log = log.replace(",", "")
     regex = regex.replace(",", "")
+    
+    old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)
     try:
+        signal.alarm(1)
         if re.search(regex, log):
             return True
         else:
             return False
-    except re.error as e:
+    except (RegexTimeoutException, re.error, Exception):
         return False
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
 
 def check_and_truncate_regex(pattern):
     parts = re.split(r'(\(\.\*\?\))', pattern)
@@ -216,7 +226,16 @@ class LogParser:
                 options = option_pattern.split('|')
                 for option in options:
                     modified_pattern = regex_pattern.replace(f"(?:{option_pattern})", option)
-                    if re.match(modified_pattern, target_string):
+                    old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)
+                    try:
+                        signal.alarm(1)
+                        is_match = bool(re.match(modified_pattern, target_string))
+                    except (RegexTimeoutException, Exception):
+                        is_match = False
+                    finally:
+                        signal.alarm(0)
+                        signal.signal(signal.SIGALRM, old_handler)
+                    if is_match:
                         return modified_pattern
         except:
             return regex_pattern
@@ -311,7 +330,15 @@ class LogParser:
     def check_and_modify_regex(self, regex, string):
         try:
             pattern = re.compile(regex)
-            match = pattern.match(string)
+            old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)
+            try:
+                signal.alarm(1)
+                match = pattern.match(string)
+            except (RegexTimeoutException, Exception):
+                match = None
+            finally:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
         except:
             return regex
 
@@ -322,7 +349,17 @@ class LogParser:
             regex = regex + "$"
         try:
             pattern = re.compile(regex)
-            match = pattern.match(string)
+            old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)
+            try:
+                signal.alarm(1)
+                match = pattern.match(string)
+            except (RegexTimeoutException, Exception):
+                match = None
+            finally:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
+            if not match:
+                return regex
             groups = match.groups()
         except:
             return regex
@@ -362,10 +399,14 @@ class LogParser:
             return re.escape(log_list[0]).replace("\\ ", " ")
         try:
             prompt, sampled_log_list = self.generate_prompt_with_log_list(log_list, dic=dic)
+            sample_log_subset = sampled_log_list[0][:150] if sampled_log_list else "None"
+            logger.info(f"Querying LLM for template extraction. Sample log: '{sample_log_subset}...'")
             response = self.llm_client.generate_completion(prompt).strip()
             resul = self.clean_regex(sampled_log_list[0], self.template_to_regex(response))
+            logger.info(f"LLM responded with raw template: '{response}'. Cleaned regex: '{resul}'")
             return resul
         except Exception as e:
+            logger.warning(f"LLM template extraction failed: {e}. Falling back to escaped raw log template.")
             # Fallback
             if dic:
                 log_list = get_logs_from_group(log_list)

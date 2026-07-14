@@ -10,6 +10,9 @@ import numpy as np
 import pandas as pd
 import hashlib
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Logcluster:
@@ -207,7 +210,10 @@ class LogParser:
 
         self.load_data(logs)
 
+        total_count = len(self.df_log)
         for idx, line in self.df_log.iterrows():
+            if idx > 0 and idx % 100000 == 0:
+                logger.info(f"Drain tree grouping progress: {idx}/{total_count} logs processed ({(idx/total_count)*100:.1f}%)")
             logID = line['LineId']
             logmessageL = self.preprocess(line['Content']).strip().split()
             matchCluster = self.treeSearch(rootNode, logmessageL)

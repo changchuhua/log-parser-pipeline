@@ -87,7 +87,7 @@ class TestComponent1(unittest.TestCase):
 
         process_botsv3('dummy_input.csv', 'dummy_output.jsonl')
 
-        mock_file.assert_called_once_with('dummy_output.jsonl', 'w')
+        mock_file.assert_called_once_with('dummy_output.jsonl', 'w', encoding='utf-8')
         
         handle = mock_file()
         written_args = [call.args[0] for call in handle.write.call_args_list]
