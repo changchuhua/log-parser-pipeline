@@ -37,33 +37,60 @@ def load_config(config_path='/app/config.yaml'):
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
-def extract_dlq_logs(tailscale_user, tailscale_host, output_file):
+DLQ_PATHS = [
+    "/nsm/logstash/dead_letter_queue/main",
+    "/nsm/logstash/dead_letter_queue/search",
+]
+
+def extract_dlq_logs(tailscale_user, tailscale_host, output_file, tailscale_pass=None):
     """Establishes an SSH connection and streams Security Onion Logstash DLQ logs.
+
+    Reads from both the `main` and `search` Logstash pipeline DLQ directories,
+    since Security Onion writes dead-letter entries to either depending on
+    which pipeline rejected the event.
 
     Args:
         tailscale_user (str): SSH login user name.
         tailscale_host (str): Tailscale target node host or IP.
         output_file (str): Local path to write DLQ logs.
+        tailscale_pass (str, optional): SSH login password. Leave unset (None
+            or empty) to fall back to SSH-agent/key-based auth instead —
+            required when the target uses Tailscale SSH rather than a
+            password-authenticating sshd, since Tailscale SSH has no password
+            to supply.
 
     Returns:
         int: Number of logs successfully extracted.
     """
     logger.info(f"Extracting DLQ logs via SSH from {tailscale_user}@{tailscale_host}...")
-    
+
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    
+
     row_count = 0
     try:
-        ssh.connect(hostname=tailscale_host, username=tailscale_user)
-        command = "sudo cat /nsm/logstash/dead_letter_queue/main/*"
+        if tailscale_pass:
+            ssh.connect(hostname=tailscale_host, username=tailscale_user, password=tailscale_pass)
+        else:
+            ssh.connect(hostname=tailscale_host, username=tailscale_user)
+        glob_args = " ".join(f"{path}/*" for path in DLQ_PATHS)
+        command = f"sudo cat {glob_args}"
         stdin, stdout, stderr = ssh.exec_command(command)
-        
+
+        # Note: Logstash's dead-letter-queue segment files are a binary format,
+        # not plain JSON — raw lines from `cat` are not guaranteed to be valid
+        # JSON on their own. Wrap each line in an ECS-style envelope so the
+        # output is always valid JSONL that main_parser.py can ingest, even if
+        # the wrapped `message` content itself is a partial/garbled fragment.
         with open(output_file, 'w', encoding='utf-8') as f:
             for line in stdout:
-                f.write(line)
+                record = {
+                    "message": line.rstrip("\n"),
+                    "event": {"id": f"so_dlq_{row_count}", "dataset": "so_dlq"}
+                }
+                f.write(json.dumps(record) + "\n")
                 row_count += 1
-                
+
         err = stderr.read().decode().strip()
         if err:
             logger.warning(f"SSH Stderr: {err}")
@@ -131,7 +158,16 @@ def extract_unmapped_logs(es_ip, es_user, es_pass, batch_size, lookback_time, ou
         with open(output_file, 'a', encoding='utf-8') as f:
             while hits:
                 for hit in hits:
-                    f.write(json.dumps(hit.get('_source', {})) + '\n')
+                    source = hit.get('_source', {})
+                    # Inject a dataset-prefixed event.id so main_parser.py can
+                    # attribute/group these records the same way it does for
+                    # Component 1's ECS-standardized output.
+                    event_obj = source.get('event')
+                    if not isinstance(event_obj, dict):
+                        event_obj = {}
+                    event_obj['id'] = f"so_unmapped_{row_count}"
+                    source['event'] = event_obj
+                    f.write(json.dumps(source) + '\n')
                     row_count += 1
                 
                 scroll_payload = {
@@ -171,7 +207,11 @@ def main():
     load_dotenv()
     config = load_config()
     
-    output_dir = config.get('directories', {}).get('output_dir', 'data/processed')
+    directories = config.get('directories', {})
+    # Scoped by dataset_name, matching Component 1's output layout, so
+    # main_parser.py's `data/processed/{dataset_name}/*.jsonl` glob picks
+    # these up automatically instead of needing a manual move.
+    output_dir = os.path.join(directories.get('output_dir', 'data/processed'), directories.get('dataset_name', 'loghub'))
     os.makedirs(output_dir, exist_ok=True)
     
     batch_size = config.get('extractor', {}).get('batch_size', 5000)
@@ -182,13 +222,14 @@ def main():
     so_pass = os.environ.get('SO_PASS')
     ts_node = os.environ.get('TAILSCALE_NODE')
     ts_user = os.environ.get('TS_USER', 'admin')
-    
+    ts_pass = os.environ.get('TS_PASS')  # optional: leave unset for Tailscale SSH / key-agent auth
+
     dlq_out_file = os.path.join(output_dir, 'so_dlq_logs.jsonl')
     unmapped_out_file = os.path.join(output_dir, 'unmapped_fallback_logs.jsonl')
-    
+
     dlq_count = 0
     if ts_node:
-        dlq_count = extract_dlq_logs(ts_user, ts_node, dlq_out_file)
+        dlq_count = extract_dlq_logs(ts_user, ts_node, dlq_out_file, tailscale_pass=ts_pass)
     else:
         logger.warning("TAILSCALE_NODE not set in .env. Skipping DLQ extraction.")
         

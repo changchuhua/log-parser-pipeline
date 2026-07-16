@@ -18,15 +18,8 @@ venv/
 .venv/
 __pycache__/
 target/
-data/raw/
-data/archive/
-data/processed/
-data/parsed/
+data/
 report/
-data/cache
-data/backups
-data/evaluation_report*
-data/report.html
 
 report.pdf
 parser_implementation_comparison.md

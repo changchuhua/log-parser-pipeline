@@ -27,9 +27,6 @@ def get_logs_from_group(group_list):
     return logs_from_group
 
 def verify_one_regex(log, regex):
-    log = log.replace(",", "")
-    regex = regex.replace(",", "")
-    
     old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)
     try:
         signal.alarm(1)
@@ -208,7 +205,15 @@ class LogParser:
                                                                                                         "<*>").replace(
             '<*|*>', "<*>").replace('<*>>', "<*>").replace('<<*>', "<*>").replace('<*1*>', "<*>").replace('<>',
                                                                                                            "<*>").replace(
-            '<*>.', "<*>").replace(",", "")
+            '<*>.', "<*>")
+        # (Previously blanket-stripped every comma here — meant to clean up stray
+        # LLM formatting, but commas can't be distinguished from structural
+        # separators by string content alone: "<*>," looks identical whether the
+        # comma is spurious or a literal field delimiter in a JSON/CSV-style log.
+        # A wildcard sitting directly next to a comma is the normal case for any
+        # unquoted value in a comma-delimited format, so stripping merged adjacent
+        # fields together for those logs. Left un-stripped — no comma-related
+        # regressions observed across full loghub or botsv3 runs.)
         template = re.sub(r'(?!<)\*(?!>)', "<*>", template)
         template = re.sub(r'(?<!<)\*>', "<*>", template)
         escaped = re.escape(template)

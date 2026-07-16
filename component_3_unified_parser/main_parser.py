@@ -216,10 +216,10 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
         
         # Write outputs back in the original input order (only writing what was parsed)
         with open(out_file, 'w', encoding='utf-8') as f_out:
-            for line in lines:
+            for line_idx, line in enumerate(lines):
                 try:
                     record = json.loads(line.strip())
-                    line_id = record.get('event', {}).get('id') or record.get('LineId')
+                    line_id = record.get('event', {}).get('id') or record.get('LineId') or str(line_idx)
                     if line_id in parsed_records:
                         f_out.write(json.dumps(parsed_records[line_id]) + '\n')
                 except Exception as e:
@@ -343,8 +343,7 @@ def main():
     elif args.method == 'logbatcher':
         import csv
         output_csv = os.path.join(parsed_dir, 'logbatcher_output.csv')
-        from core.logbatcher.parser import LogBatcher
-        
+
         # Load all logs from all JSONL files in input_dir
         logs_to_parse = []
         for in_file in input_files:
@@ -369,12 +368,9 @@ def main():
             
         logger.info(f"Instantiating LogBatcher and parsing {len(logs_to_parse)} logs (round-robin)...")
         from core.logbatcher.parser import LogBatcher
-        from core.logbatcher.cluster import get_clusterer
-        from core.logbatcher.matching import match_log
-        from core.logbatcher.postprocess import match_and_prune
 
         parser_instance = LogBatcher()
-        
+
         if args.use_cache:
             os.makedirs(cache_dir, exist_ok=True)
             cache_file = os.path.join(cache_dir, 'logbatcher_cache.json')
@@ -385,128 +381,46 @@ def main():
                     logger.info(f"Loaded {len(parser_instance.cache.cache)} cache entries for LogBatcher.")
                 except Exception as e:
                     logger.error(f"Error loading LogBatcher cache: {e}")
-                    
+
         start_time = time.perf_counter()
-        
-        # Group logs by dataset
+
+        # Group logs by dataset, then round-robin interleave in chunks so no single
+        # dataset monopolizes the buffer if --time-limit cuts the run short.
         logs_by_dataset = {}
         for log in logs_to_parse:
             ds = log['id'].split('_')[0] if '_' in log['id'] else 'default'
             if ds not in logs_by_dataset:
                 logs_by_dataset[ds] = []
             logs_by_dataset[ds].append(log)
-            
-        # Get partitions for each dataset separately
-        dataset_partitions = {}
-        for ds, ds_logs in logs_by_dataset.items():
-            clusterer = get_clusterer(parser_instance.cluster_type, ds_logs, parser_instance.similarity_threshold)
-            dataset_partitions[ds] = clusterer.get_partitions()
-            
-        # Interleave partitions in a round-robin cycle
-        unified_queue = []
-        datasets_list = list(dataset_partitions.keys())
+
+        CHUNK_SIZE = 5000
+        datasets_list = list(logs_by_dataset.keys())
         indices = {ds: 0 for ds in datasets_list}
-        max_len = max(len(dataset_partitions[ds]) for ds in datasets_list)
-        
-        for step in range(max_len):
+        interleaved_logs = []
+        any_remaining = True
+        while any_remaining:
+            any_remaining = False
             for ds in datasets_list:
-                if indices[ds] < len(dataset_partitions[ds]):
-                    unified_queue.append(dataset_partitions[ds][indices[ds]])
-                    indices[ds] += 1
-                    
-        # Process unified queue sequentially
-        parsed_results = {}
-        queue = list(unified_queue)
-        log_volume = 0
-        llm_invocations = 0
-        cache_hits = 0
-        total_logs = len(logs_to_parse)
-        last_log_time = start_time
-        
-        while queue:
-            current_time = time.perf_counter()
-            elapsed = current_time - start_time
-            if args.time_limit and elapsed > args.time_limit:
-                logger.warning(f"Time limit of {format_duration(args.time_limit)} reached. Stopping early.")
-                break
-                
-            # Periodic status logging
-            if current_time - last_log_time >= 10.0:
-                last_log_time = current_time
-                pct = (log_volume / total_logs) * 100 if total_logs > 0 else 0
-                rate = log_volume / elapsed if elapsed > 0 else 0
-                limit_str = f" | Time Left: {format_duration(args.time_limit - elapsed)}" if args.time_limit else ""
-                logger.info(
-                    f"Progress (LogBatcher): parsed {log_volume}/{total_logs} ({pct:.2f}%) | "
-                    f"Speed: {rate:.1f} logs/s | Cache Hits: {cache_hits} | "
-                    f"LLM Calls: {llm_invocations}{limit_str}"
-                )
-                
-            partition = queue.pop(0)
-            if not partition:
-                continue
-                
-            first_log = partition[0]
-            cached_template = match_log(parser_instance.cache, first_log['message'])
-            
-            cache_matched = False
-            if cached_template:
-                matched, pruned = match_and_prune(cached_template, partition, parser_instance.cache)
-                if len(matched) > 0:
-                    cache_matched = True
-                    for log in matched:
-                        parsed_results[log['id']] = cached_template
-                    log_volume += len(matched)
-                    cache_hits += len(matched)
-                    if pruned:
-                        queue.append(pruned)
-            
-            if not cache_matched:
-                sampled = parser_instance.sampler.sample(partition, time_limit=args.time_limit, start_time=start_time)
-                generated_template = parser_instance.parsing_base.batch_query(sampled)
-                if generated_template:
-                    # Split multi-line responses into individual candidate templates
-                    candidate_templates = [t.strip() for t in generated_template.split('\n') if t.strip()]
-                    
-                    matched_any = False
-                    remaining_partition = list(partition)
-                    
-                    for temp in candidate_templates:
-                        if not remaining_partition:
-                            break
-                        matched, pruned = match_and_prune(temp, remaining_partition, parser_instance.cache)
-                        if len(matched) > 0:
-                            matched_any = True
-                            for log in matched:
-                                parsed_results[log['id']] = temp
-                            log_volume += len(matched)
-                            remaining_partition = pruned
-                            
-                    llm_invocations = parser_instance.llm_client.get_usage().get('invocations', 0)
-                    
-                    if matched_any:
-                        if remaining_partition:
-                            queue.append(remaining_partition)
-                    else:
-                        logger.warning("Generated template failed to match any logs in partition. Falling back to raw messages.")
-                        for log in partition:
-                            parsed_results[log['id']] = log['message']
-                        log_volume += len(partition)
-                else:
-                    for log in partition:
-                        parsed_results[log['id']] = log['message']
-                    log_volume += len(partition)
-                    
+                start_idx = indices[ds]
+                if start_idx < len(logs_by_dataset[ds]):
+                    end_idx = min(start_idx + CHUNK_SIZE, len(logs_by_dataset[ds]))
+                    interleaved_logs.extend(logs_by_dataset[ds][start_idx:end_idx])
+                    indices[ds] = end_idx
+                    any_remaining = True
+
+        parsed = parser_instance.parse(interleaved_logs, time_limit=args.time_limit, start_time=start_time)
+        results_by_id = {res['id']: res['template'] for res in parsed}
+
         # Output list matching original logs_to_parse order (only writing parsed logs)
         results_list = []
         for log in logs_to_parse:
-            if log['id'] in parsed_results:
+            if log['id'] in results_by_id:
                 results_list.append({
                     'id': log['id'],
                     'message': log['message'],
-                    'template': parsed_results[log['id']]
+                    'template': results_by_id[log['id']]
                 })
-            
+
         elapsed = time.perf_counter() - start_time
         logger.info(f"LogBatcher finished parsing in {format_duration(elapsed)}.")
         

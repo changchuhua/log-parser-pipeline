@@ -24,6 +24,45 @@ def get_jaccard_similarity(str1, str2):
         return 0.0
     return len(tokens1.intersection(tokens2)) / union_len
 
+def set_nested_field(record, dotted_key, value):
+    """Sets a value into a record using a dotted ECS field path as a real nested path.
+
+    E.g. set_nested_field(record, "event.ingested", val) merges into
+    record["event"]["ingested"], extending any existing nested dict at that
+    path (such as Component 1's "event": {"id": ...}) rather than colliding
+    with it via a separate flat "event.ingested" string key. Keys with no dot
+    are set directly, same as a plain assignment.
+
+    Args:
+        record (dict): Log record to mutate in place.
+        dotted_key (str): ECS field path, e.g. "source.ip" or "message".
+        value: Value to set at that path.
+    """
+    parts = dotted_key.split(".")
+    target = record
+    for part in parts[:-1]:
+        if not isinstance(target.get(part), dict):
+            target[part] = {}
+        target = target[part]
+    target[parts[-1]] = value
+
+def is_valid_template(template):
+    """Rejects LLM output that doesn't actually look like a parsed template.
+
+    Catches two observed failure modes (seen from smaller models cold-starting
+    with few/no in-context examples): Jinja/Mustache-style `{{var}}` placeholders
+    instead of the `<TAG>` convention the rest of the pipeline expects, and the
+    model echoing back the prompt's own `"template": "..."` JSON structure
+    instead of substituting real content.
+    """
+    if not template or not isinstance(template, str):
+        return False
+    if '{{' in template or '}}' in template:
+        return False
+    if '"template"' in template or "'template'" in template:
+        return False
+    return True
+
 def get_variables_from_example(template, ref_log):
     """Automatically extracts dynamic variables matching tags in the template from ref_log."""
     tags = re.findall(r'<[A-Z]{3}>', template)
@@ -248,7 +287,7 @@ class LLMExtractor:
                 "<CRS>": "host.cpu",
                 "<OBA>": "event.duration",
                 "<STC>": "event.outcome",
-                "<OTP>": "message"
+                "<OTP>": "otp_value"  # not "message": that field already holds the raw log text
             }
         else:
             sys_prompt = (
@@ -267,9 +306,14 @@ class LLMExtractor:
         if demonstrations:
             sys_prompt += f"\n\nExamples:\n{demonstrations}"
 
+        # Truncate raw log input to 3000 characters to fit context windows
+        truncated_log_message = log_message
+        if len(truncated_log_message) > 3000:
+            truncated_log_message = truncated_log_message[:3000] + "..."
+
         messages = [
             {"role": "system", "content": sys_prompt},
-            {"role": "user", "content": f"Log: {log_message}\nOutput:"}
+            {"role": "user", "content": f"Log: {truncated_log_message}\nOutput:"}
         ]
 
         try:
@@ -296,12 +340,29 @@ class LLMExtractor:
                                 val = var.get("value")
                                 if cat in ECS_MAPPING and val:
                                     ecs_field = ECS_MAPPING[cat]
-                                    log_record[ecs_field] = val
+                                    set_nested_field(log_record, ecs_field, val)
                 else:
                     template = response
             except Exception as json_err:
-                logger.info(f"LLM output was not valid JSON ({json_err}). Treating raw output as template string.")
-                template = response
+                # Fallback 1: Extract "template" key from partial/truncated JSON
+                match = re.search(r'"template"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', response)
+                if match:
+                    try:
+                        template = match.group(1).encode().decode('unicode-escape')
+                    except Exception:
+                        template = match.group(1)
+                else:
+                    partial_match = re.search(r'"template"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)$', response)
+                    if partial_match:
+                        template = partial_match.group(1) + "..."
+                    else:
+                        # Fallback 2: Assume raw text response or fall back to log message
+                        template = response if response else log_message
+                logger.info(f"LLM output was not valid JSON ({json_err}). Recovered template: '{template}'")
+
+            if not is_valid_template(template):
+                logger.warning(f"Recovered template failed validation, falling back to literal: '{template}'")
+                template = log_message
 
             # Update PrefixTree Router
             self.tree_router.insert(template)

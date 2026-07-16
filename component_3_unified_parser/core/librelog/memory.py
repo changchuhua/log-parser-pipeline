@@ -29,7 +29,13 @@ def jaccard_similarity(str1, str2):
     return len(set1.intersection(set2)) / len(set1.union(set2))
 
 class LogMemory:
-    """Bounded, group-aware memory cache lookup for log parsing templates."""
+    """Bounded, group-aware memory cache lookup for log parsing templates.
+
+    Unused: not instantiated anywhere outside this file. LibreLogParser uses
+    DummyMemory + a plain dict/RegexTemplateManager instead. See
+    parser_implementation_comparison.md, "Template Memory" row, for the
+    intended integration (ICL example retrieval) if this gets wired in.
+    """
 
     def __init__(self, max_size=1000, similarity_threshold=0.85):
         """Initializes LogMemory.

@@ -56,8 +56,10 @@ class TestLogParserLLMEnhancements(unittest.TestCase):
         template = extractor.get_template("User 1.2.3.4 logged in", record)
 
         self.assertEqual(template, "User <LOI> logged in")
-        # ECS field "source.ip" should be added to record
-        self.assertEqual(record.get("source.ip"), "1.2.3.4")
+        # ECS field source.ip should be added to record as a real nested path
+        # (record["source"]["ip"]), not a flat "source.ip" string key -- see
+        # set_nested_field() in llm_extractor.py.
+        self.assertEqual(record.get("source", {}).get("ip"), "1.2.3.4")
 
     def test_weighted_jaccard_positional(self):
         from component_3_unified_parser.core.logparser_llm.tree_router import weighted_jaccard_similarity

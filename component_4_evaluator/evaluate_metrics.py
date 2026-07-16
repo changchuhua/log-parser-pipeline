@@ -62,7 +62,7 @@ def load_ground_truth(raw_dir, nrows=None):
     
     for f in csv_files:
         try:
-            df = pd.read_csv(f, nrows=nrows)
+            df = pd.read_csv(f, nrows=nrows, encoding='latin-1')
             content_col = next((c for c in ['Content', 'message', '_raw'] if c in df.columns), None)
             template_col = next((c for c in ['EventTemplate', 'template'] if c in df.columns), None)
             line_id_col = next((c for c in ['LineId', 'event.id'] if c in df.columns), None)
@@ -528,10 +528,14 @@ def compute_metrics_for_pair(df_gt_aligned_raw, df_parsed_aligned_raw):
     logger.info("Applying standard 'spaced' alignment/normalization...")
     df_gt_std, df_parsed_std = apply_sensitivity_correction(df_gt_aligned_raw, df_parsed_aligned_raw, 'spaced')
     
-    logger.info("Computing PMSS (Precomputed Metric Silhouette Score)...")
-    pmss_score = calculate_pmss(df_parsed_std)
-    metrics['PMSS'] = float(pmss_score)
-    logger.info(f"PMSS score: {pmss_score:.4f}")
+    if os.environ.get('SKIP_PMSS', 'false').lower() == 'true':
+        logger.warning("SKIP_PMSS is set — skipping PMSS (O(N*K) Levenshtein loop, expensive for large/high-diversity outputs). Reporting 0.0.")
+        metrics['PMSS'] = 0.0
+    else:
+        logger.info("Computing PMSS (Precomputed Metric Silhouette Score)...")
+        pmss_score = calculate_pmss(df_parsed_std)
+        metrics['PMSS'] = float(pmss_score)
+        logger.info(f"PMSS score: {pmss_score:.4f}")
     
     if not df_gt_std.empty:
         logger.info("Computing Group Accuracy (GA & FGA)...")
@@ -729,7 +733,18 @@ def main():
     logger.info(f"  PMSS vs. FTA: {corr_pmss_fta:.4f}")
     logger.info(f"  FGA vs. FTA: {corr_fga_fta:.4f}")
 
-    report_file = 'data/evaluation_report.json'
+    # Output location: data/results/{dataset}/{model}/{shortdatetime}.{ext}
+    # {model} joins every distinct model_used across the evaluated parsers
+    # (e.g. "qwen3.6-27b+gemma4-26b") since one evaluation run can cover
+    # parsers that were each run with a different model.
+    import datetime
+    distinct_models = sorted({met.get('model_used', 'unknown-model') for met in report.values()}) or ['unknown-model']
+    model_dir_name = '+'.join(distinct_models)
+    short_datetime = datetime.datetime.now().strftime("%y%m%d_%H%M")
+    results_dir = os.path.join('data/results', dataset_name, model_dir_name)
+    os.makedirs(results_dir, exist_ok=True)
+
+    report_file = os.path.join(results_dir, f"{short_datetime}.json")
     with open(report_file, 'w') as f:
         # Standard reports
         std_report = {k: {mk: mv for mk, mv in v.items() if mk not in ['sensitivity', 'history', 'model_used', 'method_used']} for k, v in report.items()}
@@ -796,13 +811,13 @@ def main():
             "history": met['history']
         }
         
-    viz_report_file = 'data/evaluation_report_viz.json'
+    viz_report_file = os.path.join(results_dir, f"{short_datetime}_viz.json")
     with open(viz_report_file, 'w') as f:
         json.dump(viz_report, f, indent=4)
     logger.info(f"Visualization metrics report saved to {viz_report_file}")
 
     # Generate interactive HTML dashboard report
-    html_report_file = 'data/report.html'
+    html_report_file = os.path.join(results_dir, f"{short_datetime}.html")
     try:
         generate_html_report(viz_report, html_report_file)
         logger.info(f"Interactive HTML dashboard saved to {html_report_file}")
@@ -810,7 +825,6 @@ def main():
         logger.error(f"Error generating HTML dashboard: {e}")
 
     # Copy files to archive with execution timestamp
-    import datetime
     import shutil
     run_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     for parser, met in report.items():

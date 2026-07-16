@@ -28,11 +28,11 @@ trap cleanup EXIT
 echo "[*] Launching E2E integration test using $COMPOSE_CMD..."
 $COMPOSE_CMD -f docker-compose.test.yml up --build --abort-on-container-exit
 
-# Assert output evaluation report exists
-if [ -f "data/evaluation_report.json" ]; then
-    echo "[+] E2E Test Passed: data/evaluation_report.json generated."
+# Assert output evaluation report exists (data/results/{dataset}/{model}/{shortdatetime}.json)
+if compgen -G "data/results/*/*/*.json" > /dev/null; then
+    echo "[+] E2E Test Passed: evaluation report generated under data/results/."
     exit 0
 else
-    echo "[-] E2E Test Failed: data/evaluation_report.json not found."
+    echo "[-] E2E Test Failed: no evaluation report found under data/results/."
     exit 1
 fi

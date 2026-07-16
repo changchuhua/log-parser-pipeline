@@ -63,13 +63,37 @@ DATASET_SETTINGS = {
     "Proxifier": {"st": 0.6, "depth": 3},
     "OpenSSH": {"st": 0.6, "depth": 5},
     "OpenStack": {"st": 0.5, "depth": 5},
-    "Mac": {"st": 0.7, "depth": 6}
+    "Mac": {"st": 0.7, "depth": 6},
+    # "default" = the bucket name used for datasets without per-line "Prefix_N"
+    # LineIds (e.g. botsv3/Security Onion logs — see main_parser.py's dataset
+    # inference). These are heavily structured (JSON/CSV-style) logs where the
+    # 5 GLOBAL_VARIABLE_RULES regex patterns mask out most tokens before Drain
+    # ever sees them (e.g. AWS VPC Flow Log lines are ~12/14 tokens numeric).
+    # seqDist() doesn't award similarity credit for matching wildcard positions,
+    # so the achievable similarity ceiling for such logs is far below 0.5 even
+    # when two logs share the exact same template — empirically ~0.2-0.3 is the
+    # actual ceiling, so st=0.5 makes every log fail to match and fastMatch's
+    # per-log bucket scan grows unbounded (confirmed via profiling: 0% match
+    # rate, O(n^2) blowup). st=0.2 was verified against a 20k-log botsv3 sample
+    # to cluster correctly (20 distinct, sensible templates) at ~1s vs. >45s timeout.
+    "default": {"st": 0.2, "depth": 4}
 }
 
 class DummyMemory:
-    """Mock/Stub memory object mimicking real memory database for warm cache starts."""
-    def __init__(self):
+    """Memory store mimicking a real memory database for warm cache starts.
+
+    Unbounded by default (max_size=None). If max_size is set, evicts the
+    oldest entry (FIFO) once exceeded.
+    """
+    def __init__(self, max_size=None):
         self.memory = []
+        self.max_size = max_size
+
+    def add(self, entry):
+        """Appends an entry, evicting the oldest one if over capacity."""
+        if self.max_size is not None and len(self.memory) >= self.max_size:
+            self.memory.pop(0)
+        self.memory.append(entry)
 
 class LibreLogParser:
     """Unified parser router implementation of LibreLog framework."""
@@ -82,24 +106,9 @@ class LibreLogParser:
             config_path (str): YAML file config path. Defaults to '/app/config.yaml'.
         """
         self.dataset_name = dataset_name
-        settings = DATASET_SETTINGS.get(dataset_name, {"st": 0.5, "depth": 4})
-        self.st = settings["st"]
-        self.depth = settings["depth"]
-        self.rex = GLOBAL_VARIABLE_RULES + DATASET_REGEXES.get(dataset_name, [])
 
-        self.llm_client = OllamaClient(config_path)
-        self.regex_manager = RegexTemplateManager()
-        self.llama_parser = LlamaParser(
-            llm_client=self.llm_client,
-            regex_manager1=self.regex_manager,
-            model=self.llm_client.model_name,
-            regex_sample=3,
-            similarity="jaccard",
-            do_self_reflection="True"
-        )
-        self.memory = DummyMemory()
-
-        # Load Drain backup configurations from config.yaml
+        # Load config.yaml up front so it can inform Drain settings, LlamaParser
+        # construction, and memory bounds below.
         if not os.path.exists(config_path) and config_path == '/app/config.yaml':
             config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'config.yaml')
         try:
@@ -108,8 +117,32 @@ class LibreLogParser:
         except Exception as e:
             logger.warning(f"Could not load config from {config_path}: {e}")
             config = {}
-        
+
         librelog_config = config.get('librelog', {})
+
+        # `similarity_threshold` becomes the fallback Drain `st` for datasets not
+        # covered by DATASET_SETTINGS' per-dataset tuned values.
+        default_st = librelog_config.get('similarity_threshold', 0.5)
+        settings = DATASET_SETTINGS.get(dataset_name, {"st": default_st, "depth": 4})
+        self.st = settings["st"]
+        self.depth = settings["depth"]
+        self.rex = GLOBAL_VARIABLE_RULES + DATASET_REGEXES.get(dataset_name, [])
+
+        self.llm_client = OllamaClient(config_path)
+        self.regex_manager = RegexTemplateManager()
+        k_shots = librelog_config.get('k_shots', 3)
+        enable_reflection = librelog_config.get('enable_reflection', True)
+        self.llama_parser = LlamaParser(
+            llm_client=self.llm_client,
+            regex_manager1=self.regex_manager,
+            model=self.llm_client.model_name,
+            regex_sample=k_shots,
+            similarity="jaccard",
+            do_self_reflection=str(bool(enable_reflection))
+        )
+        max_memory_size = librelog_config.get('max_memory_size', None)
+        self.memory = DummyMemory(max_size=max_memory_size)
+
         self.use_drain_backup = librelog_config.get('use_drain_backup', False)
         self.write_drain_backup = librelog_config.get('write_drain_backup', False)
         cache_dir = config.get('directories', {}).get('cache_dir', 'data/cache')
@@ -242,10 +275,10 @@ class LibreLogParser:
                         })
                     # Add newly generated template back to cache map
                     cache_map[content] = template
-                    # Add to self.memory.memory for cache writing
+                    # Add to memory (bounded FIFO) for cache writing
                     words = content.split()
                     gk_tuple = (len(words), tuple(words[:1]) if words else ())
-                    self.memory.memory.append({
+                    self.memory.add({
                         'raw_log': content,
                         'template': template,
                         'group_key': gk_tuple

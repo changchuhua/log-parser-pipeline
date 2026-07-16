@@ -48,6 +48,30 @@ def _regex_premask(message):
     masked = re.sub(r'<\*>\s*(?:<\*>\s*)+', '<*> ', masked).strip()
     return masked
 
+def format_duration(seconds):
+    """Formats a duration in seconds into a human-readable HH:MM:SS or MM:SS format.
+
+    Duplicated from main_parser.py's helper of the same name to avoid a circular
+    import (main_parser.py conditionally imports this module).
+
+    Args:
+        seconds (float): Duration in seconds.
+
+    Returns:
+        str: Formatted duration string.
+    """
+    if seconds is None or seconds < 0:
+        return "0s"
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    s = seconds % 60
+    if h > 0:
+        return f"{h}h {m}m {s:.1f}s"
+    elif m > 0:
+        return f"{m}m {s:.1f}s"
+    else:
+        return f"{s:.1f}s"
+
 def jaccard_similarity(tokens1, tokens2):
     """Calculates Jaccard similarity between two token lists."""
     set1 = set(tokens1)
@@ -86,12 +110,22 @@ class LogBatcher:
         self.buffer_max_size = lb_config.get('buffer_max_size', 500)
         self.flush_timeout = lb_config.get('flush_timeout_seconds', 5.0)
 
+        self.embedding_length_threshold = lb_config.get('embedding_length_threshold', 4000)
+
         self.llm_client = OllamaClient(config_path)
         self.llm_client.embedding_model = lb_config.get('embedding_model', 'nomic-embed-text')
+        if self.embedding_length_threshold is not None:
+            # Keep the two in sync when a real threshold is set. If threshold is null
+            # (DPP length-routing disabled), leave embedding_char_limit at its own
+            # default — get_embedding()'s truncation still needs a numeric cap.
+            self.llm_client.embedding_char_limit = self.embedding_length_threshold
 
         # Limit cache to 5000 entries
         self.cache = ParsingCache(max_size=5000)
-        self.sampler = get_sampler(self.sampler_type, self.llm_client, self.batch_size)
+        self.sampler = get_sampler(
+            self.sampler_type, self.llm_client, self.batch_size,
+            embedding_length_threshold=self.embedding_length_threshold
+        )
         self.parsing_base = ParsingBase(self.llm_client)
 
         # Noise log re-queue state
@@ -120,6 +154,8 @@ class LogBatcher:
             'llm_invocations': 0,
             'cache_hits': 0
         }
+        total_logs = len(log_list)
+        self._last_progress_log_time = start_time
 
         quarantine_path = 'data/parsed/quarantine.jsonl'
         os.makedirs(os.path.dirname(quarantine_path), exist_ok=True)
@@ -142,7 +178,7 @@ class LogBatcher:
                 oldest_log_time = None
                 self._process_micro_batch(
                     micro_batch, parsed_results, quarantine_path,
-                    start_time, time_limit, history, counters
+                    start_time, time_limit, history, counters, total_logs
                 )
 
         if buffer:
@@ -150,8 +186,16 @@ class LogBatcher:
             buffer.clear()
             self._process_micro_batch(
                 micro_batch, parsed_results, quarantine_path,
-                start_time, time_limit, history, counters
+                start_time, time_limit, history, counters, total_logs
             )
+
+        # Drain any noise logs re-queued out of the final micro-batch. There is no
+        # subsequent batch left for them to defer to, so resolve them now (cache
+        # match, else regex pre-mask) instead of silently dropping them.
+        if self._noise_buffer:
+            leftover_noise = self._noise_buffer
+            self._noise_buffer = []
+            self._handle_noise_logs(leftover_noise, parsed_results, quarantine_path, counters, allow_requeue=False)
 
         self.history = history
 
@@ -165,7 +209,70 @@ class LogBatcher:
                 })
         return results
 
-    def _process_micro_batch(self, micro_batch, parsed_results, quarantine_path, start_time, time_limit, history, counters):
+    def _handle_noise_logs(self, noise_logs, parsed_results, quarantine_path, counters, allow_requeue=True):
+        """Routes DBSCAN noise logs through cache match -> re-queue -> regex pre-mask.
+
+        Args:
+            noise_logs (list): Logs labeled as DBSCAN outliers (-1) for the current pass.
+            parsed_results (dict): Shared id -> template map, updated in place.
+            quarantine_path (str): Destination file for Tier 3 (regex-masked) logs.
+            counters (dict): Shared log_volume/llm_invocations/cache_hits counters.
+            allow_requeue (bool): If False, skips Tier 2 (re-queue) and sends
+                unmatched logs straight to Tier 3. Used for the final drain pass,
+                where there is no subsequent micro-batch left to re-queue into.
+        """
+        if not noise_logs:
+            return
+
+        quarantine_written = []
+        cache_matched_count = 0
+        requeued_count = 0
+        for log in noise_logs:
+            msg = log.get('message', '')
+            log_id = log['id']
+
+            # Tier 1: Cache match (free)
+            cached_template = match_log(self.cache, msg)
+            if cached_template:
+                parsed_results[log_id] = cached_template
+                counters['cache_hits'] += 1
+                counters['log_volume'] += 1
+                cache_matched_count += 1
+                continue
+
+            # Tier 2: Re-queue into next micro-batch (max retries)
+            if allow_requeue:
+                retries = self._noise_retry_counts.get(log_id, 0)
+                if retries < self.noise_max_retries:
+                    self._noise_retry_counts[log_id] = retries + 1
+                    self._noise_buffer.append(log)
+                    requeued_count += 1
+                    continue
+
+            # Tier 3: Regex pre-masking (cheap, no LLM)
+            masked_template = _regex_premask(msg)
+            parsed_results[log_id] = masked_template
+            counters['log_volume'] += 1
+            quarantine_written.append(log)
+
+            # Clean up retry tracking for this log
+            self._noise_retry_counts.pop(log_id, None)
+
+        logger.info(f"Noise handling: {len(noise_logs)} noise logs → "
+                   f"{cache_matched_count} cache-matched, "
+                   f"{requeued_count} re-queued, "
+                   f"{len(quarantine_written)} regex-masked")
+
+        # Write Tier 3 logs to quarantine file for audit
+        if quarantine_written:
+            try:
+                with open(quarantine_path, 'a', encoding='utf-8') as qf:
+                    for log in quarantine_written:
+                        qf.write(json.dumps(log) + '\n')
+            except Exception as e:
+                logger.error(f"Error writing to quarantine.jsonl: {e}")
+
+    def _process_micro_batch(self, micro_batch, parsed_results, quarantine_path, start_time, time_limit, history, counters, total_logs=0):
         current_time = time.perf_counter()
         elapsed = current_time - start_time
         if time_limit and elapsed > time_limit:
@@ -190,53 +297,7 @@ class LogBatcher:
         # 2. 3-Tier Noise Log Handling
         # Outlier logs (DBSCAN label -1) go through: cache match → re-queue → regex pre-mask
         noise_logs = getattr(clusterer, 'noise_logs', [])
-        if noise_logs:
-            quarantine_written = []
-            cache_matched_count = 0
-            requeued_count = 0
-            for log in noise_logs:
-                msg = log.get('message', '')
-                log_id = log['id']
-
-                # Tier 1: Cache match (free)
-                cached_template = match_log(self.cache, msg)
-                if cached_template:
-                    parsed_results[log_id] = cached_template
-                    counters['cache_hits'] += 1
-                    counters['log_volume'] += 1
-                    cache_matched_count += 1
-                    continue
-
-                # Tier 2: Re-queue into next micro-batch (max retries)
-                retries = self._noise_retry_counts.get(log_id, 0)
-                if retries < self.noise_max_retries:
-                    self._noise_retry_counts[log_id] = retries + 1
-                    self._noise_buffer.append(log)
-                    requeued_count += 1
-                    continue
-
-                # Tier 3: Regex pre-masking (cheap, no LLM)
-                masked_template = _regex_premask(msg)
-                parsed_results[log_id] = masked_template
-                counters['log_volume'] += 1
-                quarantine_written.append(log)
-
-                # Clean up retry tracking for this log
-                self._noise_retry_counts.pop(log_id, None)
-
-            logger.info(f"Noise handling: {len(noise_logs)} noise logs → "
-                       f"{cache_matched_count} cache-matched, "
-                       f"{requeued_count} re-queued, "
-                       f"{len(quarantine_written)} regex-masked")
-
-            # Write Tier 3 logs to quarantine file for audit
-            if quarantine_written:
-                try:
-                    with open(quarantine_path, 'a', encoding='utf-8') as qf:
-                        for log in quarantine_written:
-                            qf.write(json.dumps(log) + '\n')
-                except Exception as e:
-                    logger.error(f"Error writing to quarantine.jsonl: {e}")
+        self._handle_noise_logs(noise_logs, parsed_results, quarantine_path, counters)
 
         # 3. Process each local cluster in queue
         queue = list(local_clusters)
@@ -247,6 +308,17 @@ class LogBatcher:
             if time_limit and elapsed > time_limit:
                 logger.warning("Time limit reached inside micro-batch processing.")
                 break
+
+            if current_time - self._last_progress_log_time >= 10.0:
+                self._last_progress_log_time = current_time
+                pct = (counters['log_volume'] / total_logs) * 100 if total_logs > 0 else 0
+                rate = counters['log_volume'] / elapsed if elapsed > 0 else 0
+                limit_str = f" | Time Left: {format_duration(time_limit - elapsed)}" if time_limit else ""
+                logger.info(
+                    f"Progress (LogBatcher): parsed {counters['log_volume']}/{total_logs} ({pct:.2f}%) | "
+                    f"Speed: {rate:.1f} logs/s | Cache Hits: {counters['cache_hits']} | "
+                    f"LLM Calls: {counters['llm_invocations']}{limit_str}"
+                )
 
             local_cluster = queue.pop(0)
             if not local_cluster:
@@ -277,11 +349,62 @@ class LogBatcher:
                 self.cache.sort_cache()
 
                 matched, pruned = match_and_prune(cached_template, local_cluster, self.cache)
+
+                if matched:
+                    for log in matched:
+                        parsed_results[log['id']] = cached_template
+
+                    counters['log_volume'] += len(matched)
+                    counters['cache_hits'] += len(matched)
+                    history.append({
+                        'log_volume': counters['log_volume'],
+                        'llm_invocations': counters['llm_invocations'],
+                        'cache_hits': counters['cache_hits']
+                    })
+
+                    if pruned:
+                        queue.append(pruned)
+                else:
+                    # False-positive cache hit: reconciliation matched by lexical
+                    # (Jaccard) similarity against the medoid, but the regex-verified
+                    # match found nothing. Requeuing local_cluster unchanged here would
+                    # reconcile against the same unchanged cache and fail identically
+                    # forever -- nothing about the cache or cluster would ever change
+                    # between attempts. Fall through to the cache-miss path instead,
+                    # which guarantees forward progress on this cluster.
+                    self._process_cache_miss(
+                        local_cluster, medoid_log, parsed_results, counters, history,
+                        queue, time_limit, start_time
+                    )
+            else:
+                self._process_cache_miss(
+                    local_cluster, medoid_log, parsed_results, counters, history,
+                    queue, time_limit, start_time
+                )
+
+    def _process_cache_miss(self, local_cluster, medoid_log, parsed_results, counters, history, queue, time_limit, start_time):
+        """Samples, queries the LLM for a new template, and records the result.
+
+        Used both for a genuine cache miss (no cached template cleared the
+        reconciliation threshold) and for a false-positive cache hit (a
+        reconciled template matched by Jaccard similarity but verified zero
+        matches via regex) -- in both cases, a fresh LLM query is the only way
+        to make forward progress on this cluster.
+        """
+        sampled = self.sampler.sample(local_cluster, time_limit=time_limit, start_time=start_time)
+        generated_template = self.parsing_base.batch_query(sampled)
+
+        if generated_template:
+            matched, pruned = match_and_prune(generated_template, local_cluster, self.cache)
+            if len(matched) > 0:
                 for log in matched:
-                    parsed_results[log['id']] = cached_template
+                    parsed_results[log['id']] = generated_template
+
+                # Medoid message becomes reference log
+                self.cache.add(generated_template, medoid_log['message'])
 
                 counters['log_volume'] += len(matched)
-                counters['cache_hits'] += len(matched)
+                counters['llm_invocations'] += 1
                 history.append({
                     'log_volume': counters['log_volume'],
                     'llm_invocations': counters['llm_invocations'],
@@ -291,48 +414,24 @@ class LogBatcher:
                 if pruned:
                     queue.append(pruned)
             else:
-                # Cache Miss: Sample, batch LLM query, and register new Global Cluster
-                sampled = self.sampler.sample(local_cluster, time_limit=time_limit, start_time=start_time)
-                generated_template = self.parsing_base.batch_query(sampled)
+                logger.warning("Generated template failed to match any logs in local cluster. Falling back to raw messages.")
+                for log in local_cluster:
+                    parsed_results[log['id']] = log['message']
 
-                if generated_template:
-                    matched, pruned = match_and_prune(generated_template, local_cluster, self.cache)
-                    if len(matched) > 0:
-                        for log in matched:
-                            parsed_results[log['id']] = generated_template
+                counters['log_volume'] += len(local_cluster)
+                counters['llm_invocations'] += 1
+                history.append({
+                    'log_volume': counters['log_volume'],
+                    'llm_invocations': counters['llm_invocations'],
+                    'cache_hits': counters['cache_hits']
+                })
+        else:
+            for log in local_cluster:
+                parsed_results[log['id']] = log['message']
 
-                        # Medoid message becomes reference log
-                        self.cache.add(generated_template, medoid_log['message'])
-
-                        counters['log_volume'] += len(matched)
-                        counters['llm_invocations'] += 1
-                        history.append({
-                            'log_volume': counters['log_volume'],
-                            'llm_invocations': counters['llm_invocations'],
-                            'cache_hits': counters['cache_hits']
-                        })
-
-                        if pruned:
-                            queue.append(pruned)
-                    else:
-                        logger.warning("Generated template failed to match any logs in local cluster. Falling back to raw messages.")
-                        for log in local_cluster:
-                            parsed_results[log['id']] = log['message']
-
-                        counters['log_volume'] += len(local_cluster)
-                        counters['llm_invocations'] += 1
-                        history.append({
-                            'log_volume': counters['log_volume'],
-                            'llm_invocations': counters['llm_invocations'],
-                            'cache_hits': counters['cache_hits']
-                        })
-                else:
-                    for log in local_cluster:
-                        parsed_results[log['id']] = log['message']
-
-                    counters['log_volume'] += len(local_cluster)
-                    history.append({
-                        'log_volume': counters['log_volume'],
-                        'llm_invocations': counters['llm_invocations'],
-                        'cache_hits': counters['cache_hits']
-                    })
+            counters['log_volume'] += len(local_cluster)
+            history.append({
+                'log_volume': counters['log_volume'],
+                'llm_invocations': counters['llm_invocations'],
+                'cache_hits': counters['cache_hits']
+            })

@@ -7,7 +7,7 @@ extractor:
   batch_size: 5000
   lookback_time: now-24h
 llm:
-  api_base: "http://ollama:11434/api"
+  api_base: "http://ollama:11434/api"  # fallback only — OLLAMA_API_BASE in .env always wins when set; this only matters if main_parser.py runs without .env loaded (e.g. directly, outside `docker compose run`)
 logparser_llm:
   k_shots: 3
   loose_match_threshold: 0.8
@@ -17,18 +17,19 @@ logparser_llm:
   loose_match_metric: "positional_uniform" # Options: "positional_decay", "positional_uniform", "jaccard"
   decay_factor: 0.15              # Decay coefficient lambda
   merge_similarity_threshold: 0.95
-  embedding_model: "nomic-embed-text"
 logbatcher:
   batch_size: 5
   sampler: "DPPSampler"          # "DPPSampler" or "SimilarSampler"
-  cluster: "LengthCluster"        # "LengthCluster" or "SimilarityCluster"
-  vectorizer: "binary"           # "binary" (Jaccard) or "tfidf" (Cosine)
+  cluster: "SimilarityCluster"        # "LengthCluster" or "SimilarityCluster"
+  vectorizer: "tfidf"           # "binary" (Jaccard) or "tfidf" (Cosine)
   use_dynamic_eps: false         # scale DBSCAN eps dynamically
   noise_max_retries: 2           # max re-queues for noise logs before regex pre-mask
+  buffer_max_size: 10000         # micro-batch size fed to clustering/vectorization; matches upstream LogBatcher's chunk_size default
   embedding_model: "nomic-embed-text"
+  embedding_length_threshold: 4000  # logs longer than this (chars) skip embedding entirely and use Jaccard diverse selection instead; null = always attempt embedding
 librelog:
-  similarity_threshold: 0.85
-  max_memory_size: 1000
+  similarity_threshold: 0.5
+  max_memory_size: null  # null = unbounded; set an integer to cap and evict oldest entries (FIFO)
   k_shots: 3
   enable_reflection: true
   use_drain_backup: false

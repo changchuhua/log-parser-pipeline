@@ -192,20 +192,24 @@ class PrefixTree:
         current.last_matched = time.time()
 
     def prune_inactive_templates(self, current_time=None, max_age_seconds=30*24*3600):
-        """Recursively prunes tree branches and clusters that are older than max_age_seconds."""
+        """Iteratively prunes tree branches and clusters that are older than max_age_seconds."""
         if current_time is None:
             current_time = time.time()
         cutoff = current_time - max_age_seconds
 
-        def traverse(node):
-            child_tokens = list(node.children.keys())
-            for t in child_tokens:
-                traverse(node.children[t])
-                # If child has no children and has no cluster, delete it to free RAM
-                if not node.children[t].children and node.children[t].cluster is None:
-                    del node.children[t]
+        # 1. Level-order collection (BFS) of all parent-child links in the PrefixTree
+        # queue stores tuples of (node, parent, token_key)
+        queue = [(self.root, None, None)]
+        idx = 0
+        while idx < len(queue):
+            node, parent, token = queue[idx]
+            idx += 1
+            for t, child in node.children.items():
+                queue.append((child, node, t))
 
-            # If leaf node expires, clear cluster reference to let traversal delete it
+        # 2. Process collected nodes in reverse order (bottom-up/leaves-first)
+        for node, parent, token in reversed(queue):
+            # If leaf node expires, clear its cluster reference
             if node.cluster is not None:
                 if node.last_matched is not None and node.last_matched < cutoff:
                     if node.cluster in self.clusters:
@@ -213,7 +217,12 @@ class PrefixTree:
                     node.cluster = None
                     node.last_matched = None
 
-        traverse(self.root)
+            # If this is not the root, and this branch has no remaining children
+            # and no active cluster, remove it from the parent node
+            if parent is not None:
+                if not node.children and node.cluster is None:
+                    if token in parent.children:
+                        del parent.children[token]
 
     def prune_to_capacity(self, max_templates=1000):
         """Evicts the least recently matched templates until tree size is within capacity limits."""

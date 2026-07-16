@@ -58,16 +58,19 @@ graph TD
     Methods <--> Ollama
     Methods --> Parsed
     Methods --> Cache
+    LB --> Quarantine["data/parsed/quarantine.jsonl (LogBatcher noise audit)"]
     
     subgraph Component 4: Evaluator
         Eval[evaluate_metrics.py]
-        Metrics["GA | PA | FTA | ED | GGD | PGD | PMSS"]
+        Metrics["GA | FGA | PA | FTA | ED | GGD | PGD | PMSS | Cache Hit Rate | Throughput"]
     end
     
     Parsed --> Eval
     Raw --> Eval
     Eval --> Metrics
-    Metrics --> Report["data/evaluation_report.json"]
+    Metrics --> Report["data/results/{dataset}/{model}/{datetime}.json"]
+    Metrics --> Viz["data/results/{dataset}/{model}/{datetime}_viz.json"]
+    Viz --> HTML["data/results/{dataset}/{model}/{datetime}.html (dashboard)"]
 
     subgraph Component 5: Deployer
         Deploy[main_deployer.py]
@@ -125,15 +128,23 @@ log-parser-pipeline/
 ├── tests/                            # Unit & integration tests
 │   ├── mock_ollama/                  # Mock LLM server for E2E tests
 │   ├── test_component_*.py
-│   └── test_logparser_llm_enhancements.py
+│   ├── test_logparser_llm_enhancements.py
+│   ├── test_logbatcher_dbscan.py
+│   ├── test_batch_query_live.py
+│   └── test_visualizations.py
 ├── data/
 │   ├── raw/{dataset_name}/           # Ground truth CSVs
 │   ├── processed/{dataset_name}/     # Standardized ECS JSONL
 │   ├── parsed/{dataset_name}/        # Parser output + profiles
 │   ├── cache/{dataset_name}/         # Template caches
-│   └── archive/{dataset_name}/       # Historical evaluation reports
+│   ├── results/{dataset_name}/{model}/{shortdatetime}.json       # Evaluation report (metrics per method)
+│   ├── results/{dataset_name}/{model}/{shortdatetime}_viz.json   # Chart-ready metrics for the HTML dashboard
+│   ├── results/{dataset_name}/{model}/{shortdatetime}.html       # Self-contained interactive dashboard
+│   ├── archive/{dataset_name}/{model_used}/{method_used}/  # Copies of the above, one folder per individual parser's model+method
+│   └── backups/{dataset_name}/       # Pre-run snapshots
 ├── config.yaml                       # Central pipeline configuration
-├── .env                              # Runtime environment variables
+├── .env                              # Runtime environment variables (see .env.example)
+├── .env.example                      # Template for .env
 ├── docker-compose.yml                # Dev/production compose
 ├── docker-compose.test.yml           # E2E integration test compose
 ├── run_e2e.sh                        # E2E test runner script
@@ -165,21 +176,26 @@ Routes ECS logs through one of three parsing methods (selected via `--method` fl
 | Method | Architecture | Key Features |
 |---|---|---|
 | **LogParser-LLM** | Sequential prefix tree router | Strict/loose matching with configurable similarity metrics (`positional_uniform`, `positional_decay`, `jaccard`), adaptive few-shot ICL via embedding similarity, variable-aware prompting with 10 token categories, LRU tree pruning |
-| **LogBatcher** | Batch clustering + DPP sampling | DBSCAN with precomputed Jaccard distances, DPP diversity sampling for representative batch queries, `OrderedDict` LRU cache, 3-tier noise fallback (cache → re-queue → regex mask) |
+| **LogBatcher** | Micro-batched clustering + DPP sampling | DBSCAN with precomputed Jaccard distances (default), streamed in volume/time-triggered micro-batches, DPP diversity sampling for representative batch queries, `OrderedDict` LRU cache, 3-tier noise fallback (cache → re-queue → regex mask) |
 | **LibreLog** | Drain grouping + reflection | Drain prefix tree pre-grouping, O(1) `DummyMemory` cache + O(log N) `RegexManager`, LLM reflection loops for self-correction, auto-conversion of regex to `<*>` templates |
 
 ### Component 4: Metric Evaluation
-Computes seven accuracy metrics against ground truth:
+Computes accuracy and efficiency metrics against ground truth:
 
 | Metric | Description |
 |---|---|
 | **GA** (Grouping Accuracy) | Whether parsed clusters partition logs identically to ground truth |
+| **FGA** (F1 Grouping Accuracy) | Harmonic mean of grouping precision and recall (F1 over `GA`'s cluster matching) |
 | **PA** (Parsing Accuracy) | Token-level accuracy of variable masking |
 | **FTA** (Few-shot Template Accuracy) | Proportion of correctly extracted unique templates |
 | **ED/NED** (Edit Distance) | Average Levenshtein distance between parsed and oracle templates |
 | **GGD** (Group Granularity Distance) | `\|N_generated - N_oracle\| / N_oracle` |
 | **PGD** (Parsing Granularity Distance) | Mean token-length distance between generated and modal oracle templates |
-| **PMSS** (Precomputed Silhouette Score) | Silhouette score on unique templates, broadcast to full log length — reduces complexity from O(N²) to O(M²) |
+| **PMSS** (Parser Medoid Silhouette Score) | Per-log silhouette score using each log's assigned template as its cluster medoid (cohesion) vs. the nearest other template (separation), via Levenshtein distance — O(N×K) for N logs and K unique templates, avoiding the O(N²) cost of pairwise-comparing every log against every other log |
+| **Cache Hit Rate** | Fraction of logs matched from the template cache instead of triggering an LLM call |
+| **Throughput** | Logs parsed per second (`logs / time_taken`) |
+
+Results are written to `data/results/{dataset}/{model}/{shortdatetime}.json` (raw metrics per parsing method) and `{shortdatetime}_viz.json` (chart-ready summary) in that same folder, which renders as a self-contained interactive dashboard at `{shortdatetime}.html`. `{model}` joins every distinct model used across the evaluated parsers (e.g. `qwen3.6-27b+gemma4-26b`) if they differ. Each run also gets copied into `data/archive/{dataset}/{model_used}/{method_used}/`, one folder per individual parser.
 
 **LogHub split evaluation**: When `dataset_name: "loghub"`, the evaluator automatically segments results by sub-dataset (Apache, BGL, HDFS, etc.) using the `LineId` prefix, reporting per-dataset and overall metrics.
 
@@ -210,6 +226,7 @@ logparser_llm:
   categories_mode: "paper_10"             # "ecs_10", "paper_10", "ecs_3"
 
 logbatcher:
+  cluster: "SimilarityCluster"  # "SimilarityCluster" (DBSCAN, default) or "LengthCluster"
   sampler: "DPPSampler"         # "DPPSampler" or "SimilarSampler"
   vectorizer: "binary"          # "binary" (Jaccard) or "tfidf" (Cosine)
 
@@ -220,7 +237,7 @@ evaluator:
 All directory paths are dynamically resolved as `{base_dir}/{dataset_name}/`, so switching datasets requires only changing `dataset_name`.
 
 ### `.env`
-Runtime environment variables consumed by Docker Compose:
+Runtime environment variables consumed by Docker Compose. Copy `.env.example` to `.env` and fill in your Ollama endpoint before running any component:
 
 | Variable | Default | Description |
 |---|---|---|
@@ -236,7 +253,7 @@ Runtime environment variables consumed by Docker Compose:
 
 ### Docker Compose
 
-All components run via Docker Compose with host user mapping (`user: "${UID}:${GID}"`) to prevent root-owned output files.
+All components run via Docker Compose with host user mapping (`user: "${UID}:${GID}"`) to prevent root-owned output files. Components 1, 3, and 4 attach to the external `search-net` bridge network; Components 2 and 5 use `network_mode: host` instead, so they can reach the Security Onion box over the host's Tailscale interface (Linux hosts only — see `usage.md` for details).
 
 ```bash
 # Run the dataset generator
@@ -260,7 +277,7 @@ docker compose run --rm -e OLLAMA_MODEL=gemma4:27b component_3 python main_parse
 1. Writes a mock `dummy_loghub.csv` with ground truth templates.
 2. Starts `docker-compose.test.yml` which spins up a `mock_ollama` container.
 3. Runs Components 1 → 3 → 4 in sequence.
-4. Asserts `data/evaluation_report.json` is generated successfully.
+4. Asserts an evaluation report JSON is generated under `data/results/`.
 
 ```bash
 ./run_e2e.sh
@@ -288,3 +305,4 @@ On every push/PR to `main`: installs dependencies, runs `pytest tests/`, then ru
 | **Root containers** | Container breakout → host root access | Add `USER appuser` directive in Dockerfiles |
 | **Permissive port bindings** | Services exposed on all interfaces | Bind to `127.0.0.1` only |
 | **Broad volume mounts** | Cross-container write escalation | Mount input dirs as read-only (`:ro`) |
+| **Host networking** (`network_mode: host` on Components 2, 5) | Drops container network isolation from the host entirely | Scope to a dedicated network namespace with explicit Tailscale routing, if the platform supports it, instead of full host networking |

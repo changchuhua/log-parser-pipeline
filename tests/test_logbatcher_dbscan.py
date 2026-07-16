@@ -197,3 +197,95 @@ class TestLogBatcherDBSCAN(unittest.TestCase):
         self.assertEqual(len(sampled), 2)
         self.assertEqual(sampled[0]["message"], "hello world")
         self.assertEqual(sampled[1]["message"], "hello world")
+
+    def test_similar_sampler_and_random_sampler_accept_time_kwargs(self):
+        # Regression test: parser.py always calls sampler.sample(logs, time_limit=..., start_time=...)
+        # regardless of configured sampler type. SimilarSampler/RandomSampler previously didn't
+        # accept those kwargs, so any real run with sampler: "SimilarSampler" (or "RandomSampler")
+        # crashed with TypeError on the first cache-miss cluster.
+        from component_3_unified_parser.core.logbatcher.sample import SimilarSampler, RandomSampler
+        logs = [{"message": f"log entry {i}"} for i in range(5)]
+
+        similar = SimilarSampler(batch_size=2)
+        result = similar.sample(logs, time_limit=100, start_time=time.perf_counter())
+        self.assertEqual(len(result), 2)
+
+        rand = RandomSampler(batch_size=2)
+        result = rand.sample(logs, time_limit=100, start_time=time.perf_counter())
+        self.assertEqual(len(result), 2)
+
+    def test_dpp_sampler_all_short(self):
+        from component_3_unified_parser.core.logbatcher.sample import DPPSampler
+        mock_client = MagicMock()
+        mock_client.get_embedding.side_effect = [
+            [1.0, 0.0], [0.0, 1.0], [1.0, 0.1], [0.0, 0.9]
+        ]
+        sampler = DPPSampler(mock_client, batch_size=2, embedding_length_threshold=4000)
+        logs = [{"message": f"short log {i}"} for i in range(4)]
+
+        result = sampler.sample(logs)
+
+        self.assertEqual(mock_client.get_embedding.call_count, 4)
+        self.assertEqual(len(result), 2)
+
+    def test_dpp_sampler_all_long_skips_embedding(self):
+        from component_3_unified_parser.core.logbatcher.sample import DPPSampler
+        mock_client = MagicMock()
+        mock_client.get_embedding.side_effect = AssertionError("get_embedding should not be called for long logs")
+        sampler = DPPSampler(mock_client, batch_size=2, embedding_length_threshold=1)
+        logs = [{"message": f"this is a long log entry number {i}"} for i in range(4)]
+
+        result = sampler.sample(logs)
+
+        mock_client.get_embedding.assert_not_called()
+        self.assertEqual(len(result), 2)
+
+    def test_dpp_sampler_mixed_fills_remainder(self):
+        from component_3_unified_parser.core.logbatcher.sample import DPPSampler
+        mock_client = MagicMock()
+        mock_client.get_embedding.return_value = [1.0, 0.0]
+        # Threshold picks out exactly the one short log; the rest are long.
+        sampler = DPPSampler(mock_client, batch_size=3, embedding_length_threshold=5)
+        short_log = {"message": "short"}
+        long_logs = [{"message": f"a much longer log entry number {i}"} for i in range(4)]
+        logs = [short_log] + long_logs
+
+        result = sampler.sample(logs)
+
+        self.assertEqual(mock_client.get_embedding.call_count, 1)
+        self.assertEqual(len(result), 3)
+        self.assertIn(short_log, result)
+
+    def test_dpp_sampler_embedding_failure_routes_to_jaccard(self):
+        from component_3_unified_parser.core.logbatcher.sample import DPPSampler
+        mock_client = MagicMock()
+        mock_client.get_embedding.side_effect = Exception("simulated transient API error")
+        sampler = DPPSampler(mock_client, batch_size=2, embedding_length_threshold=4000)
+        logs = [{"message": f"short log {i}"} for i in range(4)]
+
+        with patch('component_3_unified_parser.core.logbatcher.sample.np.random.rand') as mock_rand:
+            result = sampler.sample(logs)
+            # The random-vector fallback must be gone: failed embeddings route to Jaccard instead.
+            mock_rand.assert_not_called()
+
+        self.assertEqual(len(result), 2)
+
+    def test_dpp_sampler_threshold_none_matches_legacy(self):
+        from component_3_unified_parser.core.logbatcher.sample import DPPSampler
+        mock_client = MagicMock()
+        mock_client.get_embedding.side_effect = [
+            [1.0, 0.0], [0.0, 1.0], [1.0, 0.1], [0.0, 0.9]
+        ]
+        sampler = DPPSampler(mock_client, batch_size=2, embedding_length_threshold=None)
+        logs = [
+            {"message": "short"},
+            {"message": "also short"},
+            {"message": f"a much longer log entry with lots of extra padding words here"},
+            {"message": f"another quite long log entry with additional padding content"}
+        ]
+
+        result = sampler.sample(logs)
+
+        # threshold=None disables length-based routing: every candidate is still attempted.
+        self.assertEqual(mock_client.get_embedding.call_count, 4)
+        self.assertEqual(len(result), 2)

@@ -18,7 +18,7 @@ class TestComponent2(unittest.TestCase):
         row_count = extract_dlq_logs('admin', 'tailscale_node', 'dummy_dlq.jsonl')
         
         mock_ssh.connect.assert_called_once_with(hostname='tailscale_node', username='admin')
-        mock_ssh.exec_command.assert_called_once_with("sudo cat /nsm/logstash/dead_letter_queue/main/*")
+        mock_ssh.exec_command.assert_called_once_with("sudo cat /nsm/logstash/dead_letter_queue/main/* /nsm/logstash/dead_letter_queue/search/*")
         mock_file.assert_called_once_with('dummy_dlq.jsonl', 'w', encoding='utf-8')
         self.assertEqual(row_count, 1)
 

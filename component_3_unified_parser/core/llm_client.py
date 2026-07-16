@@ -37,7 +37,8 @@ class OllamaClient:
         }
         self.model_name = model_map.get(model_choice.lower(), model_choice)
         self.embedding_model = config.get('logparser_llm', {}).get('embedding_model', 'nomic-embed-text')
-        
+        self.embedding_char_limit = 4000
+
         # Token and invocation tracking metrics
         self.invocations = 0
         self.prompt_tokens = 0
@@ -107,8 +108,17 @@ class OllamaClient:
             requests.exceptions.RequestException: If the request fails twice.
             KeyError: If the expected keys are missing from the response JSON.
         """
-        # Truncate text to 4000 characters to prevent exceeding context window limit
-        text = text[:4000] if text else ""
+        # Truncate to embedding_char_limit to prevent exceeding context window limit,
+        # trimming back to the last word boundary rather than cutting mid-token.
+        limit = self.embedding_char_limit
+        if text and len(text) > limit:
+            truncated = text[:limit]
+            last_space = truncated.rfind(' ')
+            if last_space > 0:  # guard: a single huge no-whitespace token keeps the hard cut
+                truncated = truncated[:last_space]
+            text = truncated
+        else:
+            text = text or ""
         if text in self.embedding_cache:
             return self.embedding_cache[text]
 
@@ -183,7 +193,7 @@ class OllamaClient:
                 "model": self.model_name,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 128
+                "max_tokens": 1024
             }
         else:
             if base_url_clean.endswith('/api'):
@@ -196,7 +206,7 @@ class OllamaClient:
                 "think": False,
                 "options": {
                     "temperature": temperature,
-                    "num_predict": 128
+                    "num_predict": 1024
                 }
             }
         for attempt in range(2):
