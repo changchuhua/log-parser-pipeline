@@ -121,10 +121,12 @@ log-parser-pipeline/
 │   │   ├── compiler.py               # Grok pattern compiler
 │   │   ├── validator.py              # Ingest pipeline simulator
 │   │   ├── es_client.py              # Elasticsearch API client
-│   │   └── salt_sftp.py              # SaltStack SFTP deployer
+│   │   ├── salt_sftp.py              # SaltStack SFTP deployer
+│   │   └── global_custom_wirer.py    # Idempotent merge logic for global@custom (pure function, no I/O)
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   └── main_deployer.py
+│   ├── main_deployer.py
+│   └── wire_global_custom.py         # Separate, explicit step: wires the deployed pipeline into global@custom
 ├── tests/                            # Unit & integration tests
 │   ├── mock_ollama/                  # Mock LLM server for E2E tests
 │   ├── test_component_*.py
@@ -205,6 +207,8 @@ Compiles parsed templates into Elasticsearch Grok ingest pipelines and deploys t
 - Pre-flight simulation via `/_ingest/pipeline/_simulate`.
 - Two-pronged deployment: Elasticsearch PUT API (immediate) + SFTP to SaltStack (persistent).
 - Idempotent: skips redundant redeployments.
+
+Registering a pipeline this way doesn't by itself make it apply to new incoming logs — a separate, explicitly-invoked script (`wire_global_custom.py`) wires the deployed pipeline into Security Onion's shared `global@custom` ingest pipeline, so logs the standard pipeline leaves uncategorized get routed through it automatically. Kept separate from the main deploy since `global@custom` is a Security-Onion-owned, cluster-wide resource — see `usage.md` §6.1–6.2 for the full mechanics, the required sudoers grant, and an important caveat: this script has been unit-tested but **not yet exercised against a live cluster**.
 
 ---
 

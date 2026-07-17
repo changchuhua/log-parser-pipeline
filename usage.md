@@ -266,6 +266,45 @@ Runs with `network_mode: host` (see Prerequisites) so it can reach `TAILSCALE_NO
 >
 > To test with a single hand-picked template (useful for debugging the compile → `/_simulate` → deploy flow without noise from a full run): write a one-line JSONL file with just `message` and `parsed_template` fields — e.g. `data/parsed/debug_single_template.jsonl` — and set `parsed_logs_path: "/app/data/parsed/debug_single_template.jsonl"`. Combine with `dry_run: true` to validate the Grok pattern against real Elasticsearch (via `/_simulate`) without actually deploying anything.
 
+### 6.1 Registering a pipeline is not the same as it applying to new logs
+
+`main_deployer.py` only registers `so_custom_ingest_pipeline` as a named resource in Elasticsearch (plus persisting the file via SaltStack) — it does **not** wire that pipeline into any live ingest chain. By itself, a freshly-deployed pipeline sits unused; nothing routes documents through it until something explicitly references it. Confirmed by direct investigation against a live cluster: neither Fleet-managed index templates nor any `default_pipeline`/`final_pipeline` setting anywhere in the cluster referenced it after a real deploy.
+
+The one confirmed-working way to make it apply to genuinely new incoming logs is `wire_global_custom.py` (§6.2 below) — a **separate, explicitly-invoked script**, not part of `main_deployer.py`'s default flow. It's kept separate deliberately: `global@custom` is a Security-Onion-owned, cluster-wide pipeline (it runs on nearly every document across nearly every data stream via a chain that both Fleet-integration pipelines and Security Onion's own native `syslog`/`common` pipeline converge on), a much larger blast radius than the isolated `so_custom_ingest_pipeline` `main_deployer.py` already manages. Folding it into every default deploy would mean every routine template push also re-touches that shared resource.
+
+> [!WARNING]
+> **`wire_global_custom.py` has not been exercised against a live Security Onion cluster.** It was developed and unit-tested (mocked Elasticsearch/SaltStack calls, `tests/test_component_5.py`'s `TestGlobalCustomWirer`/`TestSaltstackDeployerExactFilename`) while the reference SO box was offline. Run it with `dry_run: true` first and inspect the printed merged pipeline JSON carefully before a real run — this is genuinely unverified against a live cluster, not just "should work in theory, verified once."
+
+### 6.2 Component 5 — Wiring into live ingest (`wire_global_custom.py`)
+
+```bash
+docker compose run --rm component_5 python wire_global_custom.py
+```
+
+Fetches `global@custom`'s *current* definition from Elasticsearch, checks whether a `pipeline` processor already routes to the target pipeline (idempotent — a second run is a safe no-op, not a duplicate), and if not, appends one. Deliberately never hardcodes what Security Onion's own baseline processors in `global@custom` should look like — always reads the live definition and appends to it, so a future Security Onion update to that file isn't silently reverted by this script.
+
+If `global@custom` doesn't exist at all on the target cluster, the script refuses to create one from scratch and exits with an error — its baseline processors are Security-Onion-owned, and inventing a stripped-down replacement would be worse than doing nothing.
+
+Same two-pronged deployment pattern as `main_deployer.py`, with one critical difference in the persistence step: `global@custom` has **no `.json` extension** on disk (`so-elasticsearch-pipelines`, Security Onion's own pipeline-push script, uses the filename itself as the Elasticsearch pipeline name — a `.json` suffix would push to the wrong pipeline name entirely, `global@custom.json`). `salt_sftp.py` now has two methods: `deploy_persistently()` (unchanged, still appends `.json`, used by `main_deployer.py`) and `deploy_persistently_exact()` (new, uses the filename verbatim, used only by this script).
+
+Requires the same `.env` variables as `main_deployer.py` (§6 above), plus its own sudoers grant — **the existing `*.json` wildcard grant does not cover this file**:
+```
+# /etc/sudoers.d/so_deployer (add alongside the existing so_custom_ingest_pipeline grant)
+your_ssh_user ALL=(root) NOPASSWD: /bin/mv /tmp/global@custom /opt/so/saltstack/local/salt/elasticsearch/files/ingest/global@custom, /bin/chown elasticsearch\:elasticsearch /opt/so/saltstack/local/salt/elasticsearch/files/ingest/global@custom
+```
+Exact-match rather than wildcard, since `global@custom` is always the same literal filename (unlike `so_custom_ingest_pipeline`, whose filename varies with `deployer.pipeline_name`).
+
+`config.yaml`'s `deployer.global_custom` section controls this script specifically:
+
+| Key | Default | Description |
+|---|---|---|
+| `target_pipeline` | `""` (→ `deployer.pipeline_name`) | Which pipeline `global@custom` should route unmapped logs into. Blank uses the same pipeline `main_deployer.py` deploys. |
+| `condition` | `"ctx.event?.category == null"` | Painless `if` gate on the appended processor. The default mirrors Component 2's own definition of "unmapped" (`NOT _exists_:event.category`), so only logs the standard pipeline left uncategorized get routed through `target_pipeline` — already-parsed documents are untouched. |
+
+**Why this is the only reachable hook, not one option among several:** investigated directly against a live cluster. A per-index `final_pipeline` setting doesn't survive the data stream's ILM rollover (reverts silently). A competing higher-priority index template would need to faithfully replicate the existing template's entire settings/mappings/ILM-policy reference to avoid silently breaking them, and would permanently drift out of sync with Security Onion's own template on every SO update. `logs@custom` (the standard Fleet-integration extension point) is real and safe, but unreachable for logs arriving via Security Onion's native `syslog`/`common` pipeline — only Fleet-managed integration pipelines call it. `global@custom` is the one point both paths converge on.
+
+**This registered-but-unwired persistence gap is separate from another one:** even a successful `wire_global_custom.py` run only edits the *live* Elasticsearch pipeline immediately (Step A) and the SaltStack-managed file (Step B) for durability going forward. If a change to `global@custom` were ever made through the Elasticsearch API directly (bypassing this script entirely — e.g. an ad-hoc `PUT` for a one-off test), it would **not** survive Security Onion's own `so-elasticsearch-pipelines` script, which unconditionally re-pushes every file under `/opt/so/saltstack/local/salt/elasticsearch/files/ingest/` (including its own shipped `global@custom`) on every highstate. Always go through this script — never a bare API `PUT` — for any change intended to be permanent.
+
 ---
 
 ## 7. `.env` Reference

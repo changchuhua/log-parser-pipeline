@@ -50,3 +50,6 @@ deployer:
     tmp_dir: "/tmp/"
     destination_dir: "/opt/so/saltstack/local/salt/elasticsearch/files/ingest/"
     file_owner: "elasticsearch:elasticsearch"  # confirmed via `id elasticsearch` on the live SO box (uid/gid 930) — the "so-elasticsearch" user this defaulted to previously does not exist on this installation and made the SaltStack chown step fail
+  global_custom:  # used only by wire_global_custom.py, a separate opt-in step from the main deploy — see usage.md Component 5 section
+    target_pipeline: ""  # blank = use deployer.pipeline_name above; the pipeline global@custom should route unmapped logs into
+    condition: "ctx.event?.category == null"  # Painless "if" gate on the appended processor — mirrors Component 2's own definition of "unmapped" (NOT _exists_:event.category), so only logs the standard pipeline left uncategorized get routed through target_pipeline
