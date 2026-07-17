@@ -6,6 +6,8 @@ directories:
 extractor:
   batch_size: 5000
   lookback_time: now-24h
+  dataset_name: "securityonion"  # Component 2's output dataset folder; overrides directories.dataset_name for extract_so_logs.py only. Set to null/omit to fall back to directories.dataset_name.
+  dlq_use_sudo: false             # prefix the remote DLQ `cat` with sudo; leave false when the SSH user is in the `logstash` group (recommended), set true only if relying on a sudoers NOPASSWD grant instead
 llm:
   api_base: "http://ollama:11434/api"  # fallback only — OLLAMA_API_BASE in .env always wins when set; this only matters if main_parser.py runs without .env loaded (e.g. directly, outside `docker compose run`)
 logparser_llm:
@@ -40,10 +42,11 @@ evaluator:
 deployer:
   dry_run: false
   pipeline_name: "so_custom_ingest_pipeline"
+  parsed_logs_path: ""  # overrides the default /app/data/parsed/parsed_loghub_ecs.jsonl input path; leave blank ("") to use the default. Handy for pointing at a hand-picked single-template file for debugging without touching the real output — e.g. data/parsed/debug_single_template.jsonl.
   elasticsearch:
     port: 9200
     verify_certs: false
   saltstack:
     tmp_dir: "/tmp/"
     destination_dir: "/opt/so/saltstack/local/salt/elasticsearch/files/ingest/"
-    file_owner: "so-elasticsearch:so-elasticsearch"
+    file_owner: "elasticsearch:elasticsearch"  # confirmed via `id elasticsearch` on the live SO box (uid/gid 930) — the "so-elasticsearch" user this defaulted to previously does not exist on this installation and made the SaltStack chown step fail

@@ -23,10 +23,14 @@ def main():
     with open("/app/config.yaml", "r") as f:
         config = yaml.safe_load(f)
         
-    dry_run = config["deployer"]["dry_run"]
-    pipeline_name = config["deployer"]["pipeline_name"]
+    deployer_config = config["deployer"]
+    dry_run = deployer_config["dry_run"]
+    pipeline_name = deployer_config["pipeline_name"]
     
-    parsed_logs_file = "/app/data/parsed/parsed_loghub_ecs.jsonl"  # LLM Output
+    # Overridable so a single hand-picked template (or any alternate JSONL) can
+    # be pointed at directly for debugging, without touching the real
+    # data/parsed/parsed_loghub_ecs.jsonl output.
+    parsed_logs_file = deployer_config.get("parsed_logs_path") or "/app/data/parsed/parsed_loghub_ecs.jsonl"
     temp_pipeline_file = "/app/data/parsed/compiled_pipeline.json"  # Output target
     
     # 2. Compile raw templates to Ingest Pipeline Grok JSON
@@ -39,7 +43,7 @@ def main():
         sys.exit(1)
         
     # 3. Idempotency Check: Fetch currently deployed pipeline
-    es_deployer = ElasticsearchDeployer(config)
+    es_deployer = ElasticsearchDeployer(deployer_config)
     print("Checking if pipeline configuration has changed...")
     try:
         current_deployed = es_deployer.get_deployed_pipeline(pipeline_name)
@@ -81,7 +85,7 @@ def main():
         sys.exit(1)
         
     print(f"Running pre-flight simulation on Elasticsearch with sample log: '{sample_log}'...")
-    validator = IngestPipelineValidator(config)
+    validator = IngestPipelineValidator(deployer_config)
     try:
         validator.simulate_pipeline(pipeline_json, sample_log)
         print("Pre-flight Simulation Successful.")
@@ -99,7 +103,7 @@ def main():
     print(f"Step A: Immediate pipeline PUT to Elasticsearch successful.")
     
     # Prong B: Persistent Saltstack transfer
-    salt_deployer = SaltstackDeployer(config)
+    salt_deployer = SaltstackDeployer(deployer_config)
     salt_deployer.deploy_persistently(pipeline_name, temp_pipeline_file)
     print(f"Step B: Persistent pipeline configuration copied to Saltstack successfully.")
 

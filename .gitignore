@@ -21,6 +21,7 @@ __pycache__/
 target/
 data/
 report/
+claude_docs/
 
 report.pdf
 parser_implementation_comparison.md

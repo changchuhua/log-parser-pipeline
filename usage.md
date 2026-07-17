@@ -18,6 +18,9 @@ Practical instructions for running the pipeline — full end-to-end or one compo
   cp .env.example .env
   ```
 
+> [!NOTE]
+> Security Onion firewalls its Elasticsearch REST port (9200) by default — connections from outside its configured host groups are silently dropped rather than refused, which looks identical to a generic network/DNS problem from this side. To let the pipeline host (or its Tailscale subnet) reach it, on the Security Onion box go to **Advanced → Firewall → HostGroups → `elasticsearch_rest`**, add the pipeline host's IP/subnet, then **Synchronize firewall**. This gates Component 2's `extract_unmapped_logs()` Elasticsearch pull and *all* of Component 5 (`es_client.py`/`validator.py` both call the ES REST API directly to register and validate the ingest pipeline) — see their sections below. It does not gate Component 2's DLQ extraction or Component 5's SaltStack SFTP upload, since both of those go over Tailscale SSH rather than the ES REST port.
+
 ---
 
 ## 1. Full Pipeline (Docker Compose)
@@ -100,22 +103,42 @@ Requires these `.env` variables (templated in `.env.example` as blank placeholde
 
 If `TAILSCALE_NODE` is unset, DLQ extraction is skipped (logged as a warning, not an error). Same for `SO_IP`/`SO_USER`/`SO_PASS` and ES extraction — the two extraction paths are independent. If `TS_PASS` is unset or blank, `extract_dlq_logs()` connects without a password, falling back to Paramiko's default SSH-agent/key-file lookup.
 
-DLQ extraction reads both Logstash pipeline dead-letter directories over SSH: `/nsm/logstash/dead_letter_queue/main/*` and `/nsm/logstash/dead_letter_queue/search/*`.
+> [!NOTE]
+> `extract_unmapped_logs()` hits Elasticsearch's REST API directly and needs the pipeline host's subnet added to Security Onion's `elasticsearch_rest` firewall host group — see Prerequisites. DLQ extraction (`extract_dlq_logs()`) is unaffected, since it goes over Tailscale SSH rather than the ES REST port.
+
+DLQ extraction lists every Logstash pipeline's dead-letter directory over SSH via a wildcard (see note below on why this isn't a hardcoded list), reading only closed segments (`*.log` — the segment Logstash is actively appending to has a `*.log.tmp` suffix and is skipped), fetches each one's raw bytes individually, and decodes each through a vendored Go binary (see note below) rather than treating the binary segment format as plain text.
 
 Runs with `network_mode: host` (see Prerequisites) so it can reach `TAILSCALE_NODE` over the host's Tailscale interface.
 
-Output now lands in `data/processed/{dataset_name}/` (matching Component 1's layout, so Component 3 picks it up automatically with no manual move) as `so_dlq_logs.jsonl` and `unmapped_fallback_logs.jsonl`. Each record is wrapped with a `message` field and a dataset-prefixed `event.id` (`so_dlq_N` / `so_unmapped_N`), the same contract Component 3 expects from Component 1's ECS output.
+Output lands in `data/processed/{dataset_name}/` (matching Component 1's layout, so Component 3 picks it up automatically with no manual move) as `so_dlq_logs.jsonl` and `unmapped_fallback_logs.jsonl`. Each record is wrapped with a `message` field and a dataset-prefixed `event.id` (`so_dlq_N` / `so_unmapped_N`), the same contract Component 3 expects from Component 1's ECS output.
 
 > [!NOTE]
-> Logstash's dead-letter-queue segment files are a binary format, not plain JSON — raw `cat` output isn't guaranteed to be meaningful text. The wrapping above guarantees valid JSONL either way, but garbled DLQ content will show up as a garbled `message` value rather than a real log line. For a correct decode, drain the DLQ through Logstash's own `dead_letter_queue` input plugin (e.g. a pipeline that reads the DLQ and writes JSON to a file) and point extraction at that output instead of the raw segment files — that's a Security Onion / Logstash configuration change, not something this script can do by itself.
+> `dataset_name` here is `config.yaml`'s `extractor.dataset_name` if set, else it falls back to `directories.dataset_name`. Use the `extractor`-scoped key when you want Component 2 to pull into a different dataset folder than whatever Components 1/3/4/5 are currently pointed at, without having to flip the global setting back and forth.
 
 > [!NOTE]
-> The remote `cat` command runs via `sudo` over a non-interactive SSH exec — the SSH user needs passwordless (`NOPASSWD`) sudo rights for it on the Security Onion box, independent of whatever SSH auth method (key, agent, password, or Tailscale SSH) gets you logged in. If sudo prompts for a password interactively, this will hang or fail. Scope the sudoers entry to exactly the commands needed rather than granting blanket NOPASSWD access:
+> Logstash's dead-letter-queue segment files are a binary format (version byte + 32KB-block framing + a length-prefixed, CBOR-encoded event), not plain JSON. `extract_dlq_logs()` decodes them properly using [`logstash-dlq-decode`](https://github.com/saj/logstash-dlq-decode) (MIT, pinned to commit `078993e2` — no tagged releases exist — reviewed for safety and vendored into the Component 2 Docker image at `/usr/local/bin/logstash-dlq-decode` via a `golang:alpine` build stage), rather than reading raw bytes as if they were text.
+>
+> Two things fall out of how the format works: (1) the tool has to run **once per segment file**, never on concatenated bytes — each segment has its own version byte and block framing that would misalign across files, which is why extraction lists and fetches segments individually instead of using a single `cat {glob}`. (2) a segment that fails to decode (truncated mid-record — most likely because it's the one Logstash is still writing, though `*.log.tmp` files are already excluded from the listing) is logged as a warning and skipped, not fatal to the rest of the run.
+>
+> The decoded event lands in a Java/JRuby CBOR shape (`["org.logstash.ConvertedMap", {...}]`-style class-tagged pairs); `_unwrap_cbor_tagged()` strips that down to plain Python types, then the record's own `message` field becomes the output `message`, and the DLQ's own rejection reason (why Logstash couldn't index it) is carried through as `event.reason` alongside `event.id`/`event.dataset`.
+
+> [!NOTE]
+> The extractor reads `/nsm/logstash/dead_letter_queue/*/*` — a wildcard over every pipeline's DLQ subdirectory, not a hardcoded list of pipeline names. Security Onion installations don't agree on what those subdirectories are called (`main` vs `manager` have both been observed across different installs/versions), so hardcoding specific names silently misses data on whichever installations don't match the guess. Using a directory-level wildcard sidesteps that entirely — it picks up every pipeline's DLQ folder regardless of naming.
+
+> [!NOTE]
+> By default the remote `cat` runs **without** `sudo` (`config.yaml`'s `extractor.dlq_use_sudo: false`). The recommended setup is group-based read access: make the SSH user a member of whatever group owns the DLQ directories, so no privilege escalation capability is granted at all —
+> ```
+> ls -la /nsm/logstash/dead_letter_queue/          # confirm the owning group
+> sudo usermod -aG <that_group> your_ssh_user      # e.g. logstash
+> ```
+> Group membership is read at SSH session start, so a fresh `ssh`/pipeline connection picks it up immediately — no logout/login needed on an interactive shell for this to work, since the pipeline always opens a new connection per run anyway.
+>
+> If your host can't grant group access and you still need `sudo`, set `extractor.dlq_use_sudo: true` in `config.yaml`. This now needs NOPASSWD rights on **two** command shapes — the segment-listing `sh -c` and the per-file `cat` — which makes exact sudoers wildcard-matching considerably more fragile than a single command was:
 > ```
 > # /etc/sudoers.d/so_extractor
-> your_ssh_user ALL=(root) NOPASSWD: /bin/cat /nsm/logstash/dead_letter_queue/main/*, /bin/cat /nsm/logstash/dead_letter_queue/search/*
+> your_ssh_user ALL=(root) NOPASSWD: /bin/sh -c ls /nsm/logstash/dead_letter_queue/*/*.log 2>/dev/null, /bin/cat /nsm/logstash/dead_letter_queue/*/*
 > ```
-> Alternatively, skip sudo entirely by making the DLQ directories group-readable for the SSH user, if your Security Onion permission model allows it.
+> Before trusting this in an automated run, verify both non-interactively: `ssh your_ssh_user@host "sudo -n sh -c 'ls /nsm/logstash/dead_letter_queue/*/*.log 2>/dev/null'"` and `sudo -n cat` against one real segment path returned by that listing. `sudo -n` fails immediately instead of hanging on a password prompt if a NOPASSWD grant isn't matching correctly. Given this fragility, a wrapper script (e.g. `/usr/local/bin/so_dlq_list.sh` / `so_dlq_cat.sh`) with NOPASSWD granted on the exact script paths is more robust than trying to get the wildcard patterns to match cleanly — but honestly, group-based access (above) avoids this whole problem and is the tested, working path.
 
 `config.yaml`'s `extractor.batch_size` (default 5000) and `extractor.lookback_time` (default `now-24h`) control the Elasticsearch Scroll API query.
 
@@ -188,7 +211,7 @@ Each of these also gets copied into `data/archive/{dataset}/{model_used}/{method
 
 ## 6. Component 5 — Grok Ingest Deployer (`main_deployer.py`)
 
-No CLI flags. Compiles `data/parsed/parsed_loghub_ecs.jsonl` into a Grok ingest pipeline and deploys it.
+No CLI flags. Compiles `data/parsed/parsed_loghub_ecs.jsonl` (or `deployer.parsed_logs_path` if set — see below) into a Grok ingest pipeline and deploys it.
 
 `core/compiler.py`'s `TAG_TO_GROK` maps every category tag from all three `logparser_llm.categories_mode` options (`paper_10`, `ecs_10`, `ecs_3`) to a Grok macro, so the compiled pipeline works regardless of which mode produced the input templates. Any tag genuinely outside that set falls back to being left as literal text in the pattern (won't match real content at that position).
 
@@ -215,11 +238,15 @@ Plus these two, used for the SaltStack SFTP/SSH leg specifically (separate crede
 Runs with `network_mode: host` (see Prerequisites) so it can reach `TAILSCALE_NODE` over the host's Tailscale interface.
 
 > [!NOTE]
-> The remote `mv`/`chown` commands run via `sudo` over a non-interactive SSH exec — same requirement as Component 2: the SSH user needs passwordless (`NOPASSWD`) sudo rights on the Security Onion box. Scope the sudoers entry to the specific commands/paths rather than granting blanket access (adjust to match your `saltstack.tmp_dir`/`destination_dir`/`file_owner` config):
+> Component 5 talks to Security Onion over **two separate paths with two separate access requirements**: `es_client.py`/`validator.py` hit the Elasticsearch REST API directly (`https://{SO_IP}:9200`) to register and validate the ingest pipeline, which needs the pipeline host's subnet added to Security Onion's `elasticsearch_rest` firewall host group (see Prerequisites) — the same requirement as Component 2's ES pull. Separately, `salt_sftp.py` pushes the compiled pipeline file over Tailscale SSH/SFTP, which is unaffected by that firewall rule (different port, already covered by Tailscale). Both need to work for a deploy to succeed.
+
+> [!NOTE]
+> The remote `mv`/`chown` commands run via `sudo` over a non-interactive SSH exec — same requirement as Component 2: the SSH user needs passwordless (`NOPASSWD`) sudo rights on the Security Onion box. Scope the sudoers entry to the specific commands/paths rather than granting blanket access (adjust to match your `saltstack.tmp_dir`/`destination_dir`/`file_owner` config). Since sudoers matches the literal command text, the `chown` target here must match `file_owner` **exactly** — including across installations: a real test against a live SO box found no `so-elasticsearch` user at all, only a plain `elasticsearch` user/group (confirm with `id elasticsearch` — or whatever user your ES process actually runs as — on your own box rather than assuming):
 > ```
 > # /etc/sudoers.d/so_deployer
-> your_ssh_user ALL=(root) NOPASSWD: /bin/mv /tmp/*.json /opt/so/saltstack/local/salt/elasticsearch/files/ingest/*.json, /bin/chown so-elasticsearch\:so-elasticsearch /opt/so/saltstack/local/salt/elasticsearch/files/ingest/*.json
+> your_ssh_user ALL=(root) NOPASSWD: /bin/mv /tmp/*.json /opt/so/saltstack/local/salt/elasticsearch/files/ingest/*.json, /bin/chown elasticsearch\:elasticsearch /opt/so/saltstack/local/salt/elasticsearch/files/ingest/*.json
 > ```
+> If `file_owner` and this sudoers rule fall out of sync (e.g. after changing one but not the other), the failure mode differs by which side is wrong: a `chown` target unmatched by sudoers hangs/fails on "a password is required" (non-interactive sudo can't prompt); a `file_owner` naming a user that doesn't exist on the box at all fails with "invalid user" — both leave the file already moved into `saltstack.destination_dir` (the `mv` half of the compound command already succeeded) but with unintended ownership, needing a manual `chown` to correct.
 
 `config.yaml`'s `deployer` section controls behavior:
 
@@ -227,14 +254,17 @@ Runs with `network_mode: host` (see Prerequisites) so it can reach `TAILSCALE_NO
 |---|---|---|
 | `dry_run` | `false` | If `true`, compiles and validates the pipeline but skips the actual ES PUT / SFTP upload. |
 | `pipeline_name` | `"so_custom_ingest_pipeline"` | Name of the Elasticsearch ingest pipeline. |
+| `parsed_logs_path` | `""` (→ `/app/data/parsed/parsed_loghub_ecs.jsonl`) | Overrides the input JSONL path. Blank uses the default; set to any other path (e.g. a hand-picked single-record file) to debug the compile/simulate/deploy flow against one specific template without touching the real output. |
 | `elasticsearch.port` | `9200` | ES port. |
 | `elasticsearch.verify_certs` | `false` | TLS cert verification — see README §6 before enabling in production without a proper CA. |
 | `saltstack.tmp_dir` | `"/tmp/"` | Remote staging directory before the file is moved into place. |
 | `saltstack.destination_dir` | `/opt/so/saltstack/local/salt/elasticsearch/files/ingest/` | Final SaltStack ingest file location. |
-| `saltstack.file_owner` | `"so-elasticsearch:so-elasticsearch"` | Ownership applied to the uploaded file. |
+| `saltstack.file_owner` | `"elasticsearch:elasticsearch"` | Ownership applied to the uploaded file. Verify the actual owning user on your own SO box (`id elasticsearch`) rather than assuming — installations vary. |
 
 > [!NOTE]
-> The parsed-log input path (`/app/data/parsed/parsed_loghub_ecs.jsonl`) is currently hardcoded to the `loghub` dataset regardless of `directories.dataset_name` — if you're deploying from a `botsv3` run, copy/symlink the output to that path first.
+> The default parsed-log input path (`/app/data/parsed/parsed_loghub_ecs.jsonl`) is hardcoded to the `loghub` dataset regardless of `directories.dataset_name` — if you're deploying from a `botsv3` run, either copy/symlink the output to that path first, or point `parsed_logs_path` at the `botsv3` output directly.
+>
+> To test with a single hand-picked template (useful for debugging the compile → `/_simulate` → deploy flow without noise from a full run): write a one-line JSONL file with just `message` and `parsed_template` fields — e.g. `data/parsed/debug_single_template.jsonl` — and set `parsed_logs_path: "/app/data/parsed/debug_single_template.jsonl"`. Combine with `dry_run: true` to validate the Grok pattern against real Elasticsearch (via `/_simulate`) without actually deploying anything.
 
 ---
 
