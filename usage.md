@@ -405,7 +405,7 @@ All variables above ship in `.env.example` as blank placeholders except `OLLAMA_
 
 ### `deployer` (Component 5)
 
-See the table in §6 above.
+See the table in §6 above for `dry_run`/`pipeline_name`/`parsed_logs_path`/`elasticsearch.*`/`saltstack.*`, and §6.2 for `global_custom.*` (used only by `wire_global_custom.py`, not the main deploy).
 
 ---
 
