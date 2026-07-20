@@ -38,3 +38,24 @@ def build_wired_pipeline(current_pipeline_body: dict, target_pipeline: str, cond
     # idempotency-check re-PUT path).
     merged.pop("version", None)
     return merged, True
+
+
+def remove_wired_pipeline(current_pipeline_body: dict, target_pipeline: str) -> tuple[dict, bool]:
+    """Inverse of build_wired_pipeline(): strips any `pipeline` processor
+    routing to target_pipeline out of global@custom's current definition.
+
+    changed=False (idempotent no-op) if no such processor is present --
+    callers should skip the PUT/SFTP steps entirely in that case.
+    """
+    processors = list(current_pipeline_body.get("processors", []))
+    kept = [
+        p for p in processors
+        if not (isinstance(p, dict) and p.get("pipeline", {}).get("name") == target_pipeline)
+    ]
+    if len(kept) == len(processors):
+        return current_pipeline_body, False
+
+    reverted = dict(current_pipeline_body)
+    reverted["processors"] = kept
+    reverted.pop("version", None)
+    return reverted, True

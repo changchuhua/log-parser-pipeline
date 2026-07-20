@@ -272,8 +272,12 @@ Runs with `network_mode: host` (see Prerequisites) so it can reach `TAILSCALE_NO
 
 The one confirmed-working way to make it apply to genuinely new incoming logs is `wire_global_custom.py` (§6.2 below) — a **separate, explicitly-invoked script**, not part of `main_deployer.py`'s default flow. It's kept separate deliberately: `global@custom` is a Security-Onion-owned, cluster-wide pipeline (it runs on nearly every document across nearly every data stream via a chain that both Fleet-integration pipelines and Security Onion's own native `syslog`/`common` pipeline converge on), a much larger blast radius than the isolated `so_custom_ingest_pipeline` `main_deployer.py` already manages. Folding it into every default deploy would mean every routine template push also re-touches that shared resource.
 
-> [!WARNING]
-> **`wire_global_custom.py` has not been exercised against a live Security Onion cluster.** It was developed and unit-tested (mocked Elasticsearch/SaltStack calls, `tests/test_component_5.py`'s `TestGlobalCustomWirer`/`TestSaltstackDeployerExactFilename`) while the reference SO box was offline. Run it with `dry_run: true` first and inspect the printed merged pipeline JSON carefully before a real run — this is genuinely unverified against a live cluster, not just "should work in theory, verified once."
+> [!NOTE]
+> **`wire_global_custom.py` has been exercised against a live Security Onion cluster** — confirmed working end-to-end: idempotent merge against the live `global@custom` definition, pre-flight `/_simulate`, ES PUT, SaltStack persistence, and survival of a forced `sudo so-elasticsearch-pipelines` re-push (re-fetched afterward and the routing processor was still present). Still run `dry_run: true` first on any new cluster you point this at — it's proven against one live cluster, not a guarantee every SO installation's `global@custom` and sudoers setup will line up identically.
+>
+> Two real failure modes surfaced during that first live run, both now handled/documented:
+> - **Persistence can lag behind ES state.** The original idempotency check treated "ES already matches" as proof persistence had also succeeded, so a run that completed Step A (ES PUT) but failed Step B (SaltStack, e.g. a missing sudoers grant) would report "nothing to do" on retry and never actually finish persisting. Fixed: the idempotent-no-op path now still re-attempts Step B unconditionally, only skipping the redundant ES PUT (Step A).
+> - **Sudoers colon-escaping is not optional.** A live sudoers entry using `elasticsearch:elasticsearch` (unescaped) rather than `elasticsearch\:elasticsearch` failed with a sudoers syntax error, not a permissions error — confirms the escaping shown in the example below is a hard requirement, not defensive boilerplate.
 
 ### 6.2 Component 5 — Wiring into live ingest (`wire_global_custom.py`)
 
@@ -281,7 +285,9 @@ The one confirmed-working way to make it apply to genuinely new incoming logs is
 docker compose run --rm component_5 python wire_global_custom.py
 ```
 
-Fetches `global@custom`'s *current* definition from Elasticsearch, checks whether a `pipeline` processor already routes to the target pipeline (idempotent — a second run is a safe no-op, not a duplicate), and if not, appends one. Deliberately never hardcodes what Security Onion's own baseline processors in `global@custom` should look like — always reads the live definition and appends to it, so a future Security Onion update to that file isn't silently reverted by this script.
+Fetches `global@custom`'s *current* definition from Elasticsearch, checks whether a `pipeline` processor already routes to the target pipeline, and if not, appends one and PUTs it (Step A). Deliberately never hardcodes what Security Onion's own baseline processors in `global@custom` should look like — always reads the live definition and appends to it, so a future Security Onion update to that file isn't silently reverted by this script.
+
+Idempotent, but not a plain no-op on a repeat run: if ES already routes to the target pipeline, Step A (the PUT) is skipped, but **Step B (SaltStack persistence) always re-runs anyway** — ES state matching doesn't prove the file was successfully persisted on a prior run (see the sudoers/partial-failure note above), so a repeat run doubles as a safe way to confirm or repair persistence without touching the live pipeline again.
 
 If `global@custom` doesn't exist at all on the target cluster, the script refuses to create one from scratch and exits with an error — its baseline processors are Security-Onion-owned, and inventing a stripped-down replacement would be worse than doing nothing.
 
@@ -304,6 +310,18 @@ Exact-match rather than wildcard, since `global@custom` is always the same liter
 **Why this is the only reachable hook, not one option among several:** investigated directly against a live cluster. A per-index `final_pipeline` setting doesn't survive the data stream's ILM rollover (reverts silently). A competing higher-priority index template would need to faithfully replicate the existing template's entire settings/mappings/ILM-policy reference to avoid silently breaking them, and would permanently drift out of sync with Security Onion's own template on every SO update. `logs@custom` (the standard Fleet-integration extension point) is real and safe, but unreachable for logs arriving via Security Onion's native `syslog`/`common` pipeline — only Fleet-managed integration pipelines call it. `global@custom` is the one point both paths converge on.
 
 **This registered-but-unwired persistence gap is separate from another one:** even a successful `wire_global_custom.py` run only edits the *live* Elasticsearch pipeline immediately (Step A) and the SaltStack-managed file (Step B) for durability going forward. If a change to `global@custom` were ever made through the Elasticsearch API directly (bypassing this script entirely — e.g. an ad-hoc `PUT` for a one-off test), it would **not** survive Security Onion's own `so-elasticsearch-pipelines` script, which unconditionally re-pushes every file under `/opt/so/saltstack/local/salt/elasticsearch/files/ingest/` (including its own shipped `global@custom`) on every highstate. Always go through this script — never a bare API `PUT` — for any change intended to be permanent.
+
+### 6.3 Component 5 — Reverting the live-ingest wire (`unwire_global_custom.py`)
+
+```bash
+docker compose run --rm component_5 python unwire_global_custom.py
+```
+
+Exact inverse of `wire_global_custom.py`: fetches `global@custom`'s current definition, strips out the one `pipeline` processor routing to `target_pipeline` (via `core/global_custom_wirer.py`'s `remove_wired_pipeline()`, the symmetric counterpart to `build_wired_pipeline()`), and — if a matching processor was found — runs the same pre-flight `/_simulate` plus two-pronged ES PUT / SaltStack persist as the wire script. Purely subtractive: every other processor in `global@custom`, including any Security-Onion-added since the wire, is left exactly as currently deployed. Idempotent — if nothing routes to `target_pipeline`, it reports that and exits without touching anything.
+
+Same `.env` requirements and sudoers grant as `wire_global_custom.py` (§6.2) — no separate setup needed, it reuses the identical SaltStack persistence path (`deploy_persistently_exact()`).
+
+Confirmed working against a live cluster in a dry-run (`dry_run: true`, correctly reported "nothing to revert" against an unwired `global@custom`) but **not yet exercised as a real revert** — the live wire it was built to undo has stayed in place. Run `dry_run: true` first and inspect the printed reverted pipeline before a real revert, same caution as the wire script itself. No dedicated unit test coverage yet for `remove_wired_pipeline()` (the existing `tests/test_component_5.py` coverage is for the wire direction only).
 
 ---
 
@@ -405,7 +423,7 @@ All variables above ship in `.env.example` as blank placeholders except `OLLAMA_
 
 ### `deployer` (Component 5)
 
-See the table in §6 above for `dry_run`/`pipeline_name`/`parsed_logs_path`/`elasticsearch.*`/`saltstack.*`, and §6.2 for `global_custom.*` (used only by `wire_global_custom.py`, not the main deploy).
+See the table in §6 above for `dry_run`/`pipeline_name`/`parsed_logs_path`/`elasticsearch.*`/`saltstack.*`, and §6.2 for `global_custom.*` (used by both `wire_global_custom.py` and `unwire_global_custom.py` — §6.3 — not the main deploy).
 
 ---
 

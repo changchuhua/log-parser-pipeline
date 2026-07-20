@@ -70,37 +70,45 @@ def main():
     merged_body, changed = build_wired_pipeline(current_body, target_pipeline, condition)
 
     if not changed:
-        print(f"'{GLOBAL_CUSTOM_PIPELINE_NAME}' already routes to '{target_pipeline}'. Nothing to do.")
-        sys.exit(0)
+        # ES already matches, but that doesn't mean Step B (SaltStack
+        # persistence) previously succeeded -- e.g. a prior run could have
+        # completed Step A and then failed Step B (missing sudoers grant,
+        # SSH hiccup). Re-run persistence unconditionally rather than
+        # trusting ES state as a proxy for persisted state.
+        print(f"'{GLOBAL_CUSTOM_PIPELINE_NAME}' already routes to '{target_pipeline}'. Re-persisting to Saltstack to be sure Step B isn't lagging behind a prior partial run.")
+        merged_body = current_body
+    else:
+        print(f"Adding a processor to '{GLOBAL_CUSTOM_PIPELINE_NAME}' routing unmapped logs to '{target_pipeline}'.")
+        print(f"Condition: {condition}")
 
-    print(f"Adding a processor to '{GLOBAL_CUSTOM_PIPELINE_NAME}' routing unmapped logs to '{target_pipeline}'.")
-    print(f"Condition: {condition}")
-
-    # 3. Pre-flight simulation -- catch syntax errors before touching the live
-    # pipeline. Synthetic doc deliberately has no event.category, so the
-    # condition is exercised the same way a real unmapped log would hit it.
-    print("Running pre-flight simulation on Elasticsearch...")
-    validator = IngestPipelineValidator(deployer_config)
-    try:
-        validator.simulate_pipeline(merged_body, "synthetic test log for global@custom pre-flight simulation")
-        print("Pre-flight Simulation Successful.")
-    except Exception as e:
-        print(f"Pre-flight Simulation Failed: {e}", file=sys.stderr)
-        sys.exit(1)
+        # 3. Pre-flight simulation -- catch syntax errors before touching the
+        # live pipeline. Synthetic doc deliberately has no event.category, so
+        # the condition is exercised the same way a real unmapped log would
+        # hit it.
+        print("Running pre-flight simulation on Elasticsearch...")
+        validator = IngestPipelineValidator(deployer_config)
+        try:
+            validator.simulate_pipeline(merged_body, "synthetic test log for global@custom pre-flight simulation")
+            print("Pre-flight Simulation Successful.")
+        except Exception as e:
+            print(f"Pre-flight Simulation Failed: {e}", file=sys.stderr)
+            sys.exit(1)
 
     if dry_run:
-        print(f"[DRY-RUN] Would deploy the following merged '{GLOBAL_CUSTOM_PIPELINE_NAME}' pipeline:")
+        print(f"[DRY-RUN] Would deploy the following '{GLOBAL_CUSTOM_PIPELINE_NAME}' pipeline (persistence step only, ES unchanged):" if not changed else f"[DRY-RUN] Would deploy the following merged '{GLOBAL_CUSTOM_PIPELINE_NAME}' pipeline:")
         print(json.dumps(merged_body, indent=2))
         sys.exit(0)
 
     # 4. Two-pronged deployment, same pattern as main_deployer.py
-    # Prong A: immediate PUT
-    try:
-        es_deployer.deploy(GLOBAL_CUSTOM_PIPELINE_NAME, merged_body)
-        print(f"Step A: Immediate '{GLOBAL_CUSTOM_PIPELINE_NAME}' PUT to Elasticsearch successful.")
-    except Exception as e:
-        print(f"Step A failed: {e}", file=sys.stderr)
-        sys.exit(1)
+    # Prong A: immediate PUT -- skip if ES already matches, no need to PUT
+    # identical content.
+    if changed:
+        try:
+            es_deployer.deploy(GLOBAL_CUSTOM_PIPELINE_NAME, merged_body)
+            print(f"Step A: Immediate '{GLOBAL_CUSTOM_PIPELINE_NAME}' PUT to Elasticsearch successful.")
+        except Exception as e:
+            print(f"Step A failed: {e}", file=sys.stderr)
+            sys.exit(1)
 
     # Prong B: persistent SaltStack transfer, exact filename (no ".json"
     # suffix) -- so-elasticsearch-pipelines uses the filename itself as the
