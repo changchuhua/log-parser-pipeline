@@ -1,7 +1,9 @@
 """In-Context Learning (ICL) Template Extractor for LogParser-LLM.
 
-Computes log embeddings, extracts similar examples dynamically from a seed pool,
-and queries the Ollama client to extract templates with semantic categories.
+Selects similar examples dynamically from a seed pool via token Jaccard
+similarity (embeddings error out on long logs -- see
+parser_implementation_comparison.md), and queries the Ollama client to
+extract templates with semantic categories.
 """
 
 import re

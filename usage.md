@@ -334,7 +334,7 @@ Confirmed working against a live cluster in a dry-run (`dry_run: true`, correctl
 | `OLLAMA_TIMEOUT` | `90` | Component 3 | Per-request timeout, in seconds. |
 | `OLLAMA_EMBED_BASE` | same as `OLLAMA_API_BASE` | Component 3 | Optional — override only if embeddings are served from a different endpoint than chat completions. Not in `.env.example`; add it only if needed. |
 | `USE_CACHE` | `false` | Component 3 | Default for `--use-cache` if the flag isn't passed explicitly. |
-| `WRITE_CACHE` | `false` | Component 3 | Default for `--write-cache` if the flag isn't passed explicitly. |
+| `WRITE_CACHE` | `true` | Component 3 | Default for `--write-cache` if the flag isn't passed explicitly. |
 | `LLM_DEBUG` | `false` | Component 3 | Default for `--llm-debug` if the flag isn't passed explicitly. |
 | `TAILSCALE_NODE` | — | Components 2, 5 | Tailscale hostname of the Security Onion box (SSH target for both). |
 | `TS_USER` | `admin` | Components 2, 5 | SSH user for the Tailscale connection — DLQ extraction (Component 2) and SaltStack SFTP upload (Component 5). |
@@ -382,7 +382,11 @@ All variables above ship in `.env.example` as blank placeholders except `OLLAMA_
 | `icl_selection_strategy` | `"similarity"` | `"similarity"` (Jaccard top-k) or `"diversity"` (max-min diversity sampling). |
 | `loose_match_metric` | `"positional_uniform"` | `"positional_uniform"` (positional match ratio, closest to the paper), `"positional_decay"` (exponential-decay-weighted Jaccard), or `"jaccard"` (plain set-based Jaccard). |
 | `decay_factor` | `0.15` | Decay coefficient λ, only used by `"positional_decay"`. |
-| `merge_similarity_threshold` | `0.95` | Structural similarity required to merge two same-length templates during calibration. |
+| `merge_similarity_threshold` | `0.95` | Structural similarity required to merge two same-length templates during calibration, under `merge_mode: "production"`. |
+| `match_llm_mode` | `"production"` | `"production"` (default): a loose match, like a strict match, skips the LLM entirely — reuses the matched template verbatim, unverified. `"original"`: faithful port of the paper's Algorithm 1 — only a strict match skips the LLM; a loose/no match always queries it, then attempts an inline merge-check (via `merge_mode`'s mechanism) against whichever candidates the loose match identified. Real cost: the paper's own low LLM-call-count efficiency claim comes entirely from strict-match saturation, not from loose match skipping the LLM the way `"production"` does — expect substantially more LLM calls at scale (live-tested: ~19-20s/log once past the cache-warm prefix, several serial LLM calls per log). |
+| `merge_mode` | `"production"` | `"production"` (default): purely structural, same-token-count positional `<*>` substitution, no LLM. `"original"`: LLM-driven merge check+verify, adapted from the paper's Figure 6/7 prompts — compares template strings directly and is not restricted to same-token-count pairs. Only meaningful under `merge_prefilter_threshold` gating. |
+| `merge_prefilter_threshold` | `0.3` | Only applies under `merge_mode: "original"`. Cheap Jaccard token-overlap pre-filter gating which template pairs get an LLM merge-check call (2 prompts each) — bounds LLM volume instead of calling the LLM for every pair in the O(n²) calibration pass. |
+| `prompt_mode` | `"production"` | `"production"` (default): JSON output (`{"template":..., "variables":[...]}`). `"original"`: the paper's Figure 4 prompt — direct in-place `Parsed Log: ...` text substitution, no JSON. ECS mapping (our own feature, not in the paper) is preserved under `"original"` by reconstructing variables from the `(template, log)` pair instead of relying on the LLM to emit them. Includes a disclosed, non-paper anti-preamble instruction and validity check so local models that wrap the answer in conversational text fall back to the literal log line instead of leaking that text into the template. |
 
 > Removed: `embedding_model` used to be listed here, but this method's ICL retrieval uses plain token Jaccard similarity, never embeddings — the key was read into the shared `OllamaClient`'s default state but never actually consulted for an API call. Only `logbatcher.embedding_model` below is genuinely used, since LogBatcher is the only method that calls the embedding endpoint (`DPPSampler`).
 

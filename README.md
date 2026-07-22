@@ -133,7 +133,8 @@ log-parser-pipeline/
 │   ├── test_logparser_llm_enhancements.py
 │   ├── test_logbatcher_dbscan.py
 │   ├── test_batch_query_live.py
-│   └── test_visualizations.py
+│   ├── test_visualizations.py
+│   └── test_{logbatcher,logparser_llm,librelog}_original_*.py / *_memory_mode.py / *_regex_scoping.py  # production-vs-original fidelity-toggle coverage, one file per method
 ├── data/
 │   ├── raw/{dataset_name}/           # Ground truth CSVs
 │   ├── processed/{dataset_name}/     # Standardized ECS JSONL
@@ -177,9 +178,9 @@ Routes ECS logs through one of three parsing methods (selected via `--method` fl
 
 | Method | Architecture | Key Features |
 |---|---|---|
-| **LogParser-LLM** | Sequential prefix tree router | Strict/loose matching with configurable similarity metrics (`positional_uniform`, `positional_decay`, `jaccard`), adaptive few-shot ICL via embedding similarity, variable-aware prompting with 10 token categories, LRU tree pruning |
-| **LogBatcher** | Micro-batched clustering + DPP sampling | DBSCAN with precomputed Jaccard distances (default), streamed in volume/time-triggered micro-batches, DPP diversity sampling for representative batch queries, `OrderedDict` LRU cache, 3-tier noise fallback (cache → re-queue → regex mask) |
-| **LibreLog** | Drain grouping + reflection | Drain prefix tree pre-grouping, O(1) `DummyMemory` cache + O(log N) `RegexManager`, LLM reflection loops for self-correction, auto-conversion of regex to `<*>` templates |
+| **LogParser-LLM** | Sequential prefix tree router | Strict/loose matching with configurable similarity metrics (`positional_uniform`, `positional_decay`, `jaccard`), adaptive few-shot ICL via token Jaccard similarity (not embeddings — those error out on long/structured logs), variable-aware prompting with 10 token categories, LRU tree pruning, config-toggleable paper-faithful modes (`match_llm_mode`, `merge_mode`, `prompt_mode`) alongside the hardened production defaults |
+| **LogBatcher** | Micro-batched clustering + DPP sampling | DBSCAN with precomputed Jaccard distances (default), streamed in volume/time-triggered micro-batches, DPP diversity sampling for representative batch queries, `OrderedDict` LRU cache, 3-tier noise fallback (cache → re-queue → regex mask), seven config-toggleable upstream-faithful modes (`cache_mode`, `noise_mode`, `prompt_mode`, etc.) alongside the hardened production defaults |
+| **LibreLog** | Drain grouping + reflection | Drain prefix tree pre-grouping (byte-verified against upstream), `RegexTemplateManager` (the paper's own O(log N) template-memory mechanism, always active), LLM reflection loops for self-correction, auto-conversion of regex to `<*>` templates, config-toggleable `memory_mode` for the one production-only addition (an O(1) cross-run-persisted exact-match pre-filter in front of the paper's mechanism) |
 
 ### Component 4: Metric Evaluation
 Computes accuracy and efficiency metrics against ground truth:
@@ -215,7 +216,7 @@ Registering a pipeline this way doesn't by itself make it apply to new incoming 
 ## 4. Configuration
 
 ### `config.yaml`
-Central pipeline configuration. Key sections:
+Central pipeline configuration. Key sections below — see `usage.md` §8 for the full key-by-key reference, including every method's fidelity toggles:
 
 ```yaml
 directories:
