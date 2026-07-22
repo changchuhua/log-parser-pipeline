@@ -414,6 +414,7 @@ All variables above ship in `.env.example` as blank placeholders except `OLLAMA_
 
 | Key | Default | Description |
 |---|---|---|
+| `memory_mode` | `"production"` | `"production"` adds an exact-raw-string, cluster-level `cache_map` pre-filter in front of the paper's own template-memory mechanism, persisted across `--use-cache`/`--write-cache` runs. `"original"` disables that pre-filter, relying solely on the paper-faithful `RegexTemplateManager` (binary-search-by-token-count regex matching, already running unconditionally either way) — no cross-run persistence in this mode. |
 | `similarity_threshold` | `0.5` | Fallback Drain `st` (grouping similarity threshold) for any dataset name not covered by the built-in per-dataset `DATASET_SETTINGS` (16 LogHub sub-datasets). Datasets in that list (HDFS, BGL, Apache, etc.) still use their own tuned `st`/`depth` values regardless of this key. Matches the code's own hardcoded fallback, so this is a no-op at its default — set it explicitly to change grouping strictness for unlisted/custom dataset names. |
 | `max_memory_size` | `null` (unbounded) | Max entries kept in the LLM template memory (`DummyMemory`) before the oldest is evicted (FIFO). `null` matches the original unbounded behavior; set an integer to cap memory growth on long/large runs. |
 | `k_shots` | `3` | Number of representative logs sampled per cluster (`regex_sample`) for the LLM template-extraction prompt. |

@@ -14,8 +14,13 @@ def regex_timeout_handler(signum, frame):
     raise RegexTimeoutException("Regex matching execution timed out")
 
 def verify_one_regex_to_match_whole_log(log, regex):
-    log = log.replace(",", "")
-    regex = regex.replace(",", "")
+    # (Previously blanket-stripped every comma here, matching upstream -- same
+    # issue as llama_parser.py's template_to_regex()/verify_one_regex(): a
+    # comma can't be told apart from a structural field delimiter by string
+    # content alone, so stripping it merges adjacent JSON/CSV fields together.
+    # This is the cache-hit lookup path (RegexTemplateManager.find_matched_
+    # regex_template()) -- removed for consistency with the generation/
+    # self-reflection path, which no longer strips commas either.)
     regex = f'^{regex}$'
     
     old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)

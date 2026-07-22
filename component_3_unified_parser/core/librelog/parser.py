@@ -126,7 +126,18 @@ class LibreLogParser:
         settings = DATASET_SETTINGS.get(dataset_name, {"st": default_st, "depth": 4})
         self.st = settings["st"]
         self.depth = settings["depth"]
-        self.rex = GLOBAL_VARIABLE_RULES + DATASET_REGEXES.get(dataset_name, [])
+        # GLOBAL_VARIABLE_RULES exists to give unlisted/custom datasets (e.g.
+        # botsv3) *some* preprocessing, since they have no dedicated regex list
+        # of their own. It must NOT apply to the paper's own 16 tuned datasets --
+        # upstream's real call site (evaluator.py) only ever passes that dataset's
+        # own regex list, no global prepending. Applying a blanket generic-number
+        # mask (one of the 5 global rules) ahead of Drain changes what literal
+        # tokens Drain's own similarity/generalization logic sees, for datasets
+        # the paper explicitly tuned assuming that preprocessing wasn't there.
+        if dataset_name in DATASET_REGEXES:
+            self.rex = DATASET_REGEXES[dataset_name]
+        else:
+            self.rex = GLOBAL_VARIABLE_RULES + DATASET_REGEXES.get(dataset_name, [])
 
         self.llm_client = OllamaClient(config_path)
         self.regex_manager = RegexTemplateManager()
@@ -142,6 +153,19 @@ class LibreLogParser:
         )
         max_memory_size = librelog_config.get('max_memory_size', None)
         self.memory = DummyMemory(max_size=max_memory_size)
+
+        # memory_mode: "production" (default) adds an exact-raw-string, cluster-level
+        # cache_map in front of the paper's own mechanism, backed by DummyMemory so it
+        # persists across separate --use-cache/--write-cache invocations. "original" is
+        # the paper's actual Template Memory design (Section III.C): templates stored as
+        # regex patterns, sorted by token count, binary-searched -- which is
+        # RegexTemplateManager, and it already runs unconditionally inside
+        # LlamaParser.parse() via find_matched_regex_template(), self-contained (every
+        # verified template gets registered via add_regex_template()). The paper doesn't
+        # describe cross-process persistence -- its evaluation is a single continuous
+        # run -- so "original" mode disables cache_map entirely and relies solely on
+        # RegexTemplateManager, which starts empty each run regardless of --use-cache.
+        self.memory_mode = librelog_config.get('memory_mode', 'production')
 
         self.use_drain_backup = librelog_config.get('use_drain_backup', False)
         self.write_drain_backup = librelog_config.get('write_drain_backup', False)
@@ -162,8 +186,11 @@ class LibreLogParser:
         if start_time is None:
             start_time = time.perf_counter()
 
-        # Build in-memory cache lookup table from self.memory.memory
-        cache_map = {entry['raw_log']: entry['template'] for entry in self.memory.memory}
+        # Build in-memory cache lookup table from self.memory.memory. Empty and
+        # never populated under memory_mode == "original" -- see __init__ comment.
+        cache_map = {}
+        if self.memory_mode == 'production':
+            cache_map = {entry['raw_log']: entry['template'] for entry in self.memory.memory}
 
         # Keep a list of log IDs mapped to their messages
         from collections import defaultdict
@@ -273,16 +300,17 @@ class LibreLogParser:
                             'message': content,
                             'template': template
                         })
-                    # Add newly generated template back to cache map
-                    cache_map[content] = template
-                    # Add to memory (bounded FIFO) for cache writing
-                    words = content.split()
-                    gk_tuple = (len(words), tuple(words[:1]) if words else ())
-                    self.memory.add({
-                        'raw_log': content,
-                        'template': template,
-                        'group_key': gk_tuple
-                    })
+                    if self.memory_mode == 'production':
+                        # Add newly generated template back to cache map
+                        cache_map[content] = template
+                        # Add to memory (bounded FIFO) for cache writing
+                        words = content.split()
+                        gk_tuple = (len(words), tuple(words[:1]) if words else ())
+                        self.memory.add({
+                            'raw_log': content,
+                            'template': template,
+                            'group_key': gk_tuple
+                        })
                 logger.info(f"[{self.dataset_name}] Cluster {eventid}: LLM parsing phase completed successfully. Generated {len(res_list)} template mappings.")
                 parsed_count += len(group_logs)
             except Exception as e:

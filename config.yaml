@@ -42,11 +42,12 @@ logbatcher:
   dpp_kernel_mode: "original"  # "production" (LLM-embedding kernel, with length-threshold/Jaccard fallback for oversized/failed embeddings) or "original" (upstream's actual kernel source: TF-IDF vectors of the log text, cosine similarity -- no embedding calls, no fallback needed). Only affects sampler: "DPPSampler".
   batch_truncation_mode: "original" # "production" (send full sampled batch to LLM) or "original" (upstream's not_varibility() check: truncate a digit-only-variance batch to 3 logs before querying)
 librelog:
+  memory_mode: "production"    # "production" (default) adds an exact-raw-string, cluster-level cache_map in front of the paper's template memory, persisted across --use-cache/--write-cache runs via DummyMemory. "original" (paper-faithful, Section III.C "Template Memory"): disables cache_map entirely, relying solely on RegexTemplateManager's binary-search-by-token-count regex matching (already running unconditionally inside LlamaParser.parse() either way) -- no cross-run persistence, matching the paper's single-continuous-run design.
   similarity_threshold: 0.5
   max_memory_size: null  # null = unbounded; set an integer to cap and evict oldest entries (FIFO)
   k_shots: 3
   enable_reflection: true
-  use_drain_backup: false
+  use_drain_backup: true
   write_drain_backup: true
 evaluator:
   nrows: null
