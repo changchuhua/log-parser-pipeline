@@ -45,7 +45,7 @@ class LengthCluster(Cluster):
             partitions[key].append(log)
         return list(partitions.values())
 
-def get_clusterer(cluster_type, logs, threshold=0.8, vectorizer_type="binary", use_dynamic_eps=False):
+def get_clusterer(cluster_type, logs, threshold=0.8, vectorizer_type="binary", use_dynamic_eps=False, noise_mode="production"):
     """Factory method to get the specified clustering instance.
 
     Args:
@@ -54,6 +54,9 @@ def get_clusterer(cluster_type, logs, threshold=0.8, vectorizer_type="binary", u
         threshold (float): Similarity threshold for similarity clustering. Defaults to 0.8.
         vectorizer_type (str): Type of vectorization ('binary' or 'tfidf').
         use_dynamic_eps (bool): If True, adjust DBSCAN eps dynamically.
+        noise_mode (str): "production" or "original" -- see SimilarityCluster.
+            LengthCluster has no DBSCAN/noise concept at all, so this is
+            accepted but has no effect there.
 
     Returns:
         Cluster: Sub-class instance of Cluster.
@@ -65,6 +68,6 @@ def get_clusterer(cluster_type, logs, threshold=0.8, vectorizer_type="binary", u
         return LengthCluster(logs)
     elif cluster_type == "SimilarityCluster":
         from .additional_cluster import SimilarityCluster
-        return SimilarityCluster(logs, threshold, vectorizer_type, use_dynamic_eps)
+        return SimilarityCluster(logs, threshold, vectorizer_type, use_dynamic_eps, noise_mode)
     else:
         raise ValueError(f"Unknown cluster type: {cluster_type}")

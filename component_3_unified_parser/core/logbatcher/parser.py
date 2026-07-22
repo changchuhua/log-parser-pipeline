@@ -9,17 +9,50 @@ import time
 import yaml
 import json
 import os
+import signal
 import logging
 import collections
 from core.llm_client import OllamaClient
 from .cluster import get_clusterer
 from .parsing_cache import ParsingCache
-from .matching import match_log, template_to_regex
+from .original_cache import OriginalParsingCache
+from .matching import match_log, template_to_regex, RegexTimeoutException, regex_timeout_handler
 from .sample import get_sampler
 from .parsing_base import ParsingBase
-from .postprocess import match_and_prune
+from .postprocess import match_and_prune, apply_original_postprocessing, clean_template
 
 logger = logging.getLogger(__name__)
+
+def _guarded_cluster_match(pattern, local_cluster, timeout=1):
+    """Matches pattern against every log in local_cluster under a per-log
+    SIGALRM timeout, same mitigation already used by matching.py::match_log()
+    and original_cache.py::safe_search(). Root-caused via a live botsv3 hang
+    (2026-07-21): a BOTSv3 Zeek/SSL log's LLM-generated template captured a
+    21-element cipher-list array element-by-element, producing 95 separate
+    <*> placeholders; matching that regex against a cluster log whose shape
+    didn't align exactly forced catastrophic backtracking with no bound,
+    freezing the single-threaded pipeline indefinitely (reproduced offline:
+    still running after 10s). template_to_regex() now also collapses
+    delimiter-joined <*> runs (not just whitespace-joined ones) to keep this
+    rare in practice; this timeout is the backstop for whatever that doesn't
+    catch. Matches within the timeout are kept; a log that times out is
+    simply treated as unmatched.
+    """
+    matched = []
+    old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)
+    try:
+        for log in local_cluster:
+            signal.alarm(timeout)
+            try:
+                if pattern.match(log['message']):
+                    matched.append(log)
+            except RegexTimeoutException:
+                pass
+            finally:
+                signal.alarm(0)
+    finally:
+        signal.signal(signal.SIGALRM, old_handler)
+    return matched
 
 # Regex patterns for pre-masking obvious variables in noise logs (no LLM needed)
 VARIABLE_PATTERNS = [
@@ -83,6 +116,16 @@ def jaccard_similarity(tokens1, tokens2):
         return 0.0
     return len(set1.intersection(set2)) / union_len
 
+def not_varibility(logs):
+    """Faithful port of upstream LogBatcher's util.py::not_varibility().
+
+    True if a batch of log messages is identical once digits are stripped --
+    i.e. no real diversity besides numbers, so batch_truncation_mode="original"
+    truncates it rather than spending LLM budget on it.
+    """
+    stripped = [re.sub(r'\d+', '', log) for log in logs]
+    return len(set(stripped)) == 1
+
 class LogBatcher:
     """Zero-shot diverse log parser using mathematical sampling and caching."""
 
@@ -120,11 +163,51 @@ class LogBatcher:
             # default — get_embedding()'s truncation still needs a numeric cap.
             self.llm_client.embedding_char_limit = self.embedding_length_threshold
 
-        # Limit cache to 5000 entries
-        self.cache = ParsingCache(max_size=5000)
+        # cache_mode: "production" (default) is our own hardened LRU +
+        # Jaccard-reconciliation + regex-verify cache. "original" is a
+        # faithful port of upstream LogBatcher's prefix-tree + hash-exact-
+        # match cache with per-log matching -- see original_cache.py and
+        # parser_implementation_comparison.md Section 1.
+        self.cache_mode = lb_config.get('cache_mode', 'production')
+        if self.cache_mode == 'original':
+            self.cache = OriginalParsingCache()
+        else:
+            self.cache = ParsingCache(max_size=5000)  # Limit cache to 5000 entries
+
+        # postprocess_mode: "production" (default) keeps clean_template()'s
+        # markdown-stripping only. "original" additionally runs upstream's
+        # full correct_single_template() normalization cascade + the
+        # verify_template() degenerate-output gate on fresh LLM output.
+        self.postprocess_mode = lb_config.get('postprocess_mode', 'production')
+
+        # prompt_mode: "production" (default) is our worked-example prompt
+        # with direct <*> output. "original" is a faithful port of upstream's
+        # zero-shot, 15-type-taxonomy prompt with historical-variables
+        # grounding. Independent of postprocess_mode -- see parsing_base.py.
+        self.prompt_mode = lb_config.get('prompt_mode', 'production')
+        self._variable_candidates = []  # upstream's variable_candidates equivalent; only grows/used under prompt_mode="original"
+        # Disclosed adaptation, not upstream fidelity: upstream includes the
+        # *entire* unbounded variable_candidates list in every prompt with no
+        # cap. Benchmarked directly against real logs: LLM latency scales
+        # ~linearly with list size (1.0s @ 0 vars -> 15.2s @ 1000 vars), so
+        # since the list only grows over a run, cumulative time grows
+        # roughly quadratically with call count -- fine at the paper's
+        # original benchmark scale, not at a full-loghub (1.17M log) scale.
+        # None (default) = uncapped, exact upstream fidelity.
+        self.historical_variables_cap = lb_config.get('historical_variables_cap', None)
+
+        # batch_truncation_mode: "production" (default) sends the sampler's
+        # full output to the LLM. "original" truncates a digit-only-variance
+        # batch to 3 logs first (upstream's not_varibility() check).
+        self.batch_truncation_mode = lb_config.get('batch_truncation_mode', 'production')
+
+        similar_sampler_mode = lb_config.get('similar_sampler_mode', 'production')
+        dpp_kernel_mode = lb_config.get('dpp_kernel_mode', 'production')
         self.sampler = get_sampler(
             self.sampler_type, self.llm_client, self.batch_size,
-            embedding_length_threshold=self.embedding_length_threshold
+            embedding_length_threshold=self.embedding_length_threshold,
+            similar_sampler_mode=similar_sampler_mode,
+            dpp_kernel_mode=dpp_kernel_mode
         )
         self.parsing_base = ParsingBase(self.llm_client)
 
@@ -132,6 +215,14 @@ class LogBatcher:
         self.noise_max_retries = lb_config.get('noise_max_retries', 2)
         self._noise_retry_counts = {}  # log_id → retry count
         self._noise_buffer = []        # noise logs awaiting re-queue into next micro-batch
+
+        # noise_mode: "production" (default) leaves DBSCAN noise for
+        # _handle_noise_logs()'s 3-tier fallback below. "original" reassigns
+        # noise into new clusters inside SimilarityCluster itself (faithful
+        # port of upstream's reassign_clusters()) -- see additional_cluster.py
+        # and parser_implementation_comparison.md Section 1. LengthCluster
+        # ignores this (no noise concept).
+        self.noise_mode = lb_config.get('noise_mode', 'production')
 
     def parse(self, log_list, time_limit=None, start_time=None):
         """Parses a list of logs using a hybrid buffer DBSCAN clustering architecture.
@@ -232,7 +323,13 @@ class LogBatcher:
             log_id = log['id']
 
             # Tier 1: Cache match (free)
-            cached_template = match_log(self.cache, msg)
+            if self.cache_mode == 'original':
+                # OriginalParsingCache has no .cache list (production-only
+                # API) -- use its own match_event() instead.
+                template, _, _ = self.cache.match_event(msg)
+                cached_template = template if template != "NoMatch" else None
+            else:
+                cached_template = match_log(self.cache, msg)
             if cached_template:
                 parsed_results[log_id] = cached_template
                 counters['cache_hits'] += 1
@@ -286,11 +383,12 @@ class LogBatcher:
 
         # 1. Cluster the micro-batch
         clusterer = get_clusterer(
-            self.cluster_type, 
-            micro_batch, 
-            self.similarity_threshold, 
-            self.vectorizer_type, 
-            self.use_dynamic_eps
+            self.cluster_type,
+            micro_batch,
+            self.similarity_threshold,
+            self.vectorizer_type,
+            self.use_dynamic_eps,
+            noise_mode=self.noise_mode
         )
         local_clusters = clusterer.get_partitions()
 
@@ -329,6 +427,17 @@ class LogBatcher:
                 medoid_log = clusterer.get_medoid(local_cluster)
             else:
                 medoid_log = local_cluster[0]
+
+            if self.cache_mode == 'original':
+                # Faithful port of upstream's per-log cache.match_event() loop
+                # (see original_cache.py / parser_implementation_comparison.md
+                # Section 1) instead of our own medoid-level Jaccard
+                # reconciliation below.
+                self._process_local_cluster_original(
+                    local_cluster, medoid_log, parsed_results, counters, history,
+                    queue, time_limit, start_time
+                )
+                continue
 
             # 4. Global Reconciliation against cache medoids
             best_match = None
@@ -392,7 +501,24 @@ class LogBatcher:
         to make forward progress on this cluster.
         """
         sampled = self.sampler.sample(local_cluster, time_limit=time_limit, start_time=start_time)
-        generated_template = self.parsing_base.batch_query(sampled)
+        if self.batch_truncation_mode == 'original':
+            sampled = self._maybe_truncate_batch(sampled)
+        generated_template = self.parsing_base.batch_query(
+            sampled, prompt_mode=self.prompt_mode, historical_variables=self._get_historical_variables()
+        )
+        if generated_template and self.postprocess_mode == 'original':
+            generated_template = apply_original_postprocessing(generated_template, medoid_log['message'])
+        if generated_template:
+            # Always clean before any downstream use (matching, storage,
+            # variable extraction) -- prompt_mode="original" asks for
+            # backtick-delimited output, so the raw string can still carry
+            # backticks/markdown at this point even after postprocess_mode.
+            # match_and_prune() below does its own internal clean_template()
+            # for matching, but previously used the *uncleaned* string for
+            # parsed_results/cache.add, silently dormant under
+            # prompt_mode="production" (whose own prompt forbids markdown)
+            # but a real bug once prompt_mode="original" is in play.
+            generated_template = clean_template(generated_template)
 
         if generated_template:
             matched, pruned = match_and_prune(generated_template, local_cluster, self.cache)
@@ -402,6 +528,8 @@ class LogBatcher:
 
                 # Medoid message becomes reference log
                 self.cache.add(generated_template, medoid_log['message'])
+                if self.prompt_mode == 'original':
+                    self._update_variable_candidates(medoid_log['message'], generated_template)
 
                 counters['log_volume'] += len(matched)
                 counters['llm_invocations'] += 1
@@ -435,3 +563,185 @@ class LogBatcher:
                 'llm_invocations': counters['llm_invocations'],
                 'cache_hits': counters['cache_hits']
             })
+
+    def _process_local_cluster_original(self, local_cluster, medoid_log, parsed_results, counters, history, queue, time_limit, start_time):
+        """cache_mode == 'original': per-log matching against OriginalParsingCache,
+        mirroring upstream's get_responce() loop (logbatcher/parser.py) instead of
+        this repo's medoid-level Jaccard reconciliation.
+
+        Checks each log in the cluster against the cache in turn; the first log
+        with a cache hit determines the template used to split the cluster into
+        matched (recorded now) and unmatched (requeued), via template_to_regex --
+        same anchored-regex semantics as upstream's prune_from_cluster. If no log
+        gets a cache hit, or the hit's regex-verified match is empty (the same
+        lexical-vs-structural disagreement risk fixed for the production path in
+        _process_micro_batch), falls through to a fresh LLM query on the whole
+        cluster, guaranteeing forward progress.
+        """
+        matched_template = None
+        for log in local_cluster:
+            template, _, _ = self.cache.match_event(log['message'])
+            if template != "NoMatch":
+                matched_template = template
+                break
+
+        if matched_template is not None:
+            try:
+                pattern = template_to_regex(matched_template)
+                matched = _guarded_cluster_match(pattern, local_cluster)
+            except Exception:
+                matched = []
+
+            if matched:
+                matched_ids = {log['id'] for log in matched}
+                unmatched = [log for log in local_cluster if log['id'] not in matched_ids]
+
+                for log in matched:
+                    parsed_results[log['id']] = matched_template
+
+                counters['log_volume'] += len(matched)
+                counters['cache_hits'] += len(matched)
+                history.append({
+                    'log_volume': counters['log_volume'],
+                    'llm_invocations': counters['llm_invocations'],
+                    'cache_hits': counters['cache_hits']
+                })
+
+                if unmatched:
+                    queue.append(unmatched)
+                return
+
+        # No log in the cluster got a cache hit, or the hit didn't survive
+        # regex verification -- fresh LLM query on the whole cluster.
+        sampled = self.sampler.sample(local_cluster, time_limit=time_limit, start_time=start_time)
+        if self.batch_truncation_mode == 'original':
+            sampled = self._maybe_truncate_batch(sampled)
+        generated_template = self.parsing_base.batch_query(
+            sampled, prompt_mode=self.prompt_mode, historical_variables=self._get_historical_variables()
+        )
+        if generated_template and self.postprocess_mode == 'original':
+            generated_template = apply_original_postprocessing(generated_template, medoid_log['message'])
+        if generated_template:
+            # See _process_cache_miss()'s equivalent comment: this path never
+            # ran the LLM output through anything backtick-aware at all, so
+            # skipping this would make prompt_mode="original" (which asks for
+            # backtick-delimited output) always fail to match here.
+            generated_template = clean_template(generated_template)
+
+        if generated_template:
+            try:
+                pattern = template_to_regex(generated_template)
+                matched = _guarded_cluster_match(pattern, local_cluster)
+            except Exception:
+                matched = []
+
+            if matched:
+                matched_ids = {log['id'] for log in matched}
+                pruned = [log for log in local_cluster if log['id'] not in matched_ids]
+
+                for log in matched:
+                    parsed_results[log['id']] = generated_template
+
+                # Matches upstream's real call site (parsing_base.py): insert=False
+                # with relevant_templates left at its default [] -- the LCS-merge
+                # branch is unreachable there and here alike, by design; see
+                # parser_implementation_comparison.md Section 1.
+                self.cache.add_templates(
+                    event_template=generated_template, insert=False,
+                    refer_log=medoid_log['message']
+                )
+                if self.prompt_mode == 'original':
+                    self._update_variable_candidates(medoid_log['message'], generated_template)
+
+                counters['log_volume'] += len(matched)
+                counters['llm_invocations'] += 1
+                history.append({
+                    'log_volume': counters['log_volume'],
+                    'llm_invocations': counters['llm_invocations'],
+                    'cache_hits': counters['cache_hits']
+                })
+
+                if pruned:
+                    queue.append(pruned)
+            else:
+                logger.warning("Generated template failed to match any logs in local cluster. Falling back to raw messages.")
+                for log in local_cluster:
+                    parsed_results[log['id']] = log['message']
+
+                counters['log_volume'] += len(local_cluster)
+                counters['llm_invocations'] += 1
+                history.append({
+                    'log_volume': counters['log_volume'],
+                    'llm_invocations': counters['llm_invocations'],
+                    'cache_hits': counters['cache_hits']
+                })
+        else:
+            for log in local_cluster:
+                parsed_results[log['id']] = log['message']
+
+            counters['log_volume'] += len(local_cluster)
+            history.append({
+                'log_volume': counters['log_volume'],
+                'llm_invocations': counters['llm_invocations'],
+                'cache_hits': counters['cache_hits']
+            })
+
+    def _maybe_truncate_batch(self, sampled):
+        """batch_truncation_mode == 'original': faithful port of upstream's
+        Cluster.batching() min_size truncation -- if the sampled batch is
+        identical once digits are stripped (not_varibility()), there's no
+        real diversity to show the LLM beyond numbers, so truncate to 3
+        (upstream's min_size default) instead of spending full batch budget.
+        """
+        if len(sampled) <= 3:
+            return sampled
+        messages = [log.get('message', '') for log in sampled]
+        if not_varibility(messages):
+            return sampled[:3]
+        return sampled
+
+    def _get_historical_variables(self):
+        """Returns the historical_variables to pass into the next prompt --
+        the full list if historical_variables_cap is None (uncapped, upstream
+        fidelity), otherwise the most recent N entries. Called fresh at each
+        cache-miss LLM query, not cached, since self._variable_candidates
+        keeps growing throughout the run."""
+        if self.historical_variables_cap is None:
+            return self._variable_candidates
+        return self._variable_candidates[-self.historical_variables_cap:]
+
+    def _update_variable_candidates(self, refer_log, template):
+        """prompt_mode == 'original': faithful port of vars.py::vars_update(),
+        reusing template_to_regex() instead of a duplicate extract_variables()
+        implementation -- its capture groups already give the matched
+        variable values directly. Grows self._variable_candidates, fed back
+        into future prompts as historical-variables grounding.
+
+        Upstream's own vars_update() does `var not in candidates` against its
+        full unbounded candidates list -- an O(n) scan repeated on every
+        successful LLM call. At full-dataset scale this list grows into the
+        thousands and the scan cost compounds into the same quadratic
+        slowdown historical_variables_cap was meant to fix (that cap only
+        bounded the slice sent to the prompt, not this membership check or
+        the list's own growth). When historical_variables_cap is set, trim
+        the underlying list itself to match, keeping both the scan and the
+        prompt payload bounded.
+        """
+        old_handler = signal.signal(signal.SIGALRM, regex_timeout_handler)
+        signal.alarm(1)
+        try:
+            match = template_to_regex(template).match(refer_log)
+            values = match.groups() if match else ()
+        except Exception:
+            values = ()
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
+        for val in values:
+            val = re.sub(r'^\((.*)\)$|^\[(.*)\]$', r'\1\2', val)
+            if (val and val not in self._variable_candidates
+                    and not val.isdigit() and not val.isalpha()
+                    and len(val.split()) <= 3):
+                self._variable_candidates.append(val)
+        if self.historical_variables_cap is not None and len(self._variable_candidates) > self.historical_variables_cap:
+            self._variable_candidates = self._variable_candidates[-self.historical_variables_cap:]

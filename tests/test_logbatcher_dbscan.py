@@ -7,6 +7,14 @@ from unittest.mock import MagicMock, patch
 from component_3_unified_parser.core.logbatcher.parser import LogBatcher, jaccard_similarity
 from component_3_unified_parser.core.logbatcher.additional_cluster import SimilarityCluster
 from component_3_unified_parser.core.logbatcher.parsing_cache import ParsingCache
+import component_3_unified_parser.core.logbatcher.parser as logbatcher_parser_module
+
+# @patch('core.logbatcher.parser.X') resolves to a *separate* duplicate
+# module instance in this repo's dual-pythonpath test setup
+# (component_3_unified_parser is on sys.path both directly and via the
+# repo-root dotted import) -- it silently never touches the LogBatcher class
+# actually under test here. @patch.object(logbatcher_parser_module, 'X')
+# targets the real, correctly-resolved module object instead.
 
 class TestLogBatcherDBSCAN(unittest.TestCase):
     def setUp(self):
@@ -83,9 +91,9 @@ class TestLogBatcherDBSCAN(unittest.TestCase):
         self.assertIn("t4", cache._data)
         self.assertIn("t5", cache._data)
 
-    @patch('core.logbatcher.parser.OllamaClient')
-    @patch('core.logbatcher.parser.get_sampler')
-    @patch('core.logbatcher.parser.ParsingBase')
+    @patch.object(logbatcher_parser_module, 'OllamaClient')
+    @patch.object(logbatcher_parser_module, 'get_sampler')
+    @patch.object(logbatcher_parser_module, 'ParsingBase')
     def test_hybrid_trigger(self, mock_parsing_base_class, mock_get_sampler, mock_ollama_client_class):
         # Mock LLM and Sampler components
         mock_client = MagicMock()
@@ -114,9 +122,9 @@ class TestLogBatcherDBSCAN(unittest.TestCase):
         results = parser.parse(logs)
         self.assertEqual(len(results), 4)
 
-    @patch('core.logbatcher.parser.OllamaClient')
-    @patch('core.logbatcher.parser.get_sampler')
-    @patch('core.logbatcher.parser.ParsingBase')
+    @patch.object(logbatcher_parser_module, 'OllamaClient')
+    @patch.object(logbatcher_parser_module, 'get_sampler')
+    @patch.object(logbatcher_parser_module, 'ParsingBase')
     def test_noise_quarantine(self, mock_parsing_base_class, mock_get_sampler, mock_ollama_client_class):
         # Mock LLM components
         mock_client = MagicMock()

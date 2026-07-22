@@ -1,5 +1,5 @@
 directories:
-  dataset_name: "loghub"
+  dataset_name: "botsv3"
   input_dir: data/raw
   output_dir: data/processed
   cache_dir: data/cache
@@ -13,12 +13,16 @@ llm:
 logparser_llm:
   k_shots: 3
   loose_match_threshold: 0.8
+  match_llm_mode: "production"    # "production" (a loose match, like a strict match, skips the LLM entirely -- reuses the matched template verbatim, unverified) or "original" (faithful port of the paper's Algorithm 1: only a strict match skips the LLM; a loose/no match always queries it, then attempts an inline merge-check against whichever candidates the loose match identified via merge_mode's mechanism). Real efficiency cost under "original": the paper's own low LLM-call-count efficiency claim comes entirely from strict-match saturation, not from loose match skipping the LLM the way "production" does -- expect substantially more LLM calls at scale. Test bounded before trusting at full-dataset scale.
   categories_mode: "paper_10"     # Options: "ecs_10", "paper_10", "ecs_3"
   calibration_file: "" # Provide 32 ground-truth examples here to enable LogParser-LLM-C
   icl_selection_strategy: "similarity" # Options: "similarity", "diversity"
   loose_match_metric: "positional_uniform" # Options: "positional_decay", "positional_uniform", "jaccard"
   decay_factor: 0.15              # Decay coefficient lambda
   merge_similarity_threshold: 0.95
+  merge_mode: "original"        # "production" (purely structural, same-token-count positional <*> substitution, no LLM) or "original" (LLM-driven merge check+verify, adapted from the paper's Figure 6/7 prompts -- compares template strings directly since raw logs aren't retained per cluster, and is NOT restricted to same-token-count pairs like "production" is, closing that specific documented gap). Only meaningful under merge_prefilter_threshold gating.
+  merge_prefilter_threshold: 0.3  # Only applies under merge_mode: "original". Cheap Jaccard token-overlap pre-filter gating which template pairs get an LLM merge-check call (2 prompts each) -- bounds LLM volume the same way historical_variables_cap bounded LogBatcher's blowup, instead of calling the LLM for every pair in the O(n^2) calibration pass.
+  prompt_mode: "production"       # "production" (JSON output: {"template":..., "variables":[...]}) or "original" (paper's Figure 4 prompt: direct in-place "Parsed Log: ..." text substitution, no JSON). ECS mapping (our own feature, not in the paper) is preserved under "original" by reconstructing variables from the (template, log) pair via the existing get_variables_from_example() instead of relying on the LLM to emit them.
 logbatcher:
   batch_size: 5
   sampler: "DPPSampler"          # "DPPSampler" or "SimilarSampler"
@@ -26,9 +30,17 @@ logbatcher:
   vectorizer: "tfidf"           # "binary" (Jaccard) or "tfidf" (Cosine)
   use_dynamic_eps: false         # scale DBSCAN eps dynamically
   noise_max_retries: 2           # max re-queues for noise logs before regex pre-mask
+  noise_mode: "original"       # "production" (3-tier fallback: cache match -> requeue -> regex pre-mask, no LLM, audited via quarantine.jsonl) or "original" (faithful port of upstream's reassign_clusters(): exact-tokenized-duplicate grouping into new DBSCAN clusters, which then flow through the normal sample/LLM/cache path like any other cluster -- no LLM-avoidance, no quarantine audit trail for these logs). Only affects cluster: "SimilarityCluster" -- LengthCluster has no noise concept.
   buffer_max_size: 10000         # micro-batch size fed to clustering/vectorization; matches upstream LogBatcher's chunk_size default
   embedding_model: "nomic-embed-text"
   embedding_length_threshold: 4000  # logs longer than this (chars) skip embedding entirely and use Jaccard diverse selection instead; null = always attempt embedding
+  cache_mode: "original"       # "production" (LRU + Jaccard reconciliation + regex-verify, our own hardened default) or "original" (faithful port of upstream LogBatcher's prefix-tree + hash-exact-match cache, per-log matching)
+  postprocess_mode: "original" # "production" (strip markdown only) or "original" (upstream's full correct_single_template() normalization cascade + verify_template() degenerate-output gate, rule-only fallback on the raw log)
+  prompt_mode: "original"      # "production" (worked-example prompt, direct <*> output) or "original" (upstream's zero-shot 15-type-taxonomy prompt with historical-variables grounding, {{}}/${} output convention converted back to <*>)
+  historical_variables_cap: 100  # Only applies under prompt_mode: "original". Upstream includes its ENTIRE unbounded variable_candidates list in every prompt -- benchmarked directly: LLM latency scales ~linearly with list size (1.0s @ 0 vars -> 15.2s @ 1000 vars), so cumulative run time grows roughly quadratically with call count over a long run. Also caps the underlying list itself (not just what's sent to the prompt) -- upstream's vars_update() does a `var not in candidates` linear scan against that same unbounded list on every successful LLM call, which compounds the same way and was still unbounded even with the prompt-facing slice capped (found via a live botsv3 run: throughput decayed 153.7 -> 16.0 logs/s over 2 hours). null = uncapped, exact upstream fidelity (fine at smaller scale, not at full-dataset scale).
+  similar_sampler_mode: "original" # "production" (medoid + Jaccard nearest-neighbor) or "original" (upstream's K-means-on-TF-IDF group_samples_clustering()). Only affects sampler: "SimilarSampler".
+  dpp_kernel_mode: "original"  # "production" (LLM-embedding kernel, with length-threshold/Jaccard fallback for oversized/failed embeddings) or "original" (upstream's actual kernel source: TF-IDF vectors of the log text, cosine similarity -- no embedding calls, no fallback needed). Only affects sampler: "DPPSampler".
+  batch_truncation_mode: "original" # "production" (send full sampled batch to LLM) or "original" (upstream's not_varibility() check: truncate a digit-only-variance batch to 3 logs before querying)
 librelog:
   similarity_threshold: 0.5
   max_memory_size: null  # null = unbounded; set an integer to cap and evict oldest entries (FIFO)

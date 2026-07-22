@@ -161,6 +161,45 @@ class PrefixTree:
             return best_cluster
         return None
 
+    def get_loose_match_candidates(self, log_tokens, top_n=3):
+        """Returns up to top_n templates that loosely matched log_tokens, sorted by
+        score descending -- unlike loose_match(), which collapses to a single
+        winner-or-None decision, this exposes the candidate set itself.
+
+        Used by main_parser.py's match_llm_mode="original" path: the paper's
+        Algorithm 1 always queries the LLM on a non-strict match, then attempts an
+        inline merge-check against whichever clusters the loose match identified as
+        candidates -- unlike match_llm_mode="production", where a loose match is
+        itself the final answer and no merge-check ever runs. Read-only: does not
+        update last_matched, since identifying a candidate isn't the same as using it.
+
+        Args:
+            log_tokens (list): Split log message tokens.
+            top_n (int): Maximum number of candidates to return.
+
+        Returns:
+            list[str]: Candidate templates, best-scoring first.
+        """
+        scored = []
+        for cluster in self.clusters:
+            template_tokens = cluster.split(' ')
+            if len(template_tokens) == len(log_tokens):
+                static_template_tokens = [t for t in template_tokens if not (t.startswith('<') and t.endswith('>'))]
+                static_log_tokens = [log_tokens[i] for i, t in enumerate(template_tokens) if not (t.startswith('<') and t.endswith('>'))]
+
+                if self.loose_match_metric == "positional_decay":
+                    score = weighted_jaccard_similarity(static_template_tokens, static_log_tokens, self.decay_factor)
+                elif self.loose_match_metric == "positional_uniform":
+                    score = positional_uniform_similarity(static_template_tokens, static_log_tokens)
+                else:
+                    score = jaccard_similarity(static_template_tokens, static_log_tokens)
+
+                if score > self.loose_match_threshold:
+                    scored.append((score, cluster))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [cluster for _, cluster in scored[:top_n]]
+
     def update_last_matched(self, template):
         """Updates the last_matched timestamp for a template's leaf node."""
         tokens = template.split(' ')

@@ -96,8 +96,9 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
                 logger.error(f"Error loading cache: {e}")
 
     llm_extractor = LLMExtractor(tree_router, icl_selection_strategy=icl_selection_strategy)
-    template_manager = TemplateManager(tree_router)
-    
+    template_manager = TemplateManager(tree_router, llm_client=llm_extractor.llm_client)
+    match_llm_mode = load_config().get('logparser_llm', {}).get('match_llm_mode', 'production')
+
     os.makedirs(output_dir, exist_ok=True)
     
     for in_file in input_files:
@@ -181,10 +182,35 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
                     continue
                     
                 tokens = log_message.split(' ')
-                
+
                 template = tree_router.strict_match(tokens)
                 if template:
                     cache_hits += 1
+                elif match_llm_mode == 'original':
+                    # Faithful port of the paper's Algorithm 1: a loose match is
+                    # NOT itself the final answer here (unlike match_llm_mode=
+                    # "production" below) -- only a strict match skips the LLM.
+                    # A loose/no match always queries it, then attempts an inline
+                    # merge-check against whichever candidates the loose match
+                    # identified, so a freshly-extracted template that's really
+                    # the same event as an existing near-miss cluster gets unified
+                    # instead of living on as a separate, near-duplicate entry.
+                    loose_candidates = tree_router.get_loose_match_candidates(tokens)
+                    template = llm_extractor.get_template(log_message, record)
+                    llm_invocations += 1
+                    for candidate in loose_candidates:
+                        if candidate == template:
+                            break
+                        unified = template_manager.try_merge_pair(template, candidate)
+                        if unified:
+                            # Both the fresh template and the loose-matched
+                            # candidate collapse into the unified one -- rebuild
+                            # is unnecessary since insert() already dedups by
+                            # exact string; stale entries get swept by the next
+                            # prune_to_capacity() pass via last_matched recency.
+                            tree_router.insert(unified)
+                            template = unified
+                            break
                 else:
                     template = tree_router.loose_match(tokens)
                     if template:
@@ -192,7 +218,7 @@ def run_logparser_llm(input_files, output_dir, use_cache=False, write_cache=Fals
                     else:
                         template = llm_extractor.get_template(log_message, record)
                         llm_invocations += 1
-                    
+
                 record['parsed_template'] = template
                 parsed_records[line_id] = record
                 
@@ -373,14 +399,31 @@ def main():
 
         if args.use_cache:
             os.makedirs(cache_dir, exist_ok=True)
-            cache_file = os.path.join(cache_dir, 'logbatcher_cache.json')
-            if os.path.exists(cache_file):
-                try:
-                    with open(cache_file, 'r', encoding='utf-8') as cf:
-                        parser_instance.cache.cache = json.load(cf)
-                    logger.info(f"Loaded {len(parser_instance.cache.cache)} cache entries for LogBatcher.")
-                except Exception as e:
-                    logger.error(f"Error loading LogBatcher cache: {e}")
+            if parser_instance.cache_mode == 'original':
+                cache_file = os.path.join(cache_dir, 'logbatcher_original_cache.json')
+                if os.path.exists(cache_file):
+                    try:
+                        with open(cache_file, 'r', encoding='utf-8') as cf:
+                            template_list = json.load(cf).get('template_list', [])
+                        # Replaying add_templates(insert=True) rebuilds template_tree
+                        # from scratch. hashing_cache (keyed by hashes of specific
+                        # historical logs) can't be meaningfully warm-started this
+                        # way and legitimately starts cold each run -- see
+                        # parser_implementation_comparison.md Section 1.
+                        for t in template_list:
+                            parser_instance.cache.add_templates(t, insert=True)
+                        logger.info(f"Loaded {len(template_list)} templates for LogBatcher (original cache mode).")
+                    except Exception as e:
+                        logger.error(f"Error loading LogBatcher original-mode cache: {e}")
+            else:
+                cache_file = os.path.join(cache_dir, 'logbatcher_cache.json')
+                if os.path.exists(cache_file):
+                    try:
+                        with open(cache_file, 'r', encoding='utf-8') as cf:
+                            parser_instance.cache.cache = json.load(cf)
+                        logger.info(f"Loaded {len(parser_instance.cache.cache)} cache entries for LogBatcher.")
+                    except Exception as e:
+                        logger.error(f"Error loading LogBatcher cache: {e}")
 
         start_time = time.perf_counter()
 
@@ -453,32 +496,56 @@ def main():
             logger.error(f"Error saving LogBatcher profile: {e}")
         
         if args.write_cache:
-            try:
-                cache_file = os.path.join(cache_dir, 'logbatcher_cache.json')
-                existing_entries = []
-                if os.path.exists(cache_file):
-                    try:
-                        with open(cache_file, 'r', encoding='utf-8') as cf:
-                            existing_entries = json.load(cf)
-                    except Exception as e:
-                        logger.error(f"Error loading existing LogBatcher cache for merge: {e}")
-                
-                merged_entries = list(existing_entries)
-                seen_templates = {entry['template'] for entry in merged_entries if 'template' in entry}
-                for entry in parser_instance.cache.cache:
-                    if entry.get('template') not in seen_templates:
-                        seen_templates.add(entry['template'])
-                        merged_entries.append({
-                            'template': entry['template'],
-                            'ref_log': entry['ref_log'],
-                            'frequency': entry['frequency']
-                        })
-                
-                with open(cache_file, 'w', encoding='utf-8') as cf:
-                    json.dump(merged_entries, cf, indent=4)
-                logger.info(f"Saved {len(merged_entries)} cache entries to cache.")
-            except Exception as e:
-                logger.error(f"Error saving LogBatcher cache: {e}")
+            if parser_instance.cache_mode == 'original':
+                try:
+                    cache_file = os.path.join(cache_dir, 'logbatcher_original_cache.json')
+                    existing_templates = []
+                    if os.path.exists(cache_file):
+                        try:
+                            with open(cache_file, 'r', encoding='utf-8') as cf:
+                                existing_templates = json.load(cf).get('template_list', [])
+                        except Exception as e:
+                            logger.error(f"Error loading existing LogBatcher original-mode cache for merge: {e}")
+
+                    seen = set(existing_templates)
+                    merged_templates = list(existing_templates)
+                    for t in parser_instance.cache.template_list:
+                        if t not in seen:
+                            seen.add(t)
+                            merged_templates.append(t)
+
+                    with open(cache_file, 'w', encoding='utf-8') as cf:
+                        json.dump({'template_list': merged_templates}, cf, indent=4)
+                    logger.info(f"Saved {len(merged_templates)} templates to cache (original cache mode).")
+                except Exception as e:
+                    logger.error(f"Error saving LogBatcher original-mode cache: {e}")
+            else:
+                try:
+                    cache_file = os.path.join(cache_dir, 'logbatcher_cache.json')
+                    existing_entries = []
+                    if os.path.exists(cache_file):
+                        try:
+                            with open(cache_file, 'r', encoding='utf-8') as cf:
+                                existing_entries = json.load(cf)
+                        except Exception as e:
+                            logger.error(f"Error loading existing LogBatcher cache for merge: {e}")
+
+                    merged_entries = list(existing_entries)
+                    seen_templates = {entry['template'] for entry in merged_entries if 'template' in entry}
+                    for entry in parser_instance.cache.cache:
+                        if entry.get('template') not in seen_templates:
+                            seen_templates.add(entry['template'])
+                            merged_entries.append({
+                                'template': entry['template'],
+                                'ref_log': entry['ref_log'],
+                                'frequency': entry['frequency']
+                            })
+
+                    with open(cache_file, 'w', encoding='utf-8') as cf:
+                        json.dump(merged_entries, cf, indent=4)
+                    logger.info(f"Saved {len(merged_entries)} cache entries to cache.")
+                except Exception as e:
+                    logger.error(f"Error saving LogBatcher cache: {e}")
         
         logger.info(f"Saving LogBatcher output to {output_csv}...")
         with open(output_csv, 'w', newline='', encoding='utf-8') as csvfile:
